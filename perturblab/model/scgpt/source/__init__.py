@@ -1,3 +1,4 @@
+# modified from https://github.com/bowang-lab/scGPT
 __version__ = "0.2.4"
 import logging
 import sys

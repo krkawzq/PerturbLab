@@ -1,3 +1,4 @@
+# modified from torchtext.vocab (https://github.com/pytorch/text)
 """
 Pure Python implementation of Vocab, replacing torchtext.vocab.Vocab.
 This implementation is compatible with scGPT and does not require torchtext.

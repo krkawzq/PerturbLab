@@ -11,10 +11,8 @@ import torch
 from typing_extensions import Self
 
 # Use our own torch_vocab implementation instead of torchtext
-from .. import torch_vocab
+from .. import logger, torch_vocab
 from ..torch_vocab import Vocab
-
-from .. import logger
 
 # from transformers.tokenization_utils import PreTrainedTokenizer
 # from transformers import AutoTokenizer, BertTokenizer

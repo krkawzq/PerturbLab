@@ -7,10 +7,10 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import numpy as np
 from anndata import AnnData
 from datasets import Dataset, load_dataset
-from ..tokenizer import GeneVocab
 from scipy.sparse import csr_matrix, spmatrix
 from typing_extensions import Literal, Self
 
+from ..tokenizer import GeneVocab
 from . import logger
 from .data import DataTable, MetaInfo
 from .setting import Setting

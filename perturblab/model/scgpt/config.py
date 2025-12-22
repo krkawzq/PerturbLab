@@ -1,7 +1,9 @@
-from ..configuration import ModelConfig
-from typing import Literal, Any
 import json
 import os
+from typing import Any, Literal
+
+from ..configuration import ModelConfig
+
 
 class scGPTConfig(ModelConfig):
     def __init__(
@@ -44,6 +46,9 @@ class scGPTConfig(ModelConfig):
         use_mod: bool = False,
         ntokens_mod: int | None = None,
         vocab_mod: Any | None = None,
+        max_seq_len: int | None = None,  # None = no length limit, use actual data length
+        batch_label_key: str = 'batch',
+        dab_weight: float = 1.0,
         
         **kwargs,
     ):
@@ -84,6 +89,9 @@ class scGPTConfig(ModelConfig):
         self.use_mod = use_mod
         self.ntokens_mod = ntokens_mod
         self.vocab_mod = vocab_mod
+        self.max_seq_len = max_seq_len
+        self.batch_label_key = batch_label_key
+        self.dab_weight = dab_weight
     
     def save(self, path: str):
         """

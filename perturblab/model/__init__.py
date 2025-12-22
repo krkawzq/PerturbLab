@@ -1,3 +1,3 @@
-from .base import PerturbationModel, download_from_huggingface
+from .base import PerturbationModel
 from .configuration import ModelConfig
-from .scgpt import scGPTModel, scGPTPerturbationModel, scGPTConfig
+from .scgpt import scGPTConfig, scGPTModel, scGPTPerturbationModel

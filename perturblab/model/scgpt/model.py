@@ -1,25 +1,27 @@
-import os
 import json
+import logging
+import os
+import time
+from typing import Dict, Literal, Optional, Union
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from typing import List, Union, Optional, Any, Dict, Literal
-from anndata import AnnData
-from tqdm import tqdm
 from torch.utils.data import DataLoader
-import anndata as ad
-import scanpy as sc
+from tqdm import tqdm
 
-from ..base import PerturbationModel, download_from_huggingface
-from .config import scGPTConfig
-from .source.tokenizer.gene_tokenizer import get_default_gene_vocab, GeneVocab, random_mask_value
-from .source.utils.util import map_raw_id_to_vocab_id, load_pretrained
-from .source.model import TransformerModel, TransformerGenerator
-from .source.loss import masked_mse_loss, criterion_neg_log_bernoulli
 from ...data import PerturbationData
-import logging
+from ...utils import download_from_huggingface
+from ..base import PerturbationModel
+from .config import scGPTConfig
+from .source.loss import criterion_neg_log_bernoulli, masked_mse_loss
+from .source.model import TransformerGenerator, TransformerModel
+from .source.tokenizer.gene_tokenizer import (GeneVocab,
+                                              get_default_gene_vocab,
+                                              random_mask_value)
+from .source.utils.util import load_pretrained
 
-logger = logging.getLogger('[perturblab.model.scgpt]')
+logger = logging.getLogger(__name__)
 
 
 class scGPTModel(PerturbationModel):
@@ -99,10 +101,16 @@ class scGPTModel(PerturbationModel):
             fast_transformer_backend=config.fast_transformer_backend,
             pre_norm=config.pre_norm,
         ).to(self.device)
-
-        # Loss criteria
-        self.criterion_dab = nn.CrossEntropyLoss()
-
+    
+    def train(self, mode: bool = True):
+        """Set the model to training mode."""
+        self.model.train(mode)
+        return self
+    
+    def eval(self):
+        """Set the model to evaluation mode."""
+        return self.train(False)
+    
     @classmethod
     def mask_values(
         cls, 
@@ -152,7 +160,7 @@ class scGPTModel(PerturbationModel):
             DataLoader or Dict[str, DataLoader] depending on return_split
         """
         import scipy.sparse
-        from torch.utils.data import TensorDataset, DataLoader
+        from torch.utils.data import DataLoader, TensorDataset
 
         gene_names = dataset.adata.var_names.tolist()
         gene_ids = [
@@ -160,7 +168,8 @@ class scGPTModel(PerturbationModel):
             for g in gene_names
         ]
 
-        max_len = self.config.max_seq_len if hasattr(self.config, 'max_seq_len') else len(gene_ids)
+        # Determine max sequence length: None = no limit (use all genes)
+        max_len = self.config.max_seq_len if self.config.max_seq_len is not None else len(gene_ids)
         if len(gene_ids) > max_len:
             logger.info(f"Truncating genes from {len(gene_ids)} to {max_len}")
             gene_ids = gene_ids[:max_len]
@@ -254,7 +263,7 @@ class scGPTModel(PerturbationModel):
             tensors_to_pack = [values_tensor]
             
             if self.config.use_batch_labels:
-                batch_label_key = getattr(self.config, 'batch_label_key', 'batch')
+                batch_label_key = self.config.batch_label_key
                 if batch_label_key in adata_subset.obs:
                     batch_labels = adata_subset.obs[batch_label_key].astype('category').cat.codes.values
                     tensors_to_pack.append(torch.tensor(batch_labels, dtype=torch.long))
@@ -381,8 +390,7 @@ class scGPTModel(PerturbationModel):
             # 5. DAB Loss
             if self.config.do_dab and "dab_output" in output_dict and "batch_labels" in batch_data:
                 loss_dab = self.criterion_dab(output_dict["dab_output"], batch_data["batch_labels"])
-                dab_weight = getattr(self.config, 'dab_weight', 1.0)
-                total_loss += loss_dab * dab_weight
+                total_loss += loss_dab * self.config.dab_weight
                 losses["loss_dab"] = loss_dab
             
         losses["loss"] = total_loss
@@ -439,6 +447,212 @@ class scGPTModel(PerturbationModel):
         else:
             raise ValueError(f"embedding_type must be 'cell' or 'gene', got {embedding_type}")
 
+    def train_model(
+        self,
+        dataset: PerturbationData,
+        epochs: int = 10,
+        batch_size: int = 32,
+        lr: float = 1e-4,
+        mask_ratio: float = 0.4,
+        mask_value: int = -1,
+        use_amp: bool = True,
+        grad_clip: float = 1.0,
+        log_interval: int = 100,
+        save_dir: Optional[str] = None,
+        save_interval: Optional[int] = None,
+        CLS: bool = False,
+        CCE: bool = False,
+        MVC: bool = False,
+        ECS: bool = False,
+        scheduler_step: int = 1,
+        scheduler_gamma: float = 0.99,
+        **kwargs
+    ):
+        """
+        Train the scGPT model.
+        
+        Args:
+            dataset: PerturbationData object with train/valid splits
+            epochs: Number of training epochs
+            batch_size: Batch size for training
+            lr: Learning rate
+            mask_ratio: Ratio of values to mask for MLM task
+            mask_value: Value to use for masking
+            use_amp: Whether to use automatic mixed precision
+            grad_clip: Gradient clipping threshold
+            log_interval: Log every N batches
+            save_dir: Directory to save checkpoints (if None, no saving)
+            save_interval: Save checkpoint every N batches (if None, save per epoch)
+            CLS: Whether to use CLS objective
+            CCE: Whether to use CCE objective
+            MVC: Whether to use MVC objective
+            ECS: Whether to use ECS objective
+            scheduler_step: Scheduler step size
+            scheduler_gamma: Scheduler gamma
+            **kwargs: Additional arguments
+            
+        Returns:
+            Training history dict
+        """
+        import warnings
+        from tqdm import tqdm
+        
+        # Prepare dataloaders
+        dataloaders = self.prepare_dataloader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            mask_ratio=mask_ratio,
+            mask_value=mask_value,
+            return_split=None  # Get all splits
+        )
+        
+        train_loader = dataloaders.get('train', dataloaders.get('all'))
+        valid_loader = dataloaders.get('valid', dataloaders.get('test', None))
+        
+        # Setup optimizer and scheduler
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, eps=1e-8)
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=scheduler_step, gamma=scheduler_gamma
+        )
+        scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
+        
+        # Training history
+        history = {
+            'train_loss': [],
+            'valid_loss': [],
+            'epoch_times': []
+        }
+        
+        logger.info(f"Starting training for {epochs} epochs")
+        logger.info(f"Train batches: {len(train_loader)}, Valid batches: {len(valid_loader) if valid_loader else 0}")
+        
+        for epoch in range(1, epochs + 1):
+            epoch_start_time = time.time()
+            
+            # Training
+            self.train()
+            total_loss = 0.0
+            num_batches = len(train_loader)
+            
+            with tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}") as pbar:
+                for batch_idx, batch_data in enumerate(pbar, 1):
+                    # Forward pass with AMP
+                    with torch.cuda.amp.autocast(enabled=use_amp):
+                        output_dict = self.forward(
+                            batch_data,
+                            CLS=CLS,
+                            CCE=CCE,
+                            MVC=MVC,
+                            ECS=ECS,
+                        )
+                        
+                        # Compute loss
+                        losses = self.compute_loss(
+                            batch_data,
+                            output_dict=output_dict,
+                            CLS=CLS,
+                            CCE=CCE,
+                            MVC=MVC,
+                            ECS=ECS,
+                            mask_value=mask_value
+                        )
+                        loss = losses['loss']
+                    
+                    # Backward pass
+                    optimizer.zero_grad()
+                    scaler.scale(loss).backward()
+                    scaler.unscale_(optimizer)
+                    
+                    # Gradient clipping
+                    with warnings.catch_warnings(record=True) as w:
+                        warnings.filterwarnings("always")
+                        torch.nn.utils.clip_grad_norm_(
+                            self.model.parameters(),
+                            grad_clip,
+                            error_if_nonfinite=False if scaler.is_enabled() else True,
+                        )
+                        if len(w) > 0:
+                            logger.warning(
+                                f"Found infinite gradient at batch {batch_idx}. "
+                                f"Scale: {scaler.get_scale()}"
+                            )
+                    
+                    scaler.step(optimizer)
+                    scaler.update()
+                    
+                    total_loss += loss.item()
+                    
+                    # Logging
+                    if batch_idx % log_interval == 0:
+                        avg_loss = total_loss / batch_idx
+                        pbar.set_postfix({
+                            'loss': f'{avg_loss:.4f}',
+                            'lr': f'{scheduler.get_last_lr()[0]:.2e}'
+                        })
+                    
+                    # Save checkpoint
+                    if save_dir and save_interval and batch_idx % save_interval == 0:
+                        ckpt_path = os.path.join(save_dir, f"checkpoint_epoch{epoch}_batch{batch_idx}")
+                        self.save(ckpt_path)
+                        logger.info(f"Checkpoint saved to {ckpt_path}")
+            
+            avg_train_loss = total_loss / num_batches
+            history['train_loss'].append(avg_train_loss)
+            
+            # Validation
+            if valid_loader:
+                self.eval()
+                valid_loss = 0.0
+                num_valid_batches = 0
+                
+                with torch.no_grad():
+                    for batch_data in valid_loader:
+                        with torch.cuda.amp.autocast(enabled=use_amp):
+                            output_dict = self.forward(
+                                batch_data,
+                                CLS=CLS,
+                                CCE=False,  # No CCE in validation
+                                MVC=False,  # No MVC in validation
+                                ECS=False,  # No ECS in validation
+                            )
+                            
+                            losses = self.compute_loss(
+                                batch_data,
+                                output_dict=output_dict,
+                                CLS=CLS,
+                                mask_value=mask_value
+                            )
+                            valid_loss += losses['loss'].item()
+                            num_valid_batches += 1
+                
+                avg_valid_loss = valid_loss / num_valid_batches
+                history['valid_loss'].append(avg_valid_loss)
+                logger.info(
+                    f"Epoch {epoch:3d} | Train Loss: {avg_train_loss:.4f} | "
+                    f"Valid Loss: {avg_valid_loss:.4f} | "
+                    f"Time: {time.time() - epoch_start_time:.2f}s"
+                )
+            else:
+                logger.info(
+                    f"Epoch {epoch:3d} | Train Loss: {avg_train_loss:.4f} | "
+                    f"Time: {time.time() - epoch_start_time:.2f}s"
+                )
+            
+            history['epoch_times'].append(time.time() - epoch_start_time)
+            
+            # Step scheduler
+            scheduler.step()
+            
+            # Save epoch checkpoint
+            if save_dir:
+                epoch_ckpt_path = os.path.join(save_dir, f"epoch_{epoch}")
+                self.save(epoch_ckpt_path)
+                logger.info(f"Epoch checkpoint saved to {epoch_ckpt_path}")
+        
+        logger.info("Training completed!")
+        return history
+    
     def save(self, save_directory: str):
         """
         Save model weights and config to a directory.
@@ -647,6 +861,15 @@ class scGPTPerturbationModel(PerturbationModel):
             fast_transformer_backend=config.fast_transformer_backend,
             pre_norm=config.pre_norm,
         ).to(self.device)
+    
+    def train(self, mode: bool = True):
+        """Set the model to training mode."""
+        self.model.train(mode)
+        return self
+    
+    def eval(self):
+        """Set the model to evaluation mode."""
+        return self.train(False)
 
     def prepare_dataloader(
         self,
@@ -675,8 +898,8 @@ class scGPTPerturbationModel(PerturbationModel):
         Returns:
             DataLoader or Dict[str, DataLoader] depending on return_split
         """
-        from torch.utils.data import TensorDataset, DataLoader
         import scipy.sparse
+        from torch.utils.data import DataLoader, TensorDataset
 
         # Ensure we have paired control cells
         if 'ctrl_indices' not in dataset.adata.obsm:
@@ -689,8 +912,8 @@ class scGPTPerturbationModel(PerturbationModel):
             for g in gene_names
         ]
 
-        # Truncate if needed
-        max_len = self.config.max_seq_len if hasattr(self.config, 'max_seq_len') else len(gene_ids)
+        # Determine max sequence length: None = no limit (use all genes)
+        max_len = self.config.max_seq_len if self.config.max_seq_len is not None else len(gene_ids)
         if len(gene_ids) > max_len:
             gene_ids = gene_ids[:max_len]
             slice_cols = slice(0, max_len)
@@ -960,6 +1183,204 @@ class scGPTPerturbationModel(PerturbationModel):
             return np.concatenate(predictions, axis=0)
         else:
             return torch.cat(predictions, dim=0)
+    
+    def train_model(
+        self,
+        dataset: PerturbationData,
+        epochs: int = 10,
+        batch_size: int = 32,
+        lr: float = 1e-4,
+        use_amp: bool = True,
+        grad_clip: float = 1.0,
+        log_interval: int = 100,
+        save_dir: Optional[str] = None,
+        save_interval: Optional[int] = None,
+        CLS: bool = False,
+        CCE: bool = False,
+        MVC: bool = False,
+        ECS: bool = False,
+        scheduler_step: int = 1,
+        scheduler_gamma: float = 0.99,
+        **kwargs
+    ):
+        """
+        Train the scGPT perturbation model.
+        
+        Args:
+            dataset: PerturbationData object with train/valid splits and perturbation conditions
+            epochs: Number of training epochs
+            batch_size: Batch size for training
+            lr: Learning rate
+            use_amp: Whether to use automatic mixed precision
+            grad_clip: Gradient clipping threshold
+            log_interval: Log every N batches
+            save_dir: Directory to save checkpoints (if None, no saving)
+            save_interval: Save checkpoint every N batches (if None, save per epoch)
+            CLS: Whether to use CLS objective
+            CCE: Whether to use CCE objective
+            MVC: Whether to use MVC objective
+            ECS: Whether to use ECS objective
+            scheduler_step: Scheduler step size
+            scheduler_gamma: Scheduler gamma
+            **kwargs: Additional arguments
+            
+        Returns:
+            Training history dict
+        """
+        import warnings
+        from tqdm import tqdm
+        
+        # Prepare dataloaders
+        dataloaders = self.prepare_dataloader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            return_split=None  # Get all splits
+        )
+        
+        train_loader = dataloaders.get('train', dataloaders.get('all'))
+        valid_loader = dataloaders.get('valid', dataloaders.get('test', None))
+        
+        # Setup optimizer and scheduler
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, eps=1e-8)
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=scheduler_step, gamma=scheduler_gamma
+        )
+        scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
+        
+        # Training history
+        history = {
+            'train_loss': [],
+            'valid_loss': [],
+            'epoch_times': []
+        }
+        
+        logger.info(f"Starting perturbation model training for {epochs} epochs")
+        logger.info(f"Train batches: {len(train_loader)}, Valid batches: {len(valid_loader) if valid_loader else 0}")
+        
+        for epoch in range(1, epochs + 1):
+            epoch_start_time = time.time()
+            
+            # Training
+            self.train()
+            total_loss = 0.0
+            num_batches = len(train_loader)
+            
+            with tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}") as pbar:
+                for batch_idx, batch_data in enumerate(pbar, 1):
+                    # Forward pass with AMP
+                    with torch.cuda.amp.autocast(enabled=use_amp):
+                        output_dict = self.forward(
+                            batch_data,
+                            CLS=CLS,
+                            CCE=CCE,
+                            MVC=MVC,
+                            ECS=ECS,
+                        )
+                        
+                        # Compute loss
+                        losses = self.compute_loss(
+                            batch_data,
+                            output_dict=output_dict,
+                            CLS=CLS,
+                            CCE=CCE,
+                            MVC=MVC,
+                            ECS=ECS,
+                        )
+                        loss = losses['loss']
+                    
+                    # Backward pass
+                    optimizer.zero_grad()
+                    scaler.scale(loss).backward()
+                    scaler.unscale_(optimizer)
+                    
+                    # Gradient clipping
+                    with warnings.catch_warnings(record=True) as w:
+                        warnings.filterwarnings("always")
+                        torch.nn.utils.clip_grad_norm_(
+                            self.model.parameters(),
+                            grad_clip,
+                            error_if_nonfinite=False if scaler.is_enabled() else True,
+                        )
+                        if len(w) > 0:
+                            logger.warning(
+                                f"Found infinite gradient at batch {batch_idx}. "
+                                f"Scale: {scaler.get_scale()}"
+                            )
+                    
+                    scaler.step(optimizer)
+                    scaler.update()
+                    
+                    total_loss += loss.item()
+                    
+                    # Logging
+                    if batch_idx % log_interval == 0:
+                        avg_loss = total_loss / batch_idx
+                        pbar.set_postfix({
+                            'loss': f'{avg_loss:.4f}',
+                            'lr': f'{scheduler.get_last_lr()[0]:.2e}'
+                        })
+                    
+                    # Save checkpoint
+                    if save_dir and save_interval and batch_idx % save_interval == 0:
+                        ckpt_path = os.path.join(save_dir, f"checkpoint_epoch{epoch}_batch{batch_idx}")
+                        self.save(ckpt_path)
+                        logger.info(f"Checkpoint saved to {ckpt_path}")
+            
+            avg_train_loss = total_loss / num_batches
+            history['train_loss'].append(avg_train_loss)
+            
+            # Validation
+            if valid_loader:
+                self.eval()
+                valid_loss = 0.0
+                num_valid_batches = 0
+                
+                with torch.no_grad():
+                    for batch_data in valid_loader:
+                        with torch.cuda.amp.autocast(enabled=use_amp):
+                            output_dict = self.forward(
+                                batch_data,
+                                CLS=CLS,
+                                CCE=False,
+                                MVC=False,
+                                ECS=False,
+                            )
+                            
+                            losses = self.compute_loss(
+                                batch_data,
+                                output_dict=output_dict,
+                                CLS=CLS,
+                            )
+                            valid_loss += losses['loss'].item()
+                            num_valid_batches += 1
+                
+                avg_valid_loss = valid_loss / num_valid_batches
+                history['valid_loss'].append(avg_valid_loss)
+                logger.info(
+                    f"Epoch {epoch:3d} | Train Loss: {avg_train_loss:.4f} | "
+                    f"Valid Loss: {avg_valid_loss:.4f} | "
+                    f"Time: {time.time() - epoch_start_time:.2f}s"
+                )
+            else:
+                logger.info(
+                    f"Epoch {epoch:3d} | Train Loss: {avg_train_loss:.4f} | "
+                    f"Time: {time.time() - epoch_start_time:.2f}s"
+                )
+            
+            history['epoch_times'].append(time.time() - epoch_start_time)
+            
+            # Step scheduler
+            scheduler.step()
+            
+            # Save epoch checkpoint
+            if save_dir:
+                epoch_ckpt_path = os.path.join(save_dir, f"epoch_{epoch}")
+                self.save(epoch_ckpt_path)
+                logger.info(f"Epoch checkpoint saved to {epoch_ckpt_path}")
+        
+        logger.info("Perturbation model training completed!")
+        return history
     
     def save(self, save_directory: str):
         """

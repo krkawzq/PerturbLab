@@ -133,3 +133,66 @@ def apply_gears_format(
             )
 
     return adata_gears
+
+
+
+def download_from_huggingface(
+    model_name_or_path: str,
+    organization: str = "perturblab",
+    **hf_kwargs
+) -> str:
+    """
+    Helper function to download models from HuggingFace.
+    This is a standalone utility function that can be used by any model class.
+    
+    Args:
+        model_name_or_path: Can be:
+            - Model name: "scgpt-human" (will be resolved to "{organization}/scgpt-human")
+            - Full HuggingFace repo ID: "perturblab/scgpt-human"
+            - URL or other identifier
+        organization: HuggingFace organization name (default: "perturblab")
+        **hf_kwargs: Additional arguments for huggingface_hub.snapshot_download
+            - revision: str, specific branch/tag/commit
+            - token: str, HuggingFace API token for private repos
+            - cache_dir: str, custom cache directory
+            - force_download: bool, force re-download
+            - resume_download: bool, resume interrupted downloads
+    
+    Returns:
+        Local path to the downloaded model directory
+        
+    Raises:
+        ImportError: If huggingface_hub is not installed
+        Exception: If download fails
+        
+    Example:
+        >>> path = download_from_huggingface("scgpt-human")
+        >>> path = download_from_huggingface("perturblab/scgpt-brain", revision="v1.0")
+    """
+    try:
+        from huggingface_hub import snapshot_download
+
+        # If it's just a model name (e.g., "scgpt-human"), prepend organization
+        if "/" not in model_name_or_path:
+            repo_id = f"{organization}/{model_name_or_path}"
+        else:
+            repo_id = model_name_or_path
+        
+        # Download from HuggingFace (uses cache automatically)
+        model_path = snapshot_download(
+            repo_id=repo_id,
+            **hf_kwargs
+        )
+        
+        return model_path
+        
+    except ImportError:
+        raise ImportError(
+            "huggingface_hub is required to download models from HuggingFace. "
+            "Install it with: pip install huggingface_hub"
+        )
+    except Exception as e:
+        raise ValueError(
+            f"Failed to download model '{model_name_or_path}' from HuggingFace.\n"
+            f"Error: {str(e)}"
+        )

@@ -1,7 +1,9 @@
 import json
 import os
 from typing import Any
+
 from typing_extensions import Self
+
 
 class ModelConfig:
     def __init__(
