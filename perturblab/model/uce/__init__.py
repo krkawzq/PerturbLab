@@ -12,10 +12,10 @@ def __getattr__(name):
     Returns:
         type: The imported class or configuration.
     """
-    if name == 'UCEModelConfig':
-        from .config import UCEModelConfig
-        return UCEModelConfig
-
+    if name == 'UCEConfig':
+        from .config import UCEConfig
+        return UCEConfig
+    
     if name == 'UCEModel':
         from .model import UCEModel
         return UCEModel
@@ -23,4 +23,4 @@ def __getattr__(name):
     logger.error("Attribute '%s' not found in %s", name, __name__)
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-__all__ = ['UCEModel', 'UCEModelConfig']
+__all__ = ['UCEModel', 'UCEConfig', 'UCEModelConfig']  # UCEModelConfig for backward compatibility

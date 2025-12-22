@@ -68,7 +68,7 @@ class GearsModel(PerturbationModel):
         if co_graph.gene_list != self.gene_list:
             co_graph = co_graph.subset(self.gene_list)
         self.co_graph = co_graph
-
+        
         if go_graph.gene_list != self.pert_list:
             go_graph = go_graph.subset(self.pert_list)
         self.go_graph = go_graph
@@ -93,7 +93,7 @@ class GearsModel(PerturbationModel):
             dict(
                 num_genes=len(self.gene_list),
                 num_perts=len(self.pert_list),
-                hidden_size=config.hidden_size,
+            hidden_size=config.hidden_size,
                 uncertainty=config.uncertainty,
                 num_go_gnn_layers=config.num_go_gnn_layers,
                 decoder_hidden_size=config.decoder_hidden_size,

@@ -1,11 +1,10 @@
 import logging
-from typing import Optional
 
 from ..configuration import ModelConfig
 
 logger = logging.getLogger(__name__)
 
-class UCEModelConfig(ModelConfig):
+class UCEConfig(ModelConfig):
     """Configuration for UCE (Universal Cell Embeddings) model.
     
     UCE is a transformer-based foundation model for generating universal cell embeddings
@@ -32,21 +31,16 @@ class UCEModelConfig(ModelConfig):
         chrom_token_left_idx: int = 1,
         chrom_token_right_idx: int = 2,
         cls_token_idx: int = 3,
-        CHROM_TOKEN_OFFSET: int = 143574,
+        chrom_token_offset: int = 143574,
         species: str = 'human',
         embedding_model: str = 'ESM2',
-        spec_chrom_csv_path: Optional[str] = None,
-        token_file: Optional[str] = None,
-        protein_embeddings_dir: Optional[str] = None,
-        offset_pkl_path: Optional[str] = None,
-        device: str = 'cuda',
         **kwargs
     ):
-        """Initialize UCEModelConfig with model hyperparameters.
+        """Initialize UCEConfig with model architecture hyperparameters.
 
         Args:
             model_series: Series identifier for the model.
-            model_name: Specific model name (e.g., '4layer').
+            model_name: Specific model name (e.g., '4layer', '33layer').
             nlayers: Number of transformer layers (typically 4 or 33).
             d_model: Model dimension (fixed at 1280 for UCE).
             nhead: Number of attention heads (fixed at 20 for UCE).
@@ -61,15 +55,9 @@ class UCEModelConfig(ModelConfig):
             chrom_token_left_idx: Index for left chromosome token.
             chrom_token_right_idx: Index for right chromosome token.
             cls_token_idx: Index for CLS token.
-            CHROM_TOKEN_OFFSET: Offset for chromosome tokens.
+            chrom_token_offset: Offset for chromosome tokens.
             species: Default species name.
             embedding_model: Protein embedding model used (e.g., 'ESM2').
-            spec_chrom_csv_path: Path to species chromosome CSV.
-            token_file: Path to token file.
-            protein_embeddings_dir: Directory containing protein embeddings.
-            offset_pkl_path: Path to offset pickle file.
-            device: Computing device ('cuda' or 'cpu').
-            **kwargs: Additional configuration arguments.
         """
         super().__init__(
             model_series=model_series,

@@ -25,7 +25,7 @@ from tqdm import tqdm
 from ...data import PerturbationData
 from ...utils import download_from_huggingface
 from ..base import PerturbationModel
-from .config import UCEModelConfig
+from .config import UCEConfig
 from .source.data_proc.data_utils import (
     adata_path_to_prot_chrom_starts,
     get_spec_chrom_csv,
@@ -61,22 +61,72 @@ class UCEModel(PerturbationModel):
     - Supports 4-layer and 33-layer model variants
     """
 
+    @staticmethod
+    def _get_token_embeddings_from_hub(model_name: str = "uce-4layer") -> str:
+        """
+        Download token embeddings from HuggingFace Hub.
+        
+        This uses HuggingFace's caching mechanism to download tokens.pt
+        from the pretrained model repository.
+        
+        Args:
+            model_name: Model name (e.g., 'uce-4layer', 'uce-33layer').
+            
+        Returns:
+            Path to the cached tokens.pt file.
+        """
+        try:
+            # Handle both 'uce-4layer' and 'perturblab/uce-4layer'
+            if '/' not in model_name:
+                hf_model_name = f"perturblab/{model_name}"
+            else:
+                hf_model_name = model_name
+            
+            logger.info(f"Downloading token embeddings from {hf_model_name}...")
+            model_path = download_from_huggingface(hf_model_name, organization=None)
+            
+            token_file = os.path.join(model_path, "tokens.pt")
+            if os.path.exists(token_file):
+                logger.info(f"✓ Token embeddings cached at: {token_file}")
+                return token_file
+            else:
+                raise FileNotFoundError(
+                    f"tokens.pt not found in downloaded model: {model_path}"
+                )
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to download token embeddings from HuggingFace: {e}"
+            )
+
     def __init__(
         self,
-        config: UCEModelConfig,
+        config: UCEConfig,
         device: str = "cuda",
+        spec_chrom_csv_path: Optional[str] = None,
+        token_file: Optional[str] = None,
+        protein_embeddings_dir: Optional[str] = None,
+        offset_pkl_path: Optional[str] = None,
     ):
         """
         Initializes the UCE model.
 
         Args:
-            config: UCEModelConfig configuration object.
+            config: UCEConfig configuration object.
             device: Device to run the model on ('cuda' or 'cpu').
+            spec_chrom_csv_path: Path to species chromosome CSV file.
+            token_file: Path to token embeddings file.
+            protein_embeddings_dir: Directory containing protein embeddings.
+            offset_pkl_path: Path to species offsets pickle file.
         """
         super().__init__(config)
 
         self.config = config
         self.device = device
+        
+        self.spec_chrom_csv_path = spec_chrom_csv_path
+        self.token_file = token_file
+        self.protein_embeddings_dir = protein_embeddings_dir
+        self.offset_pkl_path = offset_pkl_path
 
         # Initialize model architecture
         self.model = TransformerModel(
@@ -116,34 +166,32 @@ class UCEModel(PerturbationModel):
         self.model_loaded = True
         logger.info("✓ Model weights loaded successfully")
 
-    def load_token_embeddings(self, token_file: Optional[str] = None):
+    def load_token_embeddings(self, token_file: Optional[str] = None, model_name: Optional[str] = None):
         """
         Loads protein/token embeddings from tokens.pt file.
+        
+        If token_file is not provided or doesn't exist, automatically downloads
+        from HuggingFace Hub using the model's caching mechanism.
 
         Args:
-            token_file: Path to tokens.pt file. If None, uses config.token_file or downloads.
+            token_file: Path to tokens.pt file. If None, uses self.token_file or downloads from HF.
+            model_name: Model name for downloading from HF (e.g., 'uce-4layer'). 
+                       If None, uses self.config.model_name.
         """
         if token_file is None:
-            token_file = self.config.token_file
+            token_file = self.token_file
 
-        if token_file is None:
-            token_file = "./model_files/tokens.pt"
-
-        if not os.path.exists(token_file):
-            logger.info(
-                f"Token file not found at {token_file}, attempting to download..."
-            )
-            os.makedirs(
-                os.path.dirname(token_file) if os.path.dirname(token_file) else ".",
-                exist_ok=True,
-            )
-            figshare_download(
-                "https://figshare.com/ndownloader/files/42706585", token_file
-            )
+        # If still None or doesn't exist, download from HuggingFace
+        if token_file is None or not os.path.exists(token_file):
+            if model_name is None:
+                model_name = f"{self.config.model_series}-{self.config.model_name}"
+            
+            logger.info(f"Token file not found, downloading from HuggingFace ({model_name})...")
+            token_file = self._get_token_embeddings_from_hub(model_name)
 
         logger.info(f"Loading token embeddings from {token_file}...")
 
-        all_pe = torch.load(token_file, map_location=self.device)
+        all_pe = torch.load(token_file, map_location=self.device, weights_only=False)
 
         # Handle different file formats
         if isinstance(all_pe, dict):
@@ -157,7 +205,7 @@ class UCEModel(PerturbationModel):
                 )
 
         # Process tokens (add chromosome tokens if needed)
-        if all_pe.shape[0] == ESMA_BASE_TOKEN_COUNT:
+        if all_pe.shape[0] == ESM2_BASE_TOKEN_COUNT:
             torch.manual_seed(23)
             CHROM_TENSORS = torch.normal(
                 mean=0, std=1, size=(CHROM_TOKEN_COUNT, self.config.token_dim)
@@ -175,7 +223,10 @@ class UCEModel(PerturbationModel):
     def get_dataloader(
         data: Union[AnnData, PerturbationData],
         species: str,
-        config: UCEModelConfig,
+        config: UCEConfig,
+        spec_chrom_csv_path: str,
+        offset_pkl_path: str,
+        protein_embeddings_dir: str,
         batch_size: int = 25,
         working_dir: Optional[str] = None,
         filter_genes: bool = True,
@@ -196,7 +247,10 @@ class UCEModel(PerturbationModel):
         Args:
             data: PerturbationData or AnnData object.
             species: Species name (e.g., 'human', 'mouse').
-            config: UCEModelConfig with model parameters.
+            config: UCEConfig with model parameters.
+            spec_chrom_csv_path: Path to species chromosome CSV file.
+            offset_pkl_path: Path to species offsets pickle file.
+            protein_embeddings_dir: Directory containing protein embeddings.
             batch_size: Batch size for DataLoader.
             working_dir: Working directory for intermediate files.
             filter_genes: Whether to filter genes based on protein embeddings availability.
@@ -242,12 +296,12 @@ class UCEModel(PerturbationModel):
         # Step 2: Generate protein embedding indices and chromosome/position info
         logger.info("Step 2/4: Generating gene mappings...")
 
-        species_to_pe = get_species_to_pe(config.protein_embeddings_dir)
+        species_to_pe = get_species_to_pe(protein_embeddings_dir)
 
-        with open(config.offset_pkl_path, "rb") as f:
+        with open(offset_pkl_path, "rb") as f:
             species_to_offsets = pickle.load(f)
 
-        gene_to_chrom_pos = get_spec_chrom_csv(config.spec_chrom_csv_path)
+        gene_to_chrom_pos = get_spec_chrom_csv(spec_chrom_csv_path)
 
         spec_pe_genes = list(species_to_pe[species].keys())
         offset = species_to_offsets[species]
@@ -282,7 +336,7 @@ class UCEModel(PerturbationModel):
                 "chrom_token_left_idx": config.chrom_token_left_idx,
                 "chrom_token_right_idx": config.chrom_token_right_idx,
                 "cls_token_idx": config.cls_token_idx,
-                "CHROM_TOKEN_OFFSET": config.CHROM_TOKEN_OFFSET,
+                "CHROM_TOKEN_OFFSET": config.chrom_token_offset,
                 "sample_size": config.sample_size,
                 "CXG": True,
             },
@@ -366,6 +420,9 @@ class UCEModel(PerturbationModel):
             data=data,
             species=species,
             config=self.config,
+            spec_chrom_csv_path=self.spec_chrom_csv_path,
+            offset_pkl_path=self.offset_pkl_path,
+            protein_embeddings_dir=self.protein_embeddings_dir,
             batch_size=batch_size,
             working_dir=working_dir,
             filter_genes=filter_genes,
@@ -660,107 +717,209 @@ class UCEModel(PerturbationModel):
             self.save(final_model_path)
             logger.info(f"✓ Saved final model to {final_model_path}")
 
-    def save(self, save_directory: str, save_tokens: bool = True):
+    def save(self, save_directory: str, save_tokens: bool = True, save_auxiliary: bool = True):
         """
         Saves UCE model configuration and weights.
 
         Args:
             save_directory: Directory to save the model.
             save_tokens: Whether to save token embeddings to tokens.pt.
+            save_auxiliary: Whether to save auxiliary files (species_chrom.csv, etc.).
         """
         os.makedirs(save_directory, exist_ok=True)
 
+        # Save config
         config_path = os.path.join(save_directory, "config.json")
         self.config.save(config_path)
-        logger.info(f"Saved config to {config_path}")
+        logger.info(f"✓ Saved config to {config_path}")
 
+        # Save model weights
         if self.model_loaded:
             model_path = os.path.join(save_directory, "model.pt")
             torch.save(self.model.state_dict(), model_path)
-            logger.info(f"Saved model weights to {model_path}")
+            logger.info(f"✓ Saved model weights to {model_path} ({len(self.model.state_dict())} parameters)")
         else:
             logger.warning("Model weights not loaded, skipping model.pt save")
 
+        # Save token embeddings
         if save_tokens and self.all_pe is not None:
             tokens_path = os.path.join(save_directory, "tokens.pt")
             torch.save(self.all_pe, tokens_path)
-            logger.info(f"Saved token embeddings to {tokens_path}")
+            logger.info(f"✓ Saved token embeddings to {tokens_path} (shape: {self.all_pe.shape})")
 
-        logger.info(f"Model saved to {save_directory}")
+        # Save auxiliary files if they exist
+        if save_auxiliary:
+            import shutil
+            
+            # Copy species_chrom.csv
+            if self.spec_chrom_csv_path and os.path.exists(self.spec_chrom_csv_path):
+                dest = os.path.join(save_directory, "species_chrom.csv")
+                shutil.copy2(self.spec_chrom_csv_path, dest)
+                logger.info(f"✓ Copied species_chrom.csv")
+            
+            # Copy species_offsets.pkl
+            if self.offset_pkl_path and os.path.exists(self.offset_pkl_path):
+                dest = os.path.join(save_directory, "species_offsets.pkl")
+                shutil.copy2(self.offset_pkl_path, dest)
+                logger.info(f"✓ Copied species_offsets.pkl")
+            
+            # Copy protein embeddings directory
+            if self.protein_embeddings_dir and os.path.exists(self.protein_embeddings_dir):
+                dest = os.path.join(save_directory, "protein_embeddings")
+                if os.path.isdir(self.protein_embeddings_dir):
+                    if os.path.exists(dest):
+                        shutil.rmtree(dest)
+                    shutil.copytree(self.protein_embeddings_dir, dest)
+                    logger.info(f"✓ Copied protein_embeddings/")
+
+        logger.info(f"✓ Model saved to {save_directory}")
 
     @classmethod
     def from_pretrained(
         cls,
         model_name_or_path: str,
-        config: Optional[UCEModelConfig] = None,
+        config: Optional[UCEConfig] = None,
         device: str = "cuda",
+        load_tokens: bool = True,
         **kwargs,
     ) -> "UCEModel":
         """
         Loads UCE model from pretrained weights.
 
+        Supports three loading modes:
+        1. Local directory path: /path/to/model/
+        2. Model name in weights folder: 'uce-4layer' or 'uce-33layer'
+        3. HuggingFace model: 'perturblab/uce-4layer' or just 'uce-4layer'
+
         Args:
             model_name_or_path: Model name or path to directory.
+                - Local path: '/home/user/models/my_uce_model'
+                - Model name: 'uce-4layer', 'uce-33layer'
+                - HuggingFace: 'perturblab/uce-4layer'
             config: Optional configuration override.
-            device: Device to load model on.
+            device: Device to load model on ('cuda' or 'cpu').
+            load_tokens: Whether to load token embeddings.
+            **kwargs: Additional arguments passed to config.
 
         Returns:
             Loaded UCEModel instance.
+
+        Examples:
+            >>> # Load from HuggingFace
+            >>> model = UCEModel.from_pretrained('perturblab/uce-4layer')
+            >>> 
+            >>> # Load from local weights folder
+            >>> model = UCEModel.from_pretrained('uce-33layer')
+            >>> 
+            >>> # Load from custom path
+            >>> model = UCEModel.from_pretrained('/path/to/my/model')
         """
+        # Step 1: Resolve model path
+        model_path = None
+        
+        # Check if it's a local directory
         if os.path.exists(model_name_or_path) and os.path.isdir(model_name_or_path):
             model_path = model_name_or_path
             logger.info(f"Loading model from local path: {model_path}")
-        else:
+        
+        # Check if it's in the weights folder
+        if model_path is None:
             weights_dir = os.path.join(
                 os.path.dirname(__file__), "..", "..", "..", "weights"
             )
-            model_path = os.path.join(weights_dir, model_name_or_path)
+            weights_dir = os.path.abspath(weights_dir)
+            
+            # Try direct name (e.g., 'uce-4layer')
+            candidate = os.path.join(weights_dir, model_name_or_path)
+            if os.path.isdir(candidate):
+                model_path = candidate
+                logger.info(f"Loading model from weights folder: {model_path}")
+            else:
+                # Try with 'uce-' prefix if not present
+                if not model_name_or_path.startswith('uce-'):
+                    candidate = os.path.join(weights_dir, f'uce-{model_name_or_path}')
+                    if os.path.isdir(candidate):
+                        model_path = candidate
+                        logger.info(f"Loading model from weights folder: {model_path}")
+        
+        # Download from HuggingFace if not found locally
+        if model_path is None:
+            try:
+                # Handle both 'uce-4layer' and 'perturblab/uce-4layer'
+                if '/' not in model_name_or_path:
+                    hf_model_name = f"perturblab/{model_name_or_path}"
+                else:
+                    hf_model_name = model_name_or_path
+                
+                logger.info(f"Downloading '{hf_model_name}' from HuggingFace...")
+                model_path = download_from_huggingface(
+                    hf_model_name, organization=None, **kwargs
+                )
+                logger.info(f"✓ Model cached at: {model_path}")
+            except Exception as e:
+                raise ValueError(
+                    f"Model not found: {model_name_or_path}. "
+                    f"Tried local path, weights folder, and HuggingFace. Error: {e}"
+                )
 
-            if not os.path.isdir(model_path):
-                try:
-                    logger.info(
-                        f"Downloading '{model_name_or_path}' from HuggingFace..."
-                    )
-                    model_path = download_from_huggingface(
-                        model_name_or_path, organization="perturblab", **kwargs
-                    )
-                    logger.info(f"✓ Model cached at: {model_path}")
-                except Exception as e:
-                    raise ValueError(
-                        f"Model not found: {model_name_or_path}. Error: {e}"
-                    )
-
-        # Load config
+        # Step 2: Load config
         config_path = os.path.join(model_path, "config.json")
         if os.path.exists(config_path):
-            loaded_config = UCEModelConfig.load(config_path)
+            loaded_config = UCEConfig.load(config_path)
+            
+            # Override with user-provided config
             if config is not None:
                 for key, value in config.__dict__.items():
-                    if not key.startswith("_"):
+                    if not key.startswith("_") and value is not None:
                         setattr(loaded_config, key, value)
             config = loaded_config
+            logger.info(f"✓ Loaded config from {config_path}")
         elif config is None:
             logger.warning(
                 f"Config file not found at {config_path}, using default config"
             )
-            config = UCEModelConfig(**kwargs)
+            config = UCEConfig(**kwargs)
 
-        model = cls(config=config, device=device)
+        # Step 3: Prepare file paths from model directory
+        spec_chrom_csv_path = os.path.join(model_path, "species_chrom.csv")
+        offset_pkl_path = os.path.join(model_path, "species_offsets.pkl")
+        protein_embeddings_dir = os.path.join(model_path, "protein_embeddings")
+        token_file = os.path.join(model_path, "tokens.pt")
+        
+        # Check if paths exist, set to None if not
+        if not os.path.exists(spec_chrom_csv_path):
+            spec_chrom_csv_path = None
+        if not os.path.exists(offset_pkl_path):
+            offset_pkl_path = None
+        if not os.path.exists(protein_embeddings_dir):
+            protein_embeddings_dir = None
+        if not os.path.exists(token_file):
+            token_file = None
 
+        # Step 4: Initialize model with paths
+        model = cls(
+            config=config,
+            device=device,
+            spec_chrom_csv_path=spec_chrom_csv_path,
+            token_file=token_file,
+            protein_embeddings_dir=protein_embeddings_dir,
+            offset_pkl_path=offset_pkl_path,
+        )
+
+        # Step 5: Load model weights
         model_weights_path = os.path.join(model_path, "model.pt")
         if os.path.exists(model_weights_path):
             model.load_weights(model_weights_path)
         else:
             logger.warning(f"Model weights not found at {model_weights_path}")
 
-        tokens_path = os.path.join(model_path, "tokens.pt")
-        if os.path.exists(tokens_path):
-            model.load_token_embeddings(tokens_path)
-        else:
-            if config.token_file and os.path.exists(config.token_file):
-                model.load_token_embeddings(config.token_file)
-            else:
-                logger.info("Token embeddings not found, will be loaded on-demand")
+        # Step 6: Load token embeddings
+        if load_tokens and model.token_file:
+            model.load_token_embeddings(model.token_file)
 
         logger.info("✓ UCE model loaded successfully")
+        logger.info(f"   Model: {config.model_series}-{config.model_name}")
+        logger.info(f"   Layers: {config.nlayers}")
+        logger.info(f"   Device: {device}")
+        
         return model
