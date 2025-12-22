@@ -769,8 +769,8 @@ class GeneGraph:
             os.makedirs(cache_dir, exist_ok=True)
             
             # 延迟导入以避免循环导入
-            from .model.gears.source.utils import make_GO, dataverse_download
-            
+            from .model.gears.source.utils import dataverse_download, make_GO
+
             # 检查并下载 gene2go_all.pkl（如果不存在）
             gene2go_path = os.path.join(cache_dir, 'gene2go_all.pkl')
             if not os.path.exists(gene2go_path):

@@ -20,7 +20,7 @@ from tqdm import tqdm
 from ...data import GeneGraph, PerturbationData
 from ...utils import download_from_huggingface
 from ..base import PerturbationModel
-from ..gears import GearsModel, GearsConfig
+from ..gears import GearsConfig, GearsModel
 from .config import scFoundationConfig
 from .source.load import gatherData, getEncoerDecoderData
 from .source.pretrainmodels import select_model
@@ -1040,7 +1040,7 @@ class scFoundationPerturbationModel(scFoundationModel):
         if pert_list is not None and go_graph is not None and gene_graph is not None:
             if gene_list is None:
                 raise ValueError("gene_list is required when initializing perturbation head in __init__")
-            
+        
             # 使用 config 中的 GEARS 参数创建配置（如果未提供）
             if gears_config is None:
                 gears_config = self.config.get_gears_config()
@@ -1294,7 +1294,7 @@ class scFoundationPerturbationModel(scFoundationModel):
         result_dir: str = './results',
         log_interval: int = 50,
         save_best: bool = True,
-        **kwargs
+            **kwargs
     ):
         """
         训练扰动预测模型。
@@ -1516,7 +1516,7 @@ class scFoundationPerturbationModel(scFoundationModel):
                     gears_head_dir,
                     device=device
                 )
-                
+            
                 # 重新注入 scFoundation 编码器（如果 GEARS 支持）
                 if hasattr(model.gears_model.gears_model, 'singlecell_model'):
                     model.gears_model.gears_model.singlecell_model = model.model

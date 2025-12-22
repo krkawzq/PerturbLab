@@ -79,6 +79,10 @@ class PerturbationModel(ABC):
         """Predict perturbation effects."""
         raise NotImplementedError("This model is not able to predict perturbation effects.")
     
+    def predict_embeddings(self, *args, **kwargs):
+        """Predict embeddings."""
+        raise NotImplementedError("This model is not able to predict embeddings.")
+    
     def train_model(self, *args, **kwargs):
         """Train the model."""
         raise NotImplementedError("This model is not able to train.")

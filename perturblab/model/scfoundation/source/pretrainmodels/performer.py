@@ -3,18 +3,17 @@
 # License: Apache-2.0 (see original repository for details)
 
 import math
+from contextlib import contextmanager
+from functools import partial
+
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch import nn
-from torch.cuda.amp import autocast
 from einops import rearrange, repeat
-
-from functools import partial
-from contextlib import contextmanager
-
 from local_attention import LocalAttention
 from pretrainmodels.reversible import ReversibleSequence, SequentialSequence
+from torch import nn
+from torch.cuda.amp import autocast
 
 try:
     from apex import amp

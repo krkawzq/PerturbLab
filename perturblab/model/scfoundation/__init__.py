@@ -5,10 +5,12 @@ def __getattr__(name):
         from .config import scFoundationConfig
         return scFoundationConfig
     elif name == 'scFoundationModel':
-        from .model import scFoundationModel
+from .model import scFoundationModel
+
         return scFoundationModel
     elif name == 'scFoundationPerturbationModel':
-        from .perturbation_model import scFoundationPerturbationModel
+from .perturbation_model import scFoundationPerturbationModel
+
         return scFoundationPerturbationModel
     elif name == 'load_gene_list':
         from .config import load_gene_list

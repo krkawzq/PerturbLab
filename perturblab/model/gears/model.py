@@ -7,9 +7,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from scipy.stats import pearsonr
 from torch.optim.lr_scheduler import StepLR
 from tqdm import tqdm
-from scipy.stats import pearsonr
 
 from ...data import GeneGraph, PerturbationData
 from ..base import PerturbationModel
