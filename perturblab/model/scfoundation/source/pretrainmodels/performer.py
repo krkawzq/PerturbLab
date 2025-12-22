@@ -1,17 +1,20 @@
-# modified from https://github.com/BiomedSciAI/scFoundation
-## Modeified code from https://github.com/TencentAILabHealthcare/scBERT
-import math
-from contextlib import contextmanager
-from functools import partial
+# modified from https://github.com/biomap-research/scFoundation
+# Original source: biomap-research/scFoundation (based on TencentAILabHealthcare/scBERT)
+# License: Apache-2.0 (see original repository for details)
 
+import math
 import numpy as np
 import torch
 import torch.nn.functional as F
-from einops import rearrange, repeat
-from local_attention import LocalAttention
-from pretrainmodels.reversible import ReversibleSequence, SequentialSequence
 from torch import nn
 from torch.cuda.amp import autocast
+from einops import rearrange, repeat
+
+from functools import partial
+from contextlib import contextmanager
+
+from local_attention import LocalAttention
+from pretrainmodels.reversible import ReversibleSequence, SequentialSequence
 
 try:
     from apex import amp

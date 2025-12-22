@@ -1,2135 +1,0 @@
-Starting upload script...
-/home/wzq/.local/lib/python3.10/site-packages/huggingface_hub/hf_api.py:9662: UserWarning: Warnings while validating metadata in README.md:
-- empty or missing yaml metadata in repo card
-  warnings.warn(f"Warnings while validating metadata in README.md:\n{message}")
-======================================================================
-Uploading scELMo Models to HuggingFace Hub
-======================================================================
-Organization: perturblab
-Total models: 8
-======================================================================
-
-======================================================================
-Uploading: scelmo-gene-gpt-4o
-Local directory: /home/wzq/Code/Projects/PerturbLab/weights/scelmo-gene-gpt-4o
-Repository: perturblab/scelmo-gene-gpt-4o
-======================================================================
-✓ Repository created/verified: perturblab/scelmo-gene-gpt-4o
-📤 Uploading files...
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...pt-4o/gene_embeddings.pkl:   0%|          | 1.17MB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl:   0%|          | 1.17MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   0%|          | 1.17MB / 1.02GB,  838kB/s  
-New Data Upload               :   2%|▏         | 1.17MB / 67.0MB,  838kB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   0%|          | 2.35MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   0%|          | 2.35MB / 1.02GB, 1.47MB/s  
-New Data Upload               :   4%|▎         | 2.35MB / 67.0MB, 1.47MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   1%|          | 9.39MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   1%|          | 9.39MB / 1.02GB, 5.22MB/s  
-New Data Upload               :  14%|█▍        | 9.39MB / 67.0MB, 5.22MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   1%|▏         | 14.7MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   1%|▏         | 14.7MB / 1.02GB, 7.33MB/s  
-New Data Upload               :  22%|██▏       | 14.7MB / 67.0MB, 7.33MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   2%|▏         | 15.3MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   2%|▏         | 15.3MB / 1.02GB, 6.93MB/s  
-New Data Upload               :  23%|██▎       | 15.3MB / 67.0MB, 6.93MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   2%|▏         | 15.8MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   2%|▏         | 15.8MB / 1.02GB, 6.60MB/s  
-New Data Upload               :  24%|██▎       | 15.8MB / 67.0MB, 6.60MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   2%|▏         | 16.4MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   2%|▏         | 16.4MB / 1.02GB, 6.32MB/s  
-New Data Upload               :  25%|██▍       | 16.4MB / 67.0MB, 6.32MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   2%|▏         | 25.2MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   2%|▏         | 25.2MB / 1.02GB, 9.01MB/s  
-New Data Upload               :  19%|█▉        | 25.2MB /  134MB, 9.01MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   5%|▍         | 49.9MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   5%|▍         | 49.9MB / 1.02GB, 16.6MB/s  
-New Data Upload               :  37%|███▋      | 49.9MB /  134MB, 16.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   6%|▌         | 56.3MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   6%|▌         | 56.3MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  42%|████▏     | 56.3MB /  134MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   6%|▌         | 56.3MB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl:   6%|▌         | 56.3MB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl:   6%|▌         | 58.6MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   6%|▌         | 58.6MB / 1.02GB, 15.4MB/s  
-New Data Upload               :  29%|██▉       | 58.6MB /  201MB, 15.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   6%|▋         | 65.7MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   6%|▋         | 65.7MB / 1.02GB, 16.4MB/s  
-New Data Upload               :  33%|███▎      | 65.7MB /  201MB, 16.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   7%|▋         | 73.9MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   7%|▋         | 73.9MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  37%|███▋      | 73.9MB /  201MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   7%|▋         | 73.9MB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl:   7%|▋         | 75.0MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   7%|▋         | 75.0MB / 1.02GB, 16.3MB/s  
-New Data Upload               :  28%|██▊       | 75.0MB /  268MB, 16.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   8%|▊         | 76.8MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 76.8MB / 1.02GB, 16.0MB/s  
-New Data Upload               :  29%|██▊       | 76.8MB /  268MB, 16.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   8%|▊         | 77.4MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 77.4MB / 1.02GB, 15.5MB/s  
-New Data Upload               :  29%|██▉       | 77.4MB /  268MB, 15.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   8%|▊         | 78.0MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 78.0MB / 1.02GB, 15.0MB/s  
-New Data Upload               :  29%|██▉       | 78.0MB /  268MB, 15.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   8%|▊         | 78.5MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 78.5MB / 1.02GB, 14.5MB/s  
-New Data Upload               :  29%|██▉       | 78.5MB /  268MB, 14.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   8%|▊         | 79.7MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 79.7MB / 1.02GB, 14.2MB/s  
-New Data Upload               :  24%|██▍       | 79.7MB /  335MB, 14.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   8%|▊         | 81.5MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 81.5MB / 1.02GB, 14.0MB/s  
-New Data Upload               :  24%|██▍       | 81.5MB /  335MB, 14.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   9%|▊         | 87.3MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   9%|▊         | 87.3MB / 1.02GB, 14.6MB/s  
-New Data Upload               :  26%|██▌       | 87.3MB /  335MB, 14.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:   9%|▉         | 94.4MB / 1.02GB            [A[AProcessing Files (0 / 1)      :   9%|▉         | 94.4MB / 1.02GB, 15.2MB/s  
-New Data Upload               :  28%|██▊       | 94.4MB /  335MB, 15.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  10%|▉         |  101MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  10%|▉         |  101MB / 1.02GB, 15.8MB/s  
-New Data Upload               :  30%|███       |  101MB /  335MB, 15.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  10%|▉         |  101MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  10%|▉         |  101MB / 1.02GB, 15.4MB/s  
-New Data Upload               :  30%|███       |  101MB /  335MB, 15.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  10%|█         |  105MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  10%|█         |  105MB / 1.02GB, 15.4MB/s  
-New Data Upload               :  26%|██▌       |  105MB /  402MB, 15.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  11%|█▏        |  116MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  11%|█▏        |  116MB / 1.02GB, 16.5MB/s  
-New Data Upload               :  25%|██▍       |  116MB /  469MB, 16.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  14%|█▍        |  142MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  14%|█▍        |  142MB / 1.02GB, 19.7MB/s  
-New Data Upload               :  30%|███       |  142MB /  469MB, 19.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  14%|█▍        |  147MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  14%|█▍        |  147MB / 1.02GB, 19.9MB/s  
-New Data Upload               :  31%|███▏      |  147MB /  469MB, 19.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  15%|█▍        |  148MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  15%|█▍        |  148MB / 1.02GB, 19.4MB/s  
-New Data Upload               :  31%|███▏      |  148MB /  469MB, 19.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  15%|█▌        |  154MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  15%|█▌        |  154MB / 1.02GB, 19.8MB/s  
-New Data Upload               :  33%|███▎      |  154MB /  469MB, 19.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  15%|█▌        |  156MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  15%|█▌        |  156MB / 1.02GB, 19.6MB/s  
-New Data Upload               :  33%|███▎      |  156MB /  469MB, 19.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  16%|█▌        |  162MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  16%|█▌        |  162MB / 1.02GB, 19.7MB/s  
-New Data Upload               :  34%|███▍      |  162MB /  469MB, 19.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  16%|█▌        |  164MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  16%|█▌        |  164MB / 1.02GB, 19.5MB/s  
-New Data Upload               :  35%|███▍      |  164MB /  469MB, 19.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  16%|█▋        |  166MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  16%|█▋        |  166MB / 1.02GB, 19.3MB/s  
-New Data Upload               :  35%|███▌      |  166MB /  469MB, 19.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  17%|█▋        |  171MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  17%|█▋        |  171MB / 1.02GB, 19.4MB/s  
-New Data Upload               :  36%|███▋      |  171MB /  469MB, 19.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  17%|█▋        |  177MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  17%|█▋        |  177MB / 1.02GB, 19.7MB/s  
-New Data Upload               :  33%|███▎      |  177MB /  536MB, 19.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  18%|█▊        |  180MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  18%|█▊        |  180MB / 1.02GB, 19.6MB/s  
-New Data Upload               :  34%|███▎      |  180MB /  536MB, 19.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  18%|█▊        |  181MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  18%|█▊        |  181MB / 1.02GB, 19.3MB/s  
-New Data Upload               :  34%|███▍      |  181MB /  536MB, 19.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  18%|█▊        |  185MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  18%|█▊        |  185MB / 1.02GB, 19.2MB/s  
-New Data Upload               :  34%|███▍      |  185MB /  536MB, 19.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  18%|█▊        |  187MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  18%|█▊        |  187MB / 1.02GB, 19.1MB/s  
-New Data Upload               :  31%|███       |  187MB /  603MB, 19.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  19%|█▉        |  191MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  19%|█▉        |  191MB / 1.02GB, 19.1MB/s  
-New Data Upload               :  32%|███▏      |  191MB /  603MB, 19.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  19%|█▉        |  197MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  19%|█▉        |  197MB / 1.02GB, 19.3MB/s  
-New Data Upload               :  33%|███▎      |  197MB /  603MB, 19.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  20%|██        |  204MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  20%|██        |  204MB / 1.02GB, 20.0MB/s  
-New Data Upload               :  34%|███▍      |  204MB /  603MB, 20.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  20%|██        |  207MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  20%|██        |  207MB / 1.02GB, 20.3MB/s  
-New Data Upload               :  34%|███▍      |  207MB /  603MB, 20.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  21%|██        |  210MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  21%|██        |  210MB / 1.02GB, 20.6MB/s  
-New Data Upload               :  31%|███▏      |  210MB /  670MB, 20.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  21%|██        |  213MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  21%|██        |  213MB / 1.02GB, 20.8MB/s  
-New Data Upload               :  32%|███▏      |  213MB /  670MB, 20.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  21%|██        |  216MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  21%|██        |  216MB / 1.02GB, 21.1MB/s  
-New Data Upload               :  32%|███▏      |  216MB /  670MB, 21.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  22%|██▏       |  221MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  22%|██▏       |  221MB / 1.02GB, 21.6MB/s  
-New Data Upload               :  33%|███▎      |  221MB /  670MB, 21.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  22%|██▏       |  223MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  22%|██▏       |  223MB / 1.02GB, 21.7MB/s  
-New Data Upload               :  33%|███▎      |  223MB /  670MB, 21.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  22%|██▏       |  225MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  22%|██▏       |  225MB / 1.02GB, 21.8MB/s  
-New Data Upload               :  34%|███▎      |  225MB /  670MB, 21.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  22%|██▏       |  228MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  22%|██▏       |  228MB / 1.02GB, 21.5MB/s  
-New Data Upload               :  34%|███▍      |  228MB /  670MB, 21.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  23%|██▎       |  232MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  23%|██▎       |  232MB / 1.02GB, 21.4MB/s  
-New Data Upload               :  35%|███▍      |  232MB /  670MB, 21.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  23%|██▎       |  234MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  23%|██▎       |  234MB / 1.02GB, 21.5MB/s  
-New Data Upload               :  35%|███▍      |  234MB /  670MB, 21.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  23%|██▎       |  237MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  23%|██▎       |  237MB / 1.02GB, 21.7MB/s  
-New Data Upload               :  35%|███▌      |  237MB /  670MB, 21.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  24%|██▍       |  241MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  24%|██▍       |  241MB / 1.02GB, 22.0MB/s  
-New Data Upload               :  36%|███▌      |  241MB /  670MB, 22.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  24%|██▍       |  243MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  24%|██▍       |  243MB / 1.02GB, 21.3MB/s  
-New Data Upload               :  36%|███▌      |  243MB /  670MB, 21.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  24%|██▍       |  248MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  24%|██▍       |  248MB / 1.02GB, 19.4MB/s  
-New Data Upload               :  37%|███▋      |  248MB /  670MB, 19.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  25%|██▍       |  253MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  25%|██▍       |  253MB / 1.02GB, 19.3MB/s  
-New Data Upload               :  38%|███▊      |  253MB /  670MB, 19.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  25%|██▌       |  255MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  25%|██▌       |  255MB / 1.02GB, 19.4MB/s  
-New Data Upload               :  38%|███▊      |  255MB /  670MB, 19.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  26%|██▌       |  260MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  26%|██▌       |  260MB / 1.02GB, 20.0MB/s  
-New Data Upload               :  39%|███▉      |  260MB /  670MB, 20.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  26%|██▌       |  264MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  26%|██▌       |  264MB / 1.02GB, 20.1MB/s  
-New Data Upload               :  39%|███▉      |  264MB /  670MB, 20.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  27%|██▋       |  269MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  27%|██▋       |  269MB / 1.02GB, 20.0MB/s  
-New Data Upload               :  40%|████      |  269MB /  670MB, 20.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  27%|██▋       |  272MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  27%|██▋       |  272MB / 1.02GB, 19.4MB/s  
-New Data Upload               :  40%|████      |  272MB /  670MB, 19.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  27%|██▋       |  276MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  27%|██▋       |  276MB / 1.02GB, 19.8MB/s  
-New Data Upload               :  41%|████      |  276MB /  670MB, 19.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  27%|██▋       |  279MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  27%|██▋       |  279MB / 1.02GB, 20.0MB/s  
-New Data Upload               :  42%|████▏     |  279MB /  670MB, 20.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  28%|██▊       |  283MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  28%|██▊       |  283MB / 1.02GB, 20.2MB/s  
-New Data Upload               :  42%|████▏     |  283MB /  670MB, 20.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  28%|██▊       |  287MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  28%|██▊       |  287MB / 1.02GB, 20.5MB/s  
-New Data Upload               :  43%|████▎     |  287MB /  670MB, 20.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  29%|██▊       |  290MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  29%|██▊       |  290MB / 1.02GB, 20.7MB/s  
-New Data Upload               :  43%|████▎     |  290MB /  670MB, 20.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  29%|██▉       |  293MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  29%|██▉       |  293MB / 1.02GB, 21.0MB/s  
-New Data Upload               :  44%|████▎     |  293MB /  670MB, 21.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  29%|██▉       |  296MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  29%|██▉       |  296MB / 1.02GB, 21.2MB/s  
-New Data Upload               :  44%|████▍     |  296MB /  670MB, 21.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  29%|██▉       |  299MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  29%|██▉       |  299MB / 1.02GB, 21.3MB/s  
-New Data Upload               :  45%|████▍     |  299MB /  670MB, 21.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  30%|██▉       |  302MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  30%|██▉       |  302MB / 1.02GB, 21.1MB/s  
-New Data Upload               :  45%|████▌     |  302MB /  670MB, 21.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  30%|███       |  305MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  30%|███       |  305MB / 1.02GB, 20.6MB/s  
-New Data Upload               :  45%|████▌     |  305MB /  670MB, 20.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  30%|███       |  307MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  30%|███       |  307MB / 1.02GB, 20.2MB/s  
-New Data Upload               :  46%|████▌     |  307MB /  670MB, 20.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  31%|███       |  311MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  31%|███       |  311MB / 1.02GB, 20.6MB/s  
-New Data Upload               :  46%|████▋     |  311MB /  670MB, 20.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  31%|███       |  315MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  31%|███       |  315MB / 1.02GB, 20.6MB/s  
-New Data Upload               :  47%|████▋     |  315MB /  670MB, 20.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  31%|███▏      |  319MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  31%|███▏      |  319MB / 1.02GB, 19.9MB/s  
-New Data Upload               :  48%|████▊     |  319MB /  670MB, 19.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  32%|███▏      |  320MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  32%|███▏      |  320MB / 1.02GB, 17.5MB/s  
-New Data Upload               :  48%|████▊     |  320MB /  670MB, 17.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  32%|███▏      |  325MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  32%|███▏      |  325MB / 1.02GB, 17.4MB/s  
-New Data Upload               :  48%|████▊     |  325MB /  670MB, 17.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  32%|███▏      |  326MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  32%|███▏      |  326MB / 1.02GB, 17.5MB/s  
-New Data Upload               :  49%|████▊     |  326MB /  670MB, 17.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  32%|███▏      |  328MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  32%|███▏      |  328MB / 1.02GB, 17.0MB/s  
-New Data Upload               :  49%|████▉     |  328MB /  670MB, 17.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  33%|███▎      |  332MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  33%|███▎      |  332MB / 1.02GB, 17.2MB/s  
-New Data Upload               :  50%|████▉     |  332MB /  670MB, 17.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  33%|███▎      |  336MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  33%|███▎      |  336MB / 1.02GB, 17.1MB/s  
-New Data Upload               :  50%|█████     |  336MB /  670MB, 17.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  33%|███▎      |  339MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  33%|███▎      |  339MB / 1.02GB, 17.2MB/s  
-New Data Upload               :  50%|█████     |  339MB /  670MB, 17.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  34%|███▎      |  341MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  34%|███▎      |  341MB / 1.02GB, 17.2MB/s  
-New Data Upload               :  51%|█████     |  341MB /  670MB, 17.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  34%|███▍      |  344MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  34%|███▍      |  344MB / 1.02GB, 16.9MB/s  
-New Data Upload               :  51%|█████▏    |  344MB /  670MB, 16.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  34%|███▍      |  347MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  34%|███▍      |  347MB / 1.02GB, 16.7MB/s  
-New Data Upload               :  52%|█████▏    |  347MB /  670MB, 16.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  35%|███▍      |  351MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  35%|███▍      |  351MB / 1.02GB, 16.7MB/s  
-New Data Upload               :  52%|█████▏    |  351MB /  670MB, 16.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  35%|███▍      |  354MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  35%|███▍      |  354MB / 1.02GB, 17.0MB/s  
-New Data Upload               :  53%|█████▎    |  354MB /  670MB, 17.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  35%|███▌      |  358MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  35%|███▌      |  358MB / 1.02GB, 17.0MB/s  
-New Data Upload               :  53%|█████▎    |  358MB /  670MB, 17.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  35%|███▌      |  360MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  35%|███▌      |  360MB / 1.02GB, 17.0MB/s  
-New Data Upload               :  54%|█████▎    |  360MB /  670MB, 17.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  36%|███▌      |  364MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  36%|███▌      |  364MB / 1.02GB, 17.0MB/s  
-New Data Upload               :  54%|█████▍    |  364MB /  670MB, 17.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  36%|███▌      |  366MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  36%|███▌      |  366MB / 1.02GB, 16.6MB/s  
-New Data Upload               :  55%|█████▍    |  366MB /  670MB, 16.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  36%|███▋      |  370MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  36%|███▋      |  370MB / 1.02GB, 16.3MB/s  
-New Data Upload               :  55%|█████▌    |  370MB /  670MB, 16.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  37%|███▋      |  373MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  37%|███▋      |  373MB / 1.02GB, 16.3MB/s  
-New Data Upload               :  56%|█████▌    |  373MB /  670MB, 16.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  37%|███▋      |  375MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  37%|███▋      |  375MB / 1.02GB, 16.1MB/s  
-New Data Upload               :  56%|█████▌    |  375MB /  670MB, 16.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  37%|███▋      |  379MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  37%|███▋      |  379MB / 1.02GB, 16.3MB/s  
-New Data Upload               :  56%|█████▋    |  379MB /  670MB, 16.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  38%|███▊      |  381MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  38%|███▊      |  381MB / 1.02GB, 16.2MB/s  
-New Data Upload               :  57%|█████▋    |  381MB /  670MB, 16.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  38%|███▊      |  384MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  38%|███▊      |  384MB / 1.02GB, 16.0MB/s  
-New Data Upload               :  57%|█████▋    |  384MB /  670MB, 16.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  38%|███▊      |  387MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  38%|███▊      |  387MB / 1.02GB, 16.1MB/s  
-New Data Upload               :  58%|█████▊    |  387MB /  670MB, 16.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  38%|███▊      |  391MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  38%|███▊      |  391MB / 1.02GB, 16.3MB/s  
-New Data Upload               :  58%|█████▊    |  391MB /  670MB, 16.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  40%|███▉      |  406MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  40%|███▉      |  406MB / 1.02GB, 17.4MB/s  
-New Data Upload               :  61%|██████    |  406MB /  670MB, 17.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  40%|████      |  410MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  40%|████      |  410MB / 1.02GB, 17.4MB/s  
-New Data Upload               :  56%|█████▌    |  410MB /  738MB, 17.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  41%|████      |  415MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  41%|████      |  415MB / 1.02GB, 17.7MB/s  
-New Data Upload               :  56%|█████▌    |  415MB /  738MB, 17.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  41%|████      |  419MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  41%|████      |  419MB / 1.02GB, 17.8MB/s  
-New Data Upload               :  57%|█████▋    |  419MB /  738MB, 17.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  42%|████▏     |  422MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  42%|████▏     |  422MB / 1.02GB, 17.7MB/s  
-New Data Upload               :  57%|█████▋    |  422MB /  738MB, 17.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  42%|████▏     |  429MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  42%|████▏     |  429MB / 1.02GB, 18.2MB/s  
-New Data Upload               :  58%|█████▊    |  429MB /  738MB, 18.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  43%|████▎     |  433MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  43%|████▎     |  433MB / 1.02GB, 18.2MB/s  
-New Data Upload               :  59%|█████▊    |  433MB /  738MB, 18.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  43%|████▎     |  436MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  43%|████▎     |  436MB / 1.02GB, 18.0MB/s  
-New Data Upload               :  59%|█████▉    |  436MB /  738MB, 18.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  43%|████▎     |  437MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  43%|████▎     |  437MB / 1.02GB, 17.9MB/s  
-New Data Upload               :  59%|█████▉    |  437MB /  738MB, 17.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  43%|████▎     |  440MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  43%|████▎     |  440MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  60%|█████▉    |  440MB /  738MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  44%|████▍     |  444MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  44%|████▍     |  444MB / 1.02GB, 17.7MB/s  
-New Data Upload               :  60%|██████    |  444MB /  738MB, 17.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  44%|████▍     |  447MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  44%|████▍     |  447MB / 1.02GB, 17.5MB/s  
-New Data Upload               :  61%|██████    |  447MB /  738MB, 17.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  44%|████▍     |  451MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  44%|████▍     |  451MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  61%|██████    |  451MB /  738MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  45%|████▍     |  454MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  45%|████▍     |  454MB / 1.02GB, 17.5MB/s  
-New Data Upload               :  62%|██████▏   |  454MB /  738MB, 17.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  45%|████▌     |  458MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  45%|████▌     |  458MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  62%|██████▏   |  458MB /  738MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  45%|████▌     |  461MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  45%|████▌     |  461MB / 1.02GB, 17.5MB/s  
-New Data Upload               :  63%|██████▎   |  461MB /  738MB, 17.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  46%|████▌     |  467MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  46%|████▌     |  467MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  63%|██████▎   |  467MB /  738MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  46%|████▌     |  469MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  46%|████▌     |  469MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  64%|██████▎   |  469MB /  738MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  47%|████▋     |  475MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  47%|████▋     |  475MB / 1.02GB, 17.9MB/s  
-New Data Upload               :  64%|██████▍   |  475MB /  738MB, 17.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  47%|████▋     |  478MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  47%|████▋     |  478MB / 1.02GB, 17.9MB/s  
-New Data Upload               :  65%|██████▍   |  478MB /  738MB, 17.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  47%|████▋     |  482MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  47%|████▋     |  482MB / 1.02GB, 17.9MB/s  
-New Data Upload               :  65%|██████▌   |  482MB /  738MB, 17.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  48%|████▊     |  485MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  48%|████▊     |  485MB / 1.02GB, 17.9MB/s  
-New Data Upload               :  66%|██████▌   |  485MB /  738MB, 17.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  48%|████▊     |  489MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  48%|████▊     |  489MB / 1.02GB, 18.0MB/s  
-New Data Upload               :  66%|██████▋   |  489MB /  738MB, 18.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  48%|████▊     |  490MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  48%|████▊     |  490MB / 1.02GB, 18.0MB/s  
-New Data Upload               :  66%|██████▋   |  490MB /  738MB, 18.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  49%|████▊     |  494MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  49%|████▊     |  494MB / 1.02GB, 17.9MB/s  
-New Data Upload               :  67%|██████▋   |  494MB /  738MB, 17.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  49%|████▊     |  495MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  49%|████▊     |  495MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  67%|██████▋   |  495MB /  738MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  49%|████▉     |  499MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  49%|████▉     |  499MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  68%|██████▊   |  499MB /  738MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  49%|████▉     |  501MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  49%|████▉     |  501MB / 1.02GB, 17.7MB/s  
-New Data Upload               :  68%|██████▊   |  501MB /  738MB, 17.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  50%|████▉     |  504MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  50%|████▉     |  504MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  68%|██████▊   |  504MB /  738MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  50%|████▉     |  507MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  50%|████▉     |  507MB / 1.02GB, 17.7MB/s  
-New Data Upload               :  69%|██████▊   |  507MB /  738MB, 17.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  50%|█████     |  511MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  50%|█████     |  511MB / 1.02GB, 17.9MB/s  
-New Data Upload               :  69%|██████▉   |  511MB /  738MB, 17.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  50%|█████     |  511MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  50%|█████     |  511MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  69%|██████▉   |  511MB /  738MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  51%|█████     |  514MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  51%|█████     |  514MB / 1.02GB, 17.4MB/s  
-New Data Upload               :  70%|██████▉   |  514MB /  738MB, 17.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  51%|█████     |  515MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  51%|█████     |  515MB / 1.02GB, 17.3MB/s  
-New Data Upload               :  70%|██████▉   |  515MB /  738MB, 17.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  51%|█████     |  519MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  51%|█████     |  519MB / 1.02GB, 17.4MB/s  
-New Data Upload               :  70%|███████   |  519MB /  738MB, 17.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  51%|█████▏    |  521MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  51%|█████▏    |  521MB / 1.02GB, 17.4MB/s  
-New Data Upload               :  71%|███████   |  521MB /  738MB, 17.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  52%|█████▏    |  524MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  52%|█████▏    |  524MB / 1.02GB, 17.3MB/s  
-New Data Upload               :  71%|███████   |  524MB /  738MB, 17.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  52%|█████▏    |  528MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  52%|█████▏    |  528MB / 1.02GB, 17.3MB/s  
-New Data Upload               :  72%|███████▏  |  528MB /  738MB, 17.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  53%|█████▎    |  534MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  53%|█████▎    |  534MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  72%|███████▏  |  534MB /  738MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  53%|█████▎    |  537MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  53%|█████▎    |  537MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  67%|██████▋   |  537MB /  805MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  53%|█████▎    |  539MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  53%|█████▎    |  539MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  67%|██████▋   |  539MB /  805MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  53%|█████▎    |  543MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  53%|█████▎    |  543MB / 1.02GB, 17.5MB/s  
-New Data Upload               :  67%|██████▋   |  543MB /  805MB, 17.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  54%|█████▎    |  545MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  54%|█████▎    |  545MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  68%|██████▊   |  545MB /  805MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  54%|█████▍    |  547MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  54%|█████▍    |  547MB / 1.02GB, 17.4MB/s  
-New Data Upload               :  68%|██████▊   |  547MB /  805MB, 17.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  54%|█████▍    |  550MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  54%|█████▍    |  550MB / 1.02GB, 17.3MB/s  
-New Data Upload               :  68%|██████▊   |  550MB /  805MB, 17.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  55%|█████▍    |  554MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  55%|█████▍    |  554MB / 1.02GB, 17.6MB/s  
-New Data Upload               :  69%|██████▉   |  554MB /  805MB, 17.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  55%|█████▍    |  555MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  55%|█████▍    |  555MB / 1.02GB, 17.3MB/s  
-New Data Upload               :  69%|██████▉   |  555MB /  805MB, 17.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  57%|█████▋    |  578MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  57%|█████▋    |  578MB / 1.02GB, 19.3MB/s  
-New Data Upload               :  72%|███████▏  |  578MB /  805MB, 19.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  58%|█████▊    |  584MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  58%|█████▊    |  584MB / 1.02GB, 19.6MB/s  
-New Data Upload               :  67%|██████▋   |  584MB /  872MB, 19.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  58%|█████▊    |  589MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  58%|█████▊    |  589MB / 1.02GB, 19.8MB/s  
-New Data Upload               :  68%|██████▊   |  589MB /  872MB, 19.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  58%|█████▊    |  593MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  58%|█████▊    |  593MB / 1.02GB, 19.8MB/s  
-New Data Upload               :  68%|██████▊   |  593MB /  872MB, 19.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  59%|█████▉    |  597MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  59%|█████▉    |  597MB / 1.02GB, 18.8MB/s  
-New Data Upload               :  69%|██████▊   |  597MB /  872MB, 18.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  59%|█████▉    |  604MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  59%|█████▉    |  604MB / 1.02GB, 19.0MB/s  
-New Data Upload               :  69%|██████▉   |  604MB /  872MB, 19.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  60%|██████    |  610MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  60%|██████    |  610MB / 1.02GB, 19.1MB/s  
-New Data Upload               :  70%|██████▉   |  610MB /  872MB, 19.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  60%|██████    |  613MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  60%|██████    |  613MB / 1.02GB, 19.0MB/s  
-New Data Upload               :  70%|███████   |  613MB /  872MB, 19.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  61%|██████    |  618MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  61%|██████    |  618MB / 1.02GB, 19.2MB/s  
-New Data Upload               :  71%|███████   |  618MB /  872MB, 19.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  61%|██████    |  621MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  61%|██████    |  621MB / 1.02GB, 18.8MB/s  
-New Data Upload               :  71%|███████   |  621MB /  872MB, 18.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  62%|██████▏   |  625MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  62%|██████▏   |  625MB / 1.02GB, 18.9MB/s  
-New Data Upload               :  72%|███████▏  |  625MB /  872MB, 18.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  62%|██████▏   |  631MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  62%|██████▏   |  631MB / 1.02GB, 19.1MB/s  
-New Data Upload               :  72%|███████▏  |  631MB /  872MB, 19.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  62%|██████▏   |  632MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  62%|██████▏   |  632MB / 1.02GB, 19.2MB/s  
-New Data Upload               :  73%|███████▎  |  632MB /  872MB, 19.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  63%|██████▎   |  635MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  63%|██████▎   |  635MB / 1.02GB, 19.2MB/s  
-New Data Upload               :  73%|███████▎  |  635MB /  872MB, 19.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  63%|██████▎   |  638MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  63%|██████▎   |  638MB / 1.02GB, 18.9MB/s  
-New Data Upload               :  73%|███████▎  |  638MB /  872MB, 18.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  63%|██████▎   |  642MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  63%|██████▎   |  642MB / 1.02GB, 19.1MB/s  
-New Data Upload               :  74%|███████▎  |  642MB /  872MB, 19.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  64%|██████▎   |  646MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  64%|██████▎   |  646MB / 1.02GB, 19.1MB/s  
-New Data Upload               :  74%|███████▍  |  646MB /  872MB, 19.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  64%|██████▍   |  649MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  64%|██████▍   |  649MB / 1.02GB, 19.1MB/s  
-New Data Upload               :  74%|███████▍  |  649MB /  872MB, 19.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  64%|██████▍   |  650MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  64%|██████▍   |  650MB / 1.02GB, 18.8MB/s  
-New Data Upload               :  75%|███████▍  |  650MB /  872MB, 18.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  64%|██████▍   |  654MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  64%|██████▍   |  654MB / 1.02GB, 18.9MB/s  
-New Data Upload               :  75%|███████▌  |  654MB /  872MB, 18.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  65%|██████▍   |  656MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  65%|██████▍   |  656MB / 1.02GB, 18.5MB/s  
-New Data Upload               :  75%|███████▌  |  656MB /  872MB, 18.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  65%|██████▍   |  659MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  65%|██████▍   |  659MB / 1.02GB, 18.5MB/s  
-New Data Upload               :  76%|███████▌  |  659MB /  872MB, 18.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  65%|██████▌   |  661MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  65%|██████▌   |  661MB / 1.02GB, 18.3MB/s  
-New Data Upload               :  76%|███████▌  |  661MB /  872MB, 18.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  66%|██████▌   |  666MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  66%|██████▌   |  666MB / 1.02GB, 18.4MB/s  
-New Data Upload               :  76%|███████▋  |  666MB /  872MB, 18.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  66%|██████▌   |  667MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  66%|██████▌   |  667MB / 1.02GB, 18.2MB/s  
-New Data Upload               :  77%|███████▋  |  667MB /  872MB, 18.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  66%|██████▌   |  671MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  66%|██████▌   |  671MB / 1.02GB, 18.2MB/s  
-New Data Upload               :  77%|███████▋  |  671MB /  872MB, 18.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  67%|██████▋   |  678MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  67%|██████▋   |  678MB / 1.02GB, 18.5MB/s  
-New Data Upload               :  78%|███████▊  |  678MB /  872MB, 18.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  67%|██████▋   |  681MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  67%|██████▋   |  681MB / 1.02GB, 18.7MB/s  
-New Data Upload               :  78%|███████▊  |  681MB /  872MB, 18.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  67%|██████▋   |  685MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  67%|██████▋   |  685MB / 1.02GB, 18.7MB/s  
-New Data Upload               :  79%|███████▊  |  685MB /  872MB, 18.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  68%|██████▊   |  687MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  68%|██████▊   |  687MB / 1.02GB, 18.8MB/s  
-New Data Upload               :  73%|███████▎  |  687MB /  939MB, 18.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  68%|██████▊   |  689MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  68%|██████▊   |  689MB / 1.02GB, 18.7MB/s  
-New Data Upload               :  73%|███████▎  |  689MB /  939MB, 18.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  68%|██████▊   |  694MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  68%|██████▊   |  694MB / 1.02GB, 18.9MB/s  
-New Data Upload               :  74%|███████▍  |  694MB /  939MB, 18.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  69%|██████▉   |  698MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  69%|██████▉   |  698MB / 1.02GB, 19.1MB/s  
-New Data Upload               :  74%|███████▍  |  698MB /  939MB, 19.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  69%|██████▉   |  701MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  69%|██████▉   |  701MB / 1.02GB, 19.0MB/s  
-New Data Upload               :  75%|███████▍  |  701MB /  939MB, 19.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  69%|██████▉   |  704MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  69%|██████▉   |  704MB / 1.02GB, 18.9MB/s  
-New Data Upload               :  75%|███████▍  |  704MB /  939MB, 18.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  70%|██████▉   |  706MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  70%|██████▉   |  706MB / 1.02GB, 19.1MB/s  
-New Data Upload               :  75%|███████▌  |  706MB /  939MB, 19.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  70%|██████▉   |  710MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  70%|██████▉   |  710MB / 1.02GB, 19.2MB/s  
-New Data Upload               :  76%|███████▌  |  710MB /  939MB, 19.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  70%|███████   |  714MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  70%|███████   |  714MB / 1.02GB, 19.5MB/s  
-New Data Upload               :  76%|███████▌  |  714MB /  939MB, 19.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  71%|███████   |  716MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  71%|███████   |  716MB / 1.02GB, 19.3MB/s  
-New Data Upload               :  76%|███████▋  |  716MB /  939MB, 19.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  71%|███████   |  719MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  71%|███████   |  719MB / 1.02GB, 19.4MB/s  
-New Data Upload               :  77%|███████▋  |  719MB /  939MB, 19.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  71%|███████▏  |  724MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  71%|███████▏  |  724MB / 1.02GB, 19.6MB/s  
-New Data Upload               :  77%|███████▋  |  724MB /  939MB, 19.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  72%|███████▏  |  727MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  72%|███████▏  |  727MB / 1.02GB, 19.6MB/s  
-New Data Upload               :  77%|███████▋  |  727MB /  939MB, 19.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  72%|███████▏  |  730MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  72%|███████▏  |  730MB / 1.02GB, 19.2MB/s  
-New Data Upload               :  78%|███████▊  |  730MB /  939MB, 19.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  72%|███████▏  |  734MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  72%|███████▏  |  734MB / 1.02GB, 19.3MB/s  
-New Data Upload               :  78%|███████▊  |  734MB /  939MB, 19.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  73%|███████▎  |  737MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  73%|███████▎  |  737MB / 1.02GB, 19.4MB/s  
-New Data Upload               :  79%|███████▊  |  737MB /  939MB, 19.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  73%|███████▎  |  739MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  73%|███████▎  |  739MB / 1.02GB, 19.3MB/s  
-New Data Upload               :  79%|███████▉  |  739MB /  939MB, 19.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  73%|███████▎  |  742MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  73%|███████▎  |  742MB / 1.02GB, 19.4MB/s  
-New Data Upload               :  79%|███████▉  |  742MB /  939MB, 19.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  73%|███████▎  |  744MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  73%|███████▎  |  744MB / 1.02GB, 19.3MB/s  
-New Data Upload               :  79%|███████▉  |  744MB /  939MB, 19.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  74%|███████▎  |  747MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  74%|███████▎  |  747MB / 1.02GB, 19.4MB/s  
-New Data Upload               :  80%|███████▉  |  747MB /  939MB, 19.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  74%|███████▍  |  752MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  74%|███████▍  |  752MB / 1.02GB, 19.5MB/s  
-New Data Upload               :  80%|████████  |  752MB /  939MB, 19.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  74%|███████▍  |  755MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  74%|███████▍  |  755MB / 1.02GB, 19.6MB/s  
-New Data Upload               :  80%|████████  |  755MB /  939MB, 19.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  74%|███████▍  |  756MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  74%|███████▍  |  756MB / 1.02GB, 17.5MB/s  
-New Data Upload               :  81%|████████  |  756MB /  939MB, 17.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  75%|███████▍  |  759MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  75%|███████▍  |  759MB / 1.02GB, 17.2MB/s  
-New Data Upload               :  81%|████████  |  759MB /  939MB, 17.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  75%|███████▍  |  761MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  75%|███████▍  |  761MB / 1.02GB, 16.8MB/s  
-New Data Upload               :  81%|████████  |  761MB /  939MB, 16.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  75%|███████▌  |  763MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  75%|███████▌  |  763MB / 1.02GB, 16.6MB/s  
-New Data Upload               :  81%|████████▏ |  763MB /  939MB, 16.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  75%|███████▌  |  766MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  75%|███████▌  |  766MB / 1.02GB, 16.5MB/s  
-New Data Upload               :  82%|████████▏ |  766MB /  939MB, 16.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  76%|███████▌  |  769MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  76%|███████▌  |  769MB / 1.02GB, 16.2MB/s  
-New Data Upload               :  82%|████████▏ |  769MB /  939MB, 16.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  76%|███████▌  |  771MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  76%|███████▌  |  771MB / 1.02GB, 15.8MB/s  
-New Data Upload               :  82%|████████▏ |  771MB /  939MB, 15.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  76%|███████▋  |  774MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  76%|███████▋  |  774MB / 1.02GB, 15.9MB/s  
-New Data Upload               :  82%|████████▏ |  774MB /  939MB, 15.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  76%|███████▋  |  776MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  76%|███████▋  |  776MB / 1.02GB, 15.5MB/s  
-New Data Upload               :  83%|████████▎ |  776MB /  939MB, 15.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  77%|███████▋  |  780MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  77%|███████▋  |  780MB / 1.02GB, 15.6MB/s  
-New Data Upload               :  83%|████████▎ |  780MB /  939MB, 15.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  77%|███████▋  |  785MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  77%|███████▋  |  785MB / 1.02GB, 15.7MB/s  
-New Data Upload               :  84%|████████▎ |  785MB /  939MB, 15.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  77%|███████▋  |  787MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  77%|███████▋  |  787MB / 1.02GB, 15.3MB/s  
-New Data Upload               :  78%|███████▊  |  787MB / 1.01GB, 15.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  78%|███████▊  |  793MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  |  793MB / 1.02GB, 15.7MB/s  
-New Data Upload               :  78%|███████▊  |  793MB / 1.02GB, 15.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  78%|███████▊  |  795MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  |  795MB / 1.02GB, 15.7MB/s  
-New Data Upload               :  78%|███████▊  |  795MB / 1.02GB, 15.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  79%|███████▊  |  797MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  79%|███████▊  |  797MB / 1.02GB, 15.7MB/s  
-New Data Upload               :  79%|███████▊  |  797MB / 1.02GB, 15.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  79%|███████▊  |  799MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  79%|███████▊  |  799MB / 1.02GB, 15.3MB/s  
-New Data Upload               :  79%|███████▊  |  799MB / 1.02GB, 15.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  79%|███████▊  |  799MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  79%|███████▊  |  799MB / 1.02GB, 15.0MB/s  
-New Data Upload               :  79%|███████▊  |  799MB / 1.02GB, 15.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  79%|███████▉  |  805MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  79%|███████▉  |  805MB / 1.02GB, 15.3MB/s  
-New Data Upload               :  79%|███████▉  |  805MB / 1.02GB, 15.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  79%|███████▉  |  807MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  79%|███████▉  |  807MB / 1.02GB, 15.3MB/s  
-New Data Upload               :  79%|███████▉  |  807MB / 1.02GB, 15.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  80%|███████▉  |  809MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  80%|███████▉  |  809MB / 1.02GB, 15.2MB/s  
-New Data Upload               :  80%|███████▉  |  809MB / 1.02GB, 15.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  80%|████████  |  812MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  80%|████████  |  812MB / 1.02GB, 15.4MB/s  
-New Data Upload               :  80%|████████  |  812MB / 1.02GB, 15.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  80%|████████  |  815MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  80%|████████  |  815MB / 1.02GB, 15.3MB/s  
-New Data Upload               :  80%|████████  |  815MB / 1.02GB, 15.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  80%|████████  |  816MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  80%|████████  |  816MB / 1.02GB, 15.2MB/s  
-New Data Upload               :  80%|████████  |  816MB / 1.02GB, 15.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  81%|████████  |  818MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  81%|████████  |  818MB / 1.02GB, 14.9MB/s  
-New Data Upload               :  81%|████████  |  818MB / 1.02GB, 14.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  81%|████████  |  821MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  81%|████████  |  821MB / 1.02GB, 15.0MB/s  
-New Data Upload               :  81%|████████  |  821MB / 1.02GB, 15.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  81%|████████  |  823MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  81%|████████  |  823MB / 1.02GB, 14.9MB/s  
-New Data Upload               :  81%|████████  |  823MB / 1.02GB, 14.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  81%|████████▏ |  826MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  81%|████████▏ |  826MB / 1.02GB, 14.5MB/s  
-New Data Upload               :  81%|████████▏ |  826MB / 1.02GB, 14.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  81%|████████▏ |  827MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  81%|████████▏ |  827MB / 1.02GB, 14.3MB/s  
-New Data Upload               :  81%|████████▏ |  827MB / 1.02GB, 14.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  82%|████████▏ |  829MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  82%|████████▏ |  829MB / 1.02GB, 14.2MB/s  
-New Data Upload               :  82%|████████▏ |  829MB / 1.02GB, 14.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  82%|████████▏ |  831MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  82%|████████▏ |  831MB / 1.02GB, 14.1MB/s  
-New Data Upload               :  82%|████████▏ |  831MB / 1.02GB, 14.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  82%|████████▏ |  834MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  82%|████████▏ |  834MB / 1.02GB, 14.2MB/s  
-New Data Upload               :  82%|████████▏ |  834MB / 1.02GB, 14.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  82%|████████▏ |  836MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  82%|████████▏ |  836MB / 1.02GB, 14.0MB/s  
-New Data Upload               :  82%|████████▏ |  836MB / 1.02GB, 14.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  82%|████████▏ |  837MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  82%|████████▏ |  837MB / 1.02GB, 13.6MB/s  
-New Data Upload               :  82%|████████▏ |  837MB / 1.02GB, 13.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  83%|████████▎ |  839MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  83%|████████▎ |  839MB / 1.02GB, 13.6MB/s  
-New Data Upload               :  83%|████████▎ |  839MB / 1.02GB, 13.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  83%|████████▎ |  841MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  83%|████████▎ |  841MB / 1.02GB, 13.5MB/s  
-New Data Upload               :  83%|████████▎ |  841MB / 1.02GB, 13.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  83%|████████▎ |  843MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  83%|████████▎ |  843MB / 1.02GB, 13.4MB/s  
-New Data Upload               :  83%|████████▎ |  843MB / 1.02GB, 13.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  83%|████████▎ |  846MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  83%|████████▎ |  846MB / 1.02GB, 13.4MB/s  
-New Data Upload               :  83%|████████▎ |  846MB / 1.02GB, 13.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  83%|████████▎ |  848MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  83%|████████▎ |  848MB / 1.02GB, 13.1MB/s  
-New Data Upload               :  83%|████████▎ |  848MB / 1.02GB, 13.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  84%|████████▎ |  850MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  84%|████████▎ |  850MB / 1.02GB, 13.1MB/s  
-New Data Upload               :  84%|████████▎ |  850MB / 1.02GB, 13.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  84%|████████▍ |  852MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  84%|████████▍ |  852MB / 1.02GB, 13.1MB/s  
-New Data Upload               :  84%|████████▍ |  852MB / 1.02GB, 13.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  84%|████████▍ |  855MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  84%|████████▍ |  855MB / 1.02GB, 12.9MB/s  
-New Data Upload               :  84%|████████▍ |  855MB / 1.02GB, 12.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  84%|████████▍ |  857MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  84%|████████▍ |  857MB / 1.02GB, 12.7MB/s  
-New Data Upload               :  84%|████████▍ |  857MB / 1.02GB, 12.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  85%|████████▍ |  860MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  85%|████████▍ |  860MB / 1.02GB, 12.8MB/s  
-New Data Upload               :  85%|████████▍ |  860MB / 1.02GB, 12.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  85%|████████▍ |  863MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  85%|████████▍ |  863MB / 1.02GB, 12.6MB/s  
-New Data Upload               :  85%|████████▍ |  863MB / 1.02GB, 12.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  85%|████████▌ |  865MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  85%|████████▌ |  865MB / 1.02GB, 12.6MB/s  
-New Data Upload               :  85%|████████▌ |  865MB / 1.02GB, 12.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  85%|████████▌ |  867MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  85%|████████▌ |  867MB / 1.02GB, 12.5MB/s  
-New Data Upload               :  85%|████████▌ |  867MB / 1.02GB, 12.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  86%|████████▌ |  871MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  86%|████████▌ |  871MB / 1.02GB, 12.6MB/s  
-New Data Upload               :  86%|████████▌ |  871MB / 1.02GB, 12.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  86%|████████▌ |  875MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  86%|████████▌ |  875MB / 1.02GB, 12.8MB/s  
-New Data Upload               :  86%|████████▌ |  875MB / 1.02GB, 12.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  86%|████████▋ |  877MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  86%|████████▋ |  877MB / 1.02GB, 12.7MB/s  
-New Data Upload               :  86%|████████▋ |  877MB / 1.02GB, 12.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  87%|████████▋ |  879MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  87%|████████▋ |  879MB / 1.02GB, 12.5MB/s  
-New Data Upload               :  87%|████████▋ |  879MB / 1.02GB, 12.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  87%|████████▋ |  883MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  87%|████████▋ |  883MB / 1.02GB, 12.5MB/s  
-New Data Upload               :  87%|████████▋ |  883MB / 1.02GB, 12.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  87%|████████▋ |  885MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  87%|████████▋ |  885MB / 1.02GB, 12.6MB/s  
-New Data Upload               :  87%|████████▋ |  885MB / 1.02GB, 12.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  88%|████████▊ |  889MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ |  889MB / 1.02GB, 12.8MB/s  
-New Data Upload               :  88%|████████▊ |  889MB / 1.02GB, 12.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  88%|████████▊ |  893MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ |  893MB / 1.02GB, 12.9MB/s  
-New Data Upload               :  88%|████████▊ |  893MB / 1.02GB, 12.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  88%|████████▊ |  898MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ |  898MB / 1.02GB, 13.2MB/s  
-New Data Upload               :  88%|████████▊ |  898MB / 1.02GB, 13.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  89%|████████▊ |  899MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  89%|████████▊ |  899MB / 1.02GB, 13.0MB/s  
-New Data Upload               :  89%|████████▊ |  899MB / 1.02GB, 13.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  89%|████████▉ |  902MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  89%|████████▉ |  902MB / 1.02GB, 13.0MB/s  
-New Data Upload               :  89%|████████▉ |  902MB / 1.02GB, 13.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  89%|████████▉ |  904MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  89%|████████▉ |  904MB / 1.02GB, 13.0MB/s  
-New Data Upload               :  89%|████████▉ |  904MB / 1.02GB, 13.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  89%|████████▉ |  906MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  89%|████████▉ |  906MB / 1.02GB, 12.9MB/s  
-New Data Upload               :  89%|████████▉ |  906MB / 1.02GB, 12.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  90%|████████▉ |  909MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  90%|████████▉ |  909MB / 1.02GB, 13.1MB/s  
-New Data Upload               :  90%|████████▉ |  909MB / 1.02GB, 13.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  90%|████████▉ |  911MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  90%|████████▉ |  911MB / 1.02GB, 12.8MB/s  
-New Data Upload               :  90%|████████▉ |  911MB / 1.02GB, 12.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  90%|████████▉ |  913MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  90%|████████▉ |  913MB / 1.02GB, 12.6MB/s  
-New Data Upload               :  90%|████████▉ |  913MB / 1.02GB, 12.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  90%|█████████ |  916MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  90%|█████████ |  916MB / 1.02GB, 12.7MB/s  
-New Data Upload               :  90%|█████████ |  916MB / 1.02GB, 12.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  90%|█████████ |  918MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  90%|█████████ |  918MB / 1.02GB, 12.3MB/s  
-New Data Upload               :  90%|█████████ |  918MB / 1.02GB, 12.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  91%|█████████ |  921MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  91%|█████████ |  921MB / 1.02GB, 12.3MB/s  
-New Data Upload               :  91%|█████████ |  921MB / 1.02GB, 12.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  91%|█████████ |  923MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  91%|█████████ |  923MB / 1.02GB, 12.3MB/s  
-New Data Upload               :  91%|█████████ |  923MB / 1.02GB, 12.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  91%|█████████ |  925MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  91%|█████████ |  925MB / 1.02GB, 12.4MB/s  
-New Data Upload               :  91%|█████████ |  925MB / 1.02GB, 12.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  91%|█████████▏|  927MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  91%|█████████▏|  927MB / 1.02GB, 12.6MB/s  
-New Data Upload               :  91%|█████████▏|  927MB / 1.02GB, 12.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  92%|█████████▏|  930MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏|  930MB / 1.02GB, 12.3MB/s  
-New Data Upload               :  92%|█████████▏|  930MB / 1.02GB, 12.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  92%|█████████▏|  933MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏|  933MB / 1.02GB, 12.4MB/s  
-New Data Upload               :  92%|█████████▏|  933MB / 1.02GB, 12.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  92%|█████████▏|  936MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏|  936MB / 1.02GB, 12.4MB/s  
-New Data Upload               :  92%|█████████▏|  936MB / 1.02GB, 12.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  92%|█████████▏|  937MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏|  937MB / 1.02GB, 12.2MB/s  
-New Data Upload               :  92%|█████████▏|  937MB / 1.02GB, 12.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  93%|█████████▎|  940MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎|  940MB / 1.02GB, 12.2MB/s  
-New Data Upload               :  93%|█████████▎|  940MB / 1.02GB, 12.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  93%|█████████▎|  941MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎|  941MB / 1.02GB, 12.2MB/s  
-New Data Upload               :  93%|█████████▎|  941MB / 1.02GB, 12.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  93%|█████████▎|  944MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎|  944MB / 1.02GB, 12.4MB/s  
-New Data Upload               :  93%|█████████▎|  944MB / 1.02GB, 12.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  93%|█████████▎|  947MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎|  947MB / 1.02GB, 12.4MB/s  
-New Data Upload               :  93%|█████████▎|  947MB / 1.02GB, 12.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  94%|█████████▎|  950MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  94%|█████████▎|  950MB / 1.02GB, 12.4MB/s  
-New Data Upload               :  94%|█████████▎|  950MB / 1.02GB, 12.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  94%|█████████▎|  952MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  94%|█████████▎|  952MB / 1.02GB, 12.4MB/s  
-New Data Upload               :  94%|█████████▎|  952MB / 1.02GB, 12.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  94%|█████████▍|  955MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  94%|█████████▍|  955MB / 1.02GB, 12.5MB/s  
-New Data Upload               :  94%|█████████▍|  955MB / 1.02GB, 12.5MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  94%|█████████▍|  958MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  94%|█████████▍|  958MB / 1.02GB, 12.6MB/s  
-New Data Upload               :  94%|█████████▍|  958MB / 1.02GB, 12.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  95%|█████████▍|  960MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  95%|█████████▍|  960MB / 1.02GB, 12.7MB/s  
-New Data Upload               :  95%|█████████▍|  960MB / 1.02GB, 12.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  95%|█████████▍|  962MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  95%|█████████▍|  962MB / 1.02GB, 12.6MB/s  
-New Data Upload               :  95%|█████████▍|  962MB / 1.02GB, 12.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  95%|█████████▌|  965MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  95%|█████████▌|  965MB / 1.02GB, 12.7MB/s  
-New Data Upload               :  95%|█████████▌|  965MB / 1.02GB, 12.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  95%|█████████▌|  968MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  95%|█████████▌|  968MB / 1.02GB, 12.8MB/s  
-New Data Upload               :  95%|█████████▌|  968MB / 1.02GB, 12.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  96%|█████████▌|  972MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  96%|█████████▌|  972MB / 1.02GB, 13.1MB/s  
-New Data Upload               :  96%|█████████▌|  972MB / 1.02GB, 13.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  96%|█████████▌|  975MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  96%|█████████▌|  975MB / 1.02GB, 13.1MB/s  
-New Data Upload               :  96%|█████████▌|  975MB / 1.02GB, 13.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  96%|█████████▋|  979MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  96%|█████████▋|  979MB / 1.02GB, 13.3MB/s  
-New Data Upload               :  96%|█████████▋|  979MB / 1.02GB, 13.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  97%|█████████▋|  981MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋|  981MB / 1.02GB, 13.2MB/s  
-New Data Upload               :  97%|█████████▋|  981MB / 1.02GB, 13.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  97%|█████████▋|  984MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋|  984MB / 1.02GB, 13.3MB/s  
-New Data Upload               :  97%|█████████▋|  984MB / 1.02GB, 13.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  97%|█████████▋|  986MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋|  986MB / 1.02GB, 13.3MB/s  
-New Data Upload               :  97%|█████████▋|  986MB / 1.02GB, 13.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  97%|█████████▋|  988MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋|  988MB / 1.02GB, 13.3MB/s  
-New Data Upload               :  97%|█████████▋|  988MB / 1.02GB, 13.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  98%|█████████▊|  991MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  991MB / 1.02GB, 13.3MB/s  
-New Data Upload               :  98%|█████████▊|  991MB / 1.02GB, 13.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  98%|█████████▊|  992MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  992MB / 1.02GB, 13.3MB/s  
-New Data Upload               :  98%|█████████▊|  992MB / 1.02GB, 13.3MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  98%|█████████▊|  995MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  995MB / 1.02GB, 13.2MB/s  
-New Data Upload               :  98%|█████████▊|  995MB / 1.02GB, 13.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  98%|█████████▊|  997MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  997MB / 1.02GB, 13.1MB/s  
-New Data Upload               :  98%|█████████▊|  997MB / 1.02GB, 13.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  98%|█████████▊|  998MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  998MB / 1.02GB, 13.0MB/s  
-New Data Upload               :  98%|█████████▊|  998MB / 1.02GB, 13.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  98%|█████████▊|  999MB / 1.02GB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  999MB / 1.02GB, 12.9MB/s  
-New Data Upload               :  98%|█████████▊|  999MB / 1.02GB, 12.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  99%|█████████▊| 1.00GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▊| 1.00GB / 1.02GB, 12.7MB/s  
-New Data Upload               :  99%|█████████▊| 1.00GB / 1.02GB, 12.7MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  99%|█████████▊| 1.00GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▊| 1.00GB / 1.02GB, 12.4MB/s  
-New Data Upload               :  99%|█████████▊| 1.00GB / 1.02GB, 12.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  99%|█████████▊| 1.00GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▊| 1.00GB / 1.02GB, 12.4MB/s  
-New Data Upload               :  99%|█████████▊| 1.00GB / 1.02GB, 12.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  99%|█████████▉| 1.00GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.00GB / 1.02GB, 12.2MB/s  
-New Data Upload               :  99%|█████████▉| 1.00GB / 1.02GB, 12.2MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  99%|█████████▉| 1.00GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.00GB / 1.02GB, 11.9MB/s  
-New Data Upload               :  99%|█████████▉| 1.00GB / 1.02GB, 11.9MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  99%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.01GB / 1.02GB, 11.8MB/s  
-New Data Upload               :  99%|█████████▉| 1.01GB / 1.02GB, 11.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  99%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.01GB / 1.02GB, 11.6MB/s  
-New Data Upload               :  99%|█████████▉| 1.01GB / 1.02GB, 11.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  99%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.01GB / 1.02GB, 11.4MB/s  
-New Data Upload               :  99%|█████████▉| 1.01GB / 1.02GB, 11.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl:  99%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 1.01GB / 1.02GB, 11.0MB/s  
-New Data Upload               :  99%|█████████▉| 1.01GB / 1.02GB, 11.0MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 1.01GB / 1.02GB, 11.1MB/s  
-New Data Upload               : 100%|█████████▉| 1.01GB / 1.02GB, 11.1MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 1.01GB / 1.02GB, 10.8MB/s  
-New Data Upload               : 100%|█████████▉| 1.01GB / 1.02GB, 10.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 1.01GB / 1.02GB, 10.8MB/s  
-New Data Upload               : 100%|█████████▉| 1.01GB / 1.02GB, 10.8MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|█████████▉| 1.01GB / 1.02GB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 1.01GB / 1.02GB, 10.6MB/s  
-New Data Upload               : 100%|█████████▉| 1.01GB / 1.02GB, 10.6MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|█████████▉| 1.02GB / 1.02GB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 1.02GB / 1.02GB, 10.4MB/s  
-New Data Upload               : 100%|█████████▉| 1.02GB / 1.02GB, 10.4MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|█████████▉| 1.02GB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|█████████▉| 1.02GB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|█████████▉| 1.02GB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|█████████▉| 1.02GB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|█████████▉| 1.02GB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|██████████| 1.02GB / 1.02GB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 1.02GB / 1.02GB, 9.11MB/s  
-New Data Upload               : 100%|██████████| 1.02GB / 1.02GB, 9.11MB/s  [A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|██████████| 1.02GB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|██████████| 1.02GB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|██████████| 1.02GB / 1.02GB            [A[A
-
-  ...pt-4o/gene_embeddings.pkl: 100%|██████████| 1.02GB / 1.02GB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 1.02GB / 1.02GB, 8.28MB/s  
-New Data Upload               : 100%|██████████| 1.02GB / 1.02GB, 8.28MB/s  
-  ...pt-4o/gene_embeddings.pkl: 100%|██████████| 1.02GB / 1.02GB            
-✅ Successfully uploaded: perturblab/scelmo-gene-gpt-4o
-   View at: https://huggingface.co/perturblab/scelmo-gene-gpt-4o
-
-======================================================================
-Uploading: scelmo-gene-gpt-3.5
-Local directory: /home/wzq/Code/Projects/PerturbLab/weights/scelmo-gene-gpt-3.5
-Repository: perturblab/scelmo-gene-gpt-3.5
-======================================================================
-✓ Repository created/verified: perturblab/scelmo-gene-gpt-3.5
-📤 Uploading files...
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...t-3.5/gene_embeddings.pkl:   1%|          | 2.95MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:   1%|          | 2.95MB /  509MB            [A[AProcessing Files (0 / 1)      :   1%|          | 2.95MB /  509MB, 7.37MB/s  
-New Data Upload               :   4%|▍         | 2.95MB / 67.1MB, 7.37MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:   1%|          | 4.13MB /  509MB            [A[AProcessing Files (0 / 1)      :   1%|          | 4.13MB /  509MB, 6.88MB/s  
-New Data Upload               :   6%|▌         | 4.13MB / 67.1MB, 6.88MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:   2%|▏         | 8.23MB /  509MB            [A[AProcessing Files (0 / 1)      :   2%|▏         | 8.23MB /  509MB, 10.3MB/s  
-New Data Upload               :   6%|▌         | 8.23MB /  134MB, 10.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:   2%|▏         | 11.7MB /  509MB            [A[AProcessing Files (0 / 1)      :   2%|▏         | 11.7MB /  509MB, 11.7MB/s  
-New Data Upload               :   9%|▉         | 11.7MB /  134MB, 11.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:   3%|▎         | 14.7MB /  509MB            [A[AProcessing Files (0 / 1)      :   3%|▎         | 14.7MB /  509MB, 12.2MB/s  
-New Data Upload               :  11%|█         | 14.7MB /  134MB, 12.2MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:   3%|▎         | 17.0MB /  509MB            [A[AProcessing Files (0 / 1)      :   3%|▎         | 17.0MB /  509MB, 12.2MB/s  
-New Data Upload               :   8%|▊         | 17.0MB /  201MB, 12.2MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:   5%|▍         | 24.0MB /  509MB            [A[AProcessing Files (0 / 1)      :   5%|▍         | 24.0MB /  509MB, 15.0MB/s  
-New Data Upload               :   9%|▉         | 24.0MB /  268MB, 15.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:   6%|▌         | 31.7MB /  509MB            [A[AProcessing Files (0 / 1)      :   6%|▌         | 31.7MB /  509MB, 17.6MB/s  
-New Data Upload               :  12%|█▏        | 31.7MB /  268MB, 17.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:   8%|▊         | 38.2MB /  509MB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 38.2MB /  509MB, 19.1MB/s  
-New Data Upload               :  14%|█▍        | 38.2MB /  268MB, 19.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:   9%|▊         | 44.1MB /  509MB            [A[AProcessing Files (0 / 1)      :   9%|▊         | 44.1MB /  509MB, 20.0MB/s  
-New Data Upload               :  16%|█▋        | 44.1MB /  268MB, 20.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  10%|▉         | 49.4MB /  509MB            [A[AProcessing Files (0 / 1)      :  10%|▉         | 49.4MB /  509MB, 20.6MB/s  
-New Data Upload               :  15%|█▍        | 49.4MB /  335MB, 20.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  13%|█▎        | 64.6MB /  509MB            [A[AProcessing Files (0 / 1)      :  13%|█▎        | 64.6MB /  509MB, 24.9MB/s  
-New Data Upload               :  19%|█▉        | 64.6MB /  335MB, 24.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  17%|█▋        | 85.2MB /  509MB            [A[AProcessing Files (0 / 1)      :  17%|█▋        | 85.2MB /  509MB, 30.4MB/s  
-New Data Upload               :  21%|██        | 85.2MB /  402MB, 30.4MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  20%|█▉        |  102MB /  509MB            [A[AProcessing Files (0 / 1)      :  20%|█▉        |  102MB /  509MB, 33.9MB/s  
-New Data Upload               :  22%|██▏       |  102MB /  469MB, 33.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  21%|██        |  107MB /  509MB            [A[AProcessing Files (0 / 1)      :  21%|██        |  107MB /  509MB, 33.4MB/s  
-New Data Upload               :  23%|██▎       |  107MB /  469MB, 33.4MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  22%|██▏       |  111MB /  509MB            [A[AProcessing Files (0 / 1)      :  22%|██▏       |  111MB /  509MB, 32.7MB/s  
-New Data Upload               :  22%|██▏       |  111MB /  509MB, 32.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  23%|██▎       |  118MB /  509MB            [A[AProcessing Files (0 / 1)      :  23%|██▎       |  118MB /  509MB, 32.7MB/s  
-New Data Upload               :  23%|██▎       |  118MB /  509MB, 32.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  24%|██▍       |  121MB /  509MB            [A[AProcessing Files (0 / 1)      :  24%|██▍       |  121MB /  509MB, 31.9MB/s  
-New Data Upload               :  24%|██▍       |  121MB /  509MB, 31.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  25%|██▍       |  126MB /  509MB            [A[AProcessing Files (0 / 1)      :  25%|██▍       |  126MB /  509MB, 31.5MB/s  
-New Data Upload               :  25%|██▍       |  126MB /  509MB, 31.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  25%|██▌       |  128MB /  509MB            [A[AProcessing Files (0 / 1)      :  25%|██▌       |  128MB /  509MB, 30.5MB/s  
-New Data Upload               :  25%|██▌       |  128MB /  509MB, 30.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  26%|██▌       |  134MB /  509MB            [A[AProcessing Files (0 / 1)      :  26%|██▌       |  134MB /  509MB, 30.3MB/s  
-New Data Upload               :  26%|██▌       |  134MB /  509MB, 30.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  27%|██▋       |  138MB /  509MB            [A[AProcessing Files (0 / 1)      :  27%|██▋       |  138MB /  509MB, 29.9MB/s  
-New Data Upload               :  27%|██▋       |  138MB /  509MB, 29.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  28%|██▊       |  140MB /  509MB            [A[AProcessing Files (0 / 1)      :  28%|██▊       |  140MB /  509MB, 29.2MB/s  
-New Data Upload               :  28%|██▊       |  140MB /  509MB, 29.2MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  28%|██▊       |  144MB /  509MB            [A[AProcessing Files (0 / 1)      :  28%|██▊       |  144MB /  509MB, 28.7MB/s  
-New Data Upload               :  28%|██▊       |  144MB /  509MB, 28.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  29%|██▉       |  147MB /  509MB            [A[AProcessing Files (0 / 1)      :  29%|██▉       |  147MB /  509MB, 28.3MB/s  
-New Data Upload               :  29%|██▉       |  147MB /  509MB, 28.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  30%|██▉       |  152MB /  509MB            [A[AProcessing Files (0 / 1)      :  30%|██▉       |  152MB /  509MB, 28.1MB/s  
-New Data Upload               :  30%|██▉       |  152MB /  509MB, 28.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  31%|███       |  155MB /  509MB            [A[AProcessing Files (0 / 1)      :  31%|███       |  155MB /  509MB, 27.7MB/s  
-New Data Upload               :  31%|███       |  155MB /  509MB, 27.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  31%|███▏      |  160MB /  509MB            [A[AProcessing Files (0 / 1)      :  31%|███▏      |  160MB /  509MB, 27.6MB/s  
-New Data Upload               :  31%|███▏      |  160MB /  509MB, 27.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  32%|███▏      |  163MB /  509MB            [A[AProcessing Files (0 / 1)      :  32%|███▏      |  163MB /  509MB, 27.2MB/s  
-New Data Upload               :  32%|███▏      |  163MB /  509MB, 27.2MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  33%|███▎      |  167MB /  509MB            [A[AProcessing Files (0 / 1)      :  33%|███▎      |  167MB /  509MB, 26.9MB/s  
-New Data Upload               :  33%|███▎      |  167MB /  509MB, 26.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  34%|███▎      |  171MB /  509MB            [A[AProcessing Files (0 / 1)      :  34%|███▎      |  171MB /  509MB, 26.7MB/s  
-New Data Upload               :  34%|███▎      |  171MB /  509MB, 26.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  35%|███▍      |  176MB /  509MB            [A[AProcessing Files (0 / 1)      :  35%|███▍      |  176MB /  509MB, 26.7MB/s  
-New Data Upload               :  35%|███▍      |  176MB /  509MB, 26.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  35%|███▌      |  179MB /  509MB            [A[AProcessing Files (0 / 1)      :  35%|███▌      |  179MB /  509MB, 26.3MB/s  
-New Data Upload               :  35%|███▌      |  179MB /  509MB, 26.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  36%|███▌      |  183MB /  509MB            [A[AProcessing Files (0 / 1)      :  36%|███▌      |  183MB /  509MB, 26.1MB/s  
-New Data Upload               :  36%|███▌      |  183MB /  509MB, 26.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  37%|███▋      |  186MB /  509MB            [A[AProcessing Files (0 / 1)      :  37%|███▋      |  186MB /  509MB, 25.9MB/s  
-New Data Upload               :  37%|███▋      |  186MB /  509MB, 25.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  38%|███▊      |  191MB /  509MB            [A[AProcessing Files (0 / 1)      :  38%|███▊      |  191MB /  509MB, 25.8MB/s  
-New Data Upload               :  38%|███▊      |  191MB /  509MB, 25.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  39%|███▊      |  196MB /  509MB            [A[AProcessing Files (0 / 1)      :  39%|███▊      |  196MB /  509MB, 25.8MB/s  
-New Data Upload               :  39%|███▊      |  196MB /  509MB, 25.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  39%|███▉      |  201MB /  509MB            [A[AProcessing Files (0 / 1)      :  39%|███▉      |  201MB /  509MB, 25.7MB/s  
-New Data Upload               :  39%|███▉      |  201MB /  509MB, 25.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  40%|███▉      |  202MB /  509MB            [A[AProcessing Files (0 / 1)      :  40%|███▉      |  202MB /  509MB, 25.3MB/s  
-New Data Upload               :  40%|███▉      |  202MB /  509MB, 25.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  41%|████      |  208MB /  509MB            [A[AProcessing Files (0 / 1)      :  41%|████      |  208MB /  509MB, 25.3MB/s  
-New Data Upload               :  41%|████      |  208MB /  509MB, 25.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  41%|████▏     |  211MB /  509MB            [A[AProcessing Files (0 / 1)      :  41%|████▏     |  211MB /  509MB, 25.1MB/s  
-New Data Upload               :  41%|████▏     |  211MB /  509MB, 25.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  42%|████▏     |  214MB /  509MB            [A[AProcessing Files (0 / 1)      :  42%|████▏     |  214MB /  509MB, 24.9MB/s  
-New Data Upload               :  42%|████▏     |  214MB /  509MB, 24.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  43%|████▎     |  218MB /  509MB            [A[AProcessing Files (0 / 1)      :  43%|████▎     |  218MB /  509MB, 24.8MB/s  
-New Data Upload               :  43%|████▎     |  218MB /  509MB, 24.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  44%|████▎     |  222MB /  509MB            [A[AProcessing Files (0 / 1)      :  44%|████▎     |  222MB /  509MB, 24.6MB/s  
-New Data Upload               :  44%|████▎     |  222MB /  509MB, 24.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  45%|████▍     |  227MB /  509MB            [A[AProcessing Files (0 / 1)      :  45%|████▍     |  227MB /  509MB, 24.7MB/s  
-New Data Upload               :  45%|████▍     |  227MB /  509MB, 24.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  45%|████▌     |  231MB /  509MB            [A[AProcessing Files (0 / 1)      :  45%|████▌     |  231MB /  509MB, 24.5MB/s  
-New Data Upload               :  45%|████▌     |  231MB /  509MB, 24.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  46%|████▋     |  236MB /  509MB            [A[AProcessing Files (0 / 1)      :  46%|████▋     |  236MB /  509MB, 24.6MB/s  
-New Data Upload               :  46%|████▋     |  236MB /  509MB, 24.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  47%|████▋     |  239MB /  509MB            [A[AProcessing Files (0 / 1)      :  47%|████▋     |  239MB /  509MB, 24.4MB/s  
-New Data Upload               :  47%|████▋     |  239MB /  509MB, 24.4MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  48%|████▊     |  244MB /  509MB            [A[AProcessing Files (0 / 1)      :  48%|████▊     |  244MB /  509MB, 24.4MB/s  
-New Data Upload               :  48%|████▊     |  244MB /  509MB, 24.4MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  49%|████▊     |  248MB /  509MB            [A[AProcessing Files (0 / 1)      :  49%|████▊     |  248MB /  509MB, 24.3MB/s  
-New Data Upload               :  49%|████▊     |  248MB /  509MB, 24.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  49%|████▉     |  251MB /  509MB            [A[AProcessing Files (0 / 1)      :  49%|████▉     |  251MB /  509MB, 24.6MB/s  
-New Data Upload               :  49%|████▉     |  251MB /  509MB, 24.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  50%|████▉     |  254MB /  509MB            [A[AProcessing Files (0 / 1)      :  50%|████▉     |  254MB /  509MB, 24.6MB/s  
-New Data Upload               :  50%|████▉     |  254MB /  509MB, 24.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  51%|█████     |  259MB /  509MB            [A[AProcessing Files (0 / 1)      :  51%|█████     |  259MB /  509MB, 25.0MB/s  
-New Data Upload               :  51%|█████     |  259MB /  509MB, 25.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  52%|█████▏    |  264MB /  509MB            [A[AProcessing Files (0 / 1)      :  52%|█████▏    |  264MB /  509MB, 25.1MB/s  
-New Data Upload               :  52%|█████▏    |  264MB /  509MB, 25.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  53%|█████▎    |  267MB /  509MB            [A[AProcessing Files (0 / 1)      :  53%|█████▎    |  267MB /  509MB, 25.0MB/s  
-New Data Upload               :  53%|█████▎    |  267MB /  509MB, 25.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  53%|█████▎    |  272MB /  509MB            [A[AProcessing Files (0 / 1)      :  53%|█████▎    |  272MB /  509MB, 25.2MB/s  
-New Data Upload               :  53%|█████▎    |  272MB /  509MB, 25.2MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  54%|█████▍    |  275MB /  509MB            [A[AProcessing Files (0 / 1)      :  54%|█████▍    |  275MB /  509MB, 25.3MB/s  
-New Data Upload               :  54%|█████▍    |  275MB /  509MB, 25.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  55%|█████▍    |  279MB /  509MB            [A[AProcessing Files (0 / 1)      :  55%|█████▍    |  279MB /  509MB, 25.0MB/s  
-New Data Upload               :  55%|█████▍    |  279MB /  509MB, 25.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  56%|█████▌    |  283MB /  509MB            [A[AProcessing Files (0 / 1)      :  56%|█████▌    |  283MB /  509MB, 24.6MB/s  
-New Data Upload               :  56%|█████▌    |  283MB /  509MB, 24.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  57%|█████▋    |  288MB /  509MB            [A[AProcessing Files (0 / 1)      :  57%|█████▋    |  288MB /  509MB, 24.5MB/s  
-New Data Upload               :  57%|█████▋    |  288MB /  509MB, 24.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  57%|█████▋    |  291MB /  509MB            [A[AProcessing Files (0 / 1)      :  57%|█████▋    |  291MB /  509MB, 24.2MB/s  
-New Data Upload               :  57%|█████▋    |  291MB /  509MB, 24.2MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  58%|█████▊    |  294MB /  509MB            [A[AProcessing Files (0 / 1)      :  58%|█████▊    |  294MB /  509MB, 24.0MB/s  
-New Data Upload               :  58%|█████▊    |  294MB /  509MB, 24.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  59%|█████▊    |  298MB /  509MB            [A[AProcessing Files (0 / 1)      :  59%|█████▊    |  298MB /  509MB, 22.9MB/s  
-New Data Upload               :  59%|█████▊    |  298MB /  509MB, 22.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  59%|█████▉    |  302MB /  509MB            [A[AProcessing Files (0 / 1)      :  59%|█████▉    |  302MB /  509MB, 21.3MB/s  
-New Data Upload               :  59%|█████▉    |  302MB /  509MB, 21.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  60%|██████    |  305MB /  509MB            [A[AProcessing Files (0 / 1)      :  60%|██████    |  305MB /  509MB, 20.0MB/s  
-New Data Upload               :  60%|██████    |  305MB /  509MB, 20.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  61%|██████    |  311MB /  509MB            [A[AProcessing Files (0 / 1)      :  61%|██████    |  311MB /  509MB, 20.0MB/s  
-New Data Upload               :  61%|██████    |  311MB /  509MB, 20.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  61%|██████▏   |  313MB /  509MB            [A[AProcessing Files (0 / 1)      :  61%|██████▏   |  313MB /  509MB, 19.7MB/s  
-New Data Upload               :  61%|██████▏   |  313MB /  509MB, 19.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  62%|██████▏   |  318MB /  509MB            [A[AProcessing Files (0 / 1)      :  62%|██████▏   |  318MB /  509MB, 19.6MB/s  
-New Data Upload               :  62%|██████▏   |  318MB /  509MB, 19.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  63%|██████▎   |  321MB /  509MB            [A[AProcessing Files (0 / 1)      :  63%|██████▎   |  321MB /  509MB, 19.6MB/s  
-New Data Upload               :  63%|██████▎   |  321MB /  509MB, 19.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  64%|██████▎   |  324MB /  509MB            [A[AProcessing Files (0 / 1)      :  64%|██████▎   |  324MB /  509MB, 19.4MB/s  
-New Data Upload               :  64%|██████▎   |  324MB /  509MB, 19.4MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  64%|██████▍   |  327MB /  509MB            [A[AProcessing Files (0 / 1)      :  64%|██████▍   |  327MB /  509MB, 19.5MB/s  
-New Data Upload               :  64%|██████▍   |  327MB /  509MB, 19.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  64%|██████▍   |  328MB /  509MB            [A[AProcessing Files (0 / 1)      :  64%|██████▍   |  328MB /  509MB, 19.1MB/s  
-New Data Upload               :  64%|██████▍   |  328MB /  509MB, 19.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  65%|██████▌   |  332MB /  509MB            [A[AProcessing Files (0 / 1)      :  65%|██████▌   |  332MB /  509MB, 19.1MB/s  
-New Data Upload               :  65%|██████▌   |  332MB /  509MB, 19.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  66%|██████▌   |  335MB /  509MB            [A[AProcessing Files (0 / 1)      :  66%|██████▌   |  335MB /  509MB, 19.1MB/s  
-New Data Upload               :  66%|██████▌   |  335MB /  509MB, 19.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  67%|██████▋   |  340MB /  509MB            [A[AProcessing Files (0 / 1)      :  67%|██████▋   |  340MB /  509MB, 19.2MB/s  
-New Data Upload               :  67%|██████▋   |  340MB /  509MB, 19.2MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  67%|██████▋   |  343MB /  509MB            [A[AProcessing Files (0 / 1)      :  67%|██████▋   |  343MB /  509MB, 19.2MB/s  
-New Data Upload               :  67%|██████▋   |  343MB /  509MB, 19.2MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  68%|██████▊   |  346MB /  509MB            [A[AProcessing Files (0 / 1)      :  68%|██████▊   |  346MB /  509MB, 19.0MB/s  
-New Data Upload               :  68%|██████▊   |  346MB /  509MB, 19.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  69%|██████▊   |  350MB /  509MB            [A[AProcessing Files (0 / 1)      :  69%|██████▊   |  350MB /  509MB, 19.1MB/s  
-New Data Upload               :  69%|██████▊   |  350MB /  509MB, 19.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  70%|██████▉   |  354MB /  509MB            [A[AProcessing Files (0 / 1)      :  70%|██████▉   |  354MB /  509MB, 19.0MB/s  
-New Data Upload               :  70%|██████▉   |  354MB /  509MB, 19.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  70%|██████▉   |  356MB /  509MB            [A[AProcessing Files (0 / 1)      :  70%|██████▉   |  356MB /  509MB, 18.9MB/s  
-New Data Upload               :  70%|██████▉   |  356MB /  509MB, 18.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  71%|███████   |  361MB /  509MB            [A[AProcessing Files (0 / 1)      :  71%|███████   |  361MB /  509MB, 19.0MB/s  
-New Data Upload               :  71%|███████   |  361MB /  509MB, 19.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  72%|███████▏  |  365MB /  509MB            [A[AProcessing Files (0 / 1)      :  72%|███████▏  |  365MB /  509MB, 19.0MB/s  
-New Data Upload               :  72%|███████▏  |  365MB /  509MB, 19.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  72%|███████▏  |  367MB /  509MB            [A[AProcessing Files (0 / 1)      :  72%|███████▏  |  367MB /  509MB, 18.8MB/s  
-New Data Upload               :  72%|███████▏  |  367MB /  509MB, 18.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  73%|███████▎  |  372MB /  509MB            [A[AProcessing Files (0 / 1)      :  73%|███████▎  |  372MB /  509MB, 18.9MB/s  
-New Data Upload               :  73%|███████▎  |  372MB /  509MB, 18.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  73%|███████▎  |  374MB /  509MB            [A[AProcessing Files (0 / 1)      :  73%|███████▎  |  374MB /  509MB, 18.7MB/s  
-New Data Upload               :  73%|███████▎  |  374MB /  509MB, 18.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  74%|███████▍  |  376MB /  509MB            [A[AProcessing Files (0 / 1)      :  74%|███████▍  |  376MB /  509MB, 18.5MB/s  
-New Data Upload               :  74%|███████▍  |  376MB /  509MB, 18.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  74%|███████▍  |  378MB /  509MB            [A[AProcessing Files (0 / 1)      :  74%|███████▍  |  378MB /  509MB, 18.3MB/s  
-New Data Upload               :  74%|███████▍  |  378MB /  509MB, 18.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  75%|███████▍  |  380MB /  509MB            [A[AProcessing Files (0 / 1)      :  75%|███████▍  |  380MB /  509MB, 18.1MB/s  
-New Data Upload               :  75%|███████▍  |  380MB /  509MB, 18.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  75%|███████▍  |  382MB /  509MB            [A[AProcessing Files (0 / 1)      :  75%|███████▍  |  382MB /  509MB, 17.7MB/s  
-New Data Upload               :  75%|███████▍  |  382MB /  509MB, 17.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  75%|███████▌  |  384MB /  509MB            [A[AProcessing Files (0 / 1)      :  75%|███████▌  |  384MB /  509MB, 17.8MB/s  
-New Data Upload               :  75%|███████▌  |  384MB /  509MB, 17.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  76%|███████▌  |  386MB /  509MB            [A[AProcessing Files (0 / 1)      :  76%|███████▌  |  386MB /  509MB, 17.4MB/s  
-New Data Upload               :  76%|███████▌  |  386MB /  509MB, 17.4MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  77%|███████▋  |  389MB /  509MB            [A[AProcessing Files (0 / 1)      :  77%|███████▋  |  389MB /  509MB, 17.5MB/s  
-New Data Upload               :  77%|███████▋  |  389MB /  509MB, 17.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  77%|███████▋  |  393MB /  509MB            [A[AProcessing Files (0 / 1)      :  77%|███████▋  |  393MB /  509MB, 17.5MB/s  
-New Data Upload               :  77%|███████▋  |  393MB /  509MB, 17.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  77%|███████▋  |  394MB /  509MB            [A[AProcessing Files (0 / 1)      :  77%|███████▋  |  394MB /  509MB, 17.2MB/s  
-New Data Upload               :  77%|███████▋  |  394MB /  509MB, 17.2MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  78%|███████▊  |  397MB /  509MB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  |  397MB /  509MB, 17.2MB/s  
-New Data Upload               :  78%|███████▊  |  397MB /  509MB, 17.2MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  79%|███████▊  |  399MB /  509MB            [A[AProcessing Files (0 / 1)      :  79%|███████▊  |  399MB /  509MB, 16.9MB/s  
-New Data Upload               :  79%|███████▊  |  399MB /  509MB, 16.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  79%|███████▉  |  402MB /  509MB            [A[AProcessing Files (0 / 1)      :  79%|███████▉  |  402MB /  509MB, 16.8MB/s  
-New Data Upload               :  79%|███████▉  |  402MB /  509MB, 16.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  80%|███████▉  |  406MB /  509MB            [A[AProcessing Files (0 / 1)      :  80%|███████▉  |  406MB /  509MB, 16.6MB/s  
-New Data Upload               :  80%|███████▉  |  406MB /  509MB, 16.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  80%|████████  |  409MB /  509MB            [A[AProcessing Files (0 / 1)      :  80%|████████  |  409MB /  509MB, 16.6MB/s  
-New Data Upload               :  80%|████████  |  409MB /  509MB, 16.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  81%|████████  |  412MB /  509MB            [A[AProcessing Files (0 / 1)      :  81%|████████  |  412MB /  509MB, 16.5MB/s  
-New Data Upload               :  81%|████████  |  412MB /  509MB, 16.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  81%|████████▏ |  415MB /  509MB            [A[AProcessing Files (0 / 1)      :  81%|████████▏ |  415MB /  509MB, 16.4MB/s  
-New Data Upload               :  81%|████████▏ |  415MB /  509MB, 16.4MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  82%|████████▏ |  417MB /  509MB            [A[AProcessing Files (0 / 1)      :  82%|████████▏ |  417MB /  509MB, 16.3MB/s  
-New Data Upload               :  82%|████████▏ |  417MB /  509MB, 16.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  83%|████████▎ |  420MB /  509MB            [A[AProcessing Files (0 / 1)      :  83%|████████▎ |  420MB /  509MB, 16.3MB/s  
-New Data Upload               :  83%|████████▎ |  420MB /  509MB, 16.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  83%|████████▎ |  422MB /  509MB            [A[AProcessing Files (0 / 1)      :  83%|████████▎ |  422MB /  509MB, 15.9MB/s  
-New Data Upload               :  83%|████████▎ |  422MB /  509MB, 15.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  84%|████████▍ |  426MB /  509MB            [A[AProcessing Files (0 / 1)      :  84%|████████▍ |  426MB /  509MB, 15.9MB/s  
-New Data Upload               :  84%|████████▍ |  426MB /  509MB, 15.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  85%|████████▍ |  430MB /  509MB            [A[AProcessing Files (0 / 1)      :  85%|████████▍ |  430MB /  509MB, 16.0MB/s  
-New Data Upload               :  85%|████████▍ |  430MB /  509MB, 16.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  85%|████████▌ |  433MB /  509MB            [A[AProcessing Files (0 / 1)      :  85%|████████▌ |  433MB /  509MB, 15.8MB/s  
-New Data Upload               :  85%|████████▌ |  433MB /  509MB, 15.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  85%|████████▌ |  434MB /  509MB            [A[AProcessing Files (0 / 1)      :  85%|████████▌ |  434MB /  509MB, 15.6MB/s  
-New Data Upload               :  85%|████████▌ |  434MB /  509MB, 15.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  86%|████████▌ |  438MB /  509MB            [A[AProcessing Files (0 / 1)      :  86%|████████▌ |  438MB /  509MB, 15.6MB/s  
-New Data Upload               :  86%|████████▌ |  438MB /  509MB, 15.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  87%|████████▋ |  442MB /  509MB            [A[AProcessing Files (0 / 1)      :  87%|████████▋ |  442MB /  509MB, 15.6MB/s  
-New Data Upload               :  87%|████████▋ |  442MB /  509MB, 15.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  87%|████████▋ |  444MB /  509MB            [A[AProcessing Files (0 / 1)      :  87%|████████▋ |  444MB /  509MB, 15.3MB/s  
-New Data Upload               :  87%|████████▋ |  444MB /  509MB, 15.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  88%|████████▊ |  448MB /  509MB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ |  448MB /  509MB, 15.4MB/s  
-New Data Upload               :  88%|████████▊ |  448MB /  509MB, 15.4MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  89%|████████▊ |  451MB /  509MB            [A[AProcessing Files (0 / 1)      :  89%|████████▊ |  451MB /  509MB, 15.3MB/s  
-New Data Upload               :  89%|████████▊ |  451MB /  509MB, 15.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  89%|████████▉ |  455MB /  509MB            [A[AProcessing Files (0 / 1)      :  89%|████████▉ |  455MB /  509MB, 15.3MB/s  
-New Data Upload               :  89%|████████▉ |  455MB /  509MB, 15.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  90%|████████▉ |  457MB /  509MB            [A[AProcessing Files (0 / 1)      :  90%|████████▉ |  457MB /  509MB, 15.1MB/s  
-New Data Upload               :  90%|████████▉ |  457MB /  509MB, 15.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  90%|█████████ |  459MB /  509MB            [A[AProcessing Files (0 / 1)      :  90%|█████████ |  459MB /  509MB, 15.1MB/s  
-New Data Upload               :  90%|█████████ |  459MB /  509MB, 15.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  91%|█████████ |  462MB /  509MB            [A[AProcessing Files (0 / 1)      :  91%|█████████ |  462MB /  509MB, 14.8MB/s  
-New Data Upload               :  91%|█████████ |  462MB /  509MB, 14.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  91%|█████████▏|  465MB /  509MB            [A[AProcessing Files (0 / 1)      :  91%|█████████▏|  465MB /  509MB, 14.9MB/s  
-New Data Upload               :  91%|█████████▏|  465MB /  509MB, 14.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  92%|█████████▏|  467MB /  509MB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏|  467MB /  509MB, 14.6MB/s  
-New Data Upload               :  92%|█████████▏|  467MB /  509MB, 14.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  92%|█████████▏|  470MB /  509MB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏|  470MB /  509MB, 14.6MB/s  
-New Data Upload               :  92%|█████████▏|  470MB /  509MB, 14.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  93%|█████████▎|  473MB /  509MB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎|  473MB /  509MB, 14.6MB/s  
-New Data Upload               :  93%|█████████▎|  473MB /  509MB, 14.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  94%|█████████▎|  476MB /  509MB            [A[AProcessing Files (0 / 1)      :  94%|█████████▎|  476MB /  509MB, 14.7MB/s  
-New Data Upload               :  94%|█████████▎|  476MB /  509MB, 14.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  94%|█████████▍|  478MB /  509MB            [A[AProcessing Files (0 / 1)      :  94%|█████████▍|  478MB /  509MB, 14.8MB/s  
-New Data Upload               :  94%|█████████▍|  478MB /  509MB, 14.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  95%|█████████▍|  482MB /  509MB            [A[AProcessing Files (0 / 1)      :  95%|█████████▍|  482MB /  509MB, 14.7MB/s  
-New Data Upload               :  95%|█████████▍|  482MB /  509MB, 14.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  95%|█████████▌|  485MB /  509MB            [A[AProcessing Files (0 / 1)      :  95%|█████████▌|  485MB /  509MB, 14.7MB/s  
-New Data Upload               :  95%|█████████▌|  485MB /  509MB, 14.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  96%|█████████▌|  489MB /  509MB            [A[AProcessing Files (0 / 1)      :  96%|█████████▌|  489MB /  509MB, 14.7MB/s  
-New Data Upload               :  96%|█████████▌|  489MB /  509MB, 14.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  97%|█████████▋|  492MB /  509MB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋|  492MB /  509MB, 14.7MB/s  
-New Data Upload               :  97%|█████████▋|  492MB /  509MB, 14.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  97%|█████████▋|  494MB /  509MB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋|  494MB /  509MB, 14.5MB/s  
-New Data Upload               :  97%|█████████▋|  494MB /  509MB, 14.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  98%|█████████▊|  497MB /  509MB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  497MB /  509MB, 14.5MB/s  
-New Data Upload               :  98%|█████████▊|  497MB /  509MB, 14.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  98%|█████████▊|  500MB /  509MB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  500MB /  509MB, 14.3MB/s  
-New Data Upload               :  98%|█████████▊|  500MB /  509MB, 14.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▊|  502MB /  509MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▊|  502MB /  509MB, 14.4MB/s  
-New Data Upload               :  99%|█████████▊|  502MB /  509MB, 14.4MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉|  503MB /  509MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉|  503MB /  509MB, 14.0MB/s  
-New Data Upload               :  99%|█████████▉|  503MB /  509MB, 14.0MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉|  505MB /  509MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉|  505MB /  509MB, 13.7MB/s  
-New Data Upload               :  99%|█████████▉|  505MB /  509MB, 13.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉|  506MB /  509MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉|  506MB /  509MB, 13.6MB/s  
-New Data Upload               :  99%|█████████▉|  506MB /  509MB, 13.6MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  507MB /  509MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉|  507MB /  509MB, 13.3MB/s  
-New Data Upload               : 100%|█████████▉|  507MB /  509MB, 13.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  507MB /  509MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉|  507MB /  509MB, 13.1MB/s  
-New Data Upload               : 100%|█████████▉|  507MB /  509MB, 13.1MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  507MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  507MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉|  508MB /  509MB, 12.5MB/s  
-New Data Upload               : 100%|█████████▉|  508MB /  509MB, 12.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉|  508MB /  509MB, 12.4MB/s  
-New Data Upload               : 100%|█████████▉|  508MB /  509MB, 12.4MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉|  508MB /  509MB, 10.9MB/s  
-New Data Upload               : 100%|█████████▉|  508MB /  509MB, 10.9MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  508MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  509MB /  509MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉|  509MB /  509MB, 9.45MB/s  
-New Data Upload               : 100%|█████████▉|  509MB /  509MB, 9.45MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  509MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  509MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  509MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  509MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|█████████▉|  509MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  509MB /  509MB            [A[AProcessing Files (1 / 1)      : 100%|██████████|  509MB /  509MB, 7.68MB/s  
-New Data Upload               : 100%|██████████|  509MB /  509MB, 7.68MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  509MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  509MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  509MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  509MB /  509MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  509MB /  509MB            [A[AProcessing Files (1 / 1)      : 100%|██████████|  509MB /  509MB, 6.47MB/s  
-New Data Upload               : 100%|██████████|  509MB /  509MB, 6.47MB/s  
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  509MB /  509MB            
-✅ Successfully uploaded: perturblab/scelmo-gene-gpt-3.5
-   View at: https://huggingface.co/perturblab/scelmo-gene-gpt-3.5
-
-======================================================================
-Uploading: scelmo-gene-ncbi
-Local directory: /home/wzq/Code/Projects/PerturbLab/weights/scelmo-gene-ncbi
-Repository: perturblab/scelmo-gene-ncbi
-======================================================================
-✓ Repository created/verified: perturblab/scelmo-gene-ncbi
-📤 Uploading files...
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...-ncbi/gene_embeddings.pkl:   3%|▎         | 11.3MB /  419MB            [A[A
-
-  ...-ncbi/gene_embeddings.pkl:   3%|▎         | 11.3MB /  419MB            [A[AProcessing Files (0 / 1)      :   3%|▎         | 11.3MB /  419MB, 18.9MB/s  
-New Data Upload               :   8%|▊         | 11.3MB /  134MB, 18.9MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:   8%|▊         | 34.4MB /  419MB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 34.4MB /  419MB, 43.0MB/s  
-New Data Upload               :  26%|██▌       | 34.4MB /  134MB, 43.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:   8%|▊         | 35.6MB /  419MB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 35.6MB /  419MB, 35.6MB/s  
-New Data Upload               :  27%|██▋       | 35.6MB /  134MB, 35.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:   9%|▉         | 38.5MB /  419MB            [A[AProcessing Files (0 / 1)      :   9%|▉         | 38.5MB /  419MB, 32.1MB/s  
-New Data Upload               :  19%|█▉        | 38.5MB /  201MB, 32.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  11%|█         | 44.5MB /  419MB            [A[AProcessing Files (0 / 1)      :  11%|█         | 44.5MB /  419MB, 31.8MB/s  
-New Data Upload               :  22%|██▏       | 44.5MB /  201MB, 31.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  11%|█▏        | 48.1MB /  419MB            [A[AProcessing Files (0 / 1)      :  11%|█▏        | 48.1MB /  419MB, 30.1MB/s  
-New Data Upload               :  24%|██▍       | 48.1MB /  201MB, 30.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  12%|█▏        | 52.3MB /  419MB            [A[AProcessing Files (0 / 1)      :  12%|█▏        | 52.3MB /  419MB, 29.0MB/s  
-New Data Upload               :  19%|█▉        | 52.3MB /  268MB, 29.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  14%|█▎        | 57.0MB /  419MB            [A[AProcessing Files (0 / 1)      :  14%|█▎        | 57.0MB /  419MB, 28.5MB/s  
-New Data Upload               :  21%|██▏       | 57.0MB /  268MB, 28.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  15%|█▌        | 64.8MB /  419MB            [A[AProcessing Files (0 / 1)      :  15%|█▌        | 64.8MB /  419MB, 29.4MB/s  
-New Data Upload               :  19%|█▉        | 64.8MB /  335MB, 29.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  16%|█▋        | 68.3MB /  419MB            [A[AProcessing Files (0 / 1)      :  16%|█▋        | 68.3MB /  419MB, 28.5MB/s  
-New Data Upload               :  20%|██        | 68.3MB /  335MB, 28.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  18%|█▊        | 74.3MB /  419MB            [A[AProcessing Files (0 / 1)      :  18%|█▊        | 74.3MB /  419MB, 28.6MB/s  
-New Data Upload               :  18%|█▊        | 74.3MB /  403MB, 28.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  20%|█▉        | 83.2MB /  419MB            [A[AProcessing Files (0 / 1)      :  20%|█▉        | 83.2MB /  419MB, 29.7MB/s  
-New Data Upload               :  21%|██        | 83.2MB /  403MB, 29.7MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  22%|██▏       | 94.0MB /  419MB            [A[AProcessing Files (0 / 1)      :  22%|██▏       | 94.0MB /  419MB, 31.3MB/s  
-New Data Upload               :  22%|██▏       | 94.0MB /  419MB, 31.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  24%|██▍       |  101MB /  419MB            [A[AProcessing Files (0 / 1)      :  24%|██▍       |  101MB /  419MB, 31.6MB/s  
-New Data Upload               :  24%|██▍       |  101MB /  419MB, 31.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  26%|██▌       |  107MB /  419MB            [A[AProcessing Files (0 / 1)      :  26%|██▌       |  107MB /  419MB, 31.5MB/s  
-New Data Upload               :  26%|██▌       |  107MB /  419MB, 31.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  28%|██▊       |  117MB /  419MB            [A[AProcessing Files (0 / 1)      :  28%|██▊       |  117MB /  419MB, 32.4MB/s  
-New Data Upload               :  28%|██▊       |  117MB /  419MB, 32.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  30%|██▉       |  124MB /  419MB            [A[AProcessing Files (0 / 1)      :  30%|██▉       |  124MB /  419MB, 32.6MB/s  
-New Data Upload               :  30%|██▉       |  124MB /  419MB, 32.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  31%|███       |  128MB /  419MB            [A[AProcessing Files (0 / 1)      :  31%|███       |  128MB /  419MB, 32.0MB/s  
-New Data Upload               :  31%|███       |  128MB /  419MB, 32.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  32%|███▏      |  132MB /  419MB            [A[AProcessing Files (0 / 1)      :  32%|███▏      |  132MB /  419MB, 31.5MB/s  
-New Data Upload               :  32%|███▏      |  132MB /  419MB, 31.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  32%|███▏      |  135MB /  419MB            [A[AProcessing Files (0 / 1)      :  32%|███▏      |  135MB /  419MB, 30.6MB/s  
-New Data Upload               :  32%|███▏      |  135MB /  419MB, 30.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  33%|███▎      |  138MB /  419MB            [A[AProcessing Files (0 / 1)      :  33%|███▎      |  138MB /  419MB, 30.0MB/s  
-New Data Upload               :  33%|███▎      |  138MB /  419MB, 30.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  34%|███▍      |  142MB /  419MB            [A[AProcessing Files (0 / 1)      :  34%|███▍      |  142MB /  419MB, 29.6MB/s  
-New Data Upload               :  34%|███▍      |  142MB /  419MB, 29.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  35%|███▍      |  145MB /  419MB            [A[AProcessing Files (0 / 1)      :  35%|███▍      |  145MB /  419MB, 29.1MB/s  
-New Data Upload               :  35%|███▍      |  145MB /  419MB, 29.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  36%|███▌      |  149MB /  419MB            [A[AProcessing Files (0 / 1)      :  36%|███▌      |  149MB /  419MB, 28.6MB/s  
-New Data Upload               :  36%|███▌      |  149MB /  419MB, 28.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  36%|███▌      |  152MB /  419MB            [A[AProcessing Files (0 / 1)      :  36%|███▌      |  152MB /  419MB, 28.1MB/s  
-New Data Upload               :  36%|███▌      |  152MB /  419MB, 28.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  37%|███▋      |  155MB /  419MB            [A[AProcessing Files (0 / 1)      :  37%|███▋      |  155MB /  419MB, 27.8MB/s  
-New Data Upload               :  37%|███▋      |  155MB /  419MB, 27.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  38%|███▊      |  157MB /  419MB            [A[AProcessing Files (0 / 1)      :  38%|███▊      |  157MB /  419MB, 27.1MB/s  
-New Data Upload               :  38%|███▊      |  157MB /  419MB, 27.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  38%|███▊      |  161MB /  419MB            [A[AProcessing Files (0 / 1)      :  38%|███▊      |  161MB /  419MB, 26.8MB/s  
-New Data Upload               :  38%|███▊      |  161MB /  419MB, 26.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  39%|███▉      |  164MB /  419MB            [A[AProcessing Files (0 / 1)      :  39%|███▉      |  164MB /  419MB, 26.4MB/s  
-New Data Upload               :  39%|███▉      |  164MB /  419MB, 26.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  40%|███▉      |  167MB /  419MB            [A[AProcessing Files (0 / 1)      :  40%|███▉      |  167MB /  419MB, 26.2MB/s  
-New Data Upload               :  40%|███▉      |  167MB /  419MB, 26.2MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  40%|████      |  169MB /  419MB            [A[AProcessing Files (0 / 1)      :  40%|████      |  169MB /  419MB, 25.6MB/s  
-New Data Upload               :  40%|████      |  169MB /  419MB, 25.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  41%|████      |  173MB /  419MB            [A[AProcessing Files (0 / 1)      :  41%|████      |  173MB /  419MB, 25.4MB/s  
-New Data Upload               :  41%|████      |  173MB /  419MB, 25.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  42%|████▏     |  177MB /  419MB            [A[AProcessing Files (0 / 1)      :  42%|████▏     |  177MB /  419MB, 25.3MB/s  
-New Data Upload               :  42%|████▏     |  177MB /  419MB, 25.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  43%|████▎     |  179MB /  419MB            [A[AProcessing Files (0 / 1)      :  43%|████▎     |  179MB /  419MB, 24.9MB/s  
-New Data Upload               :  43%|████▎     |  179MB /  419MB, 24.9MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  44%|████▎     |  183MB /  419MB            [A[AProcessing Files (0 / 1)      :  44%|████▎     |  183MB /  419MB, 24.7MB/s  
-New Data Upload               :  44%|████▎     |  183MB /  419MB, 24.7MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  45%|████▍     |  188MB /  419MB            [A[AProcessing Files (0 / 1)      :  45%|████▍     |  188MB /  419MB, 24.7MB/s  
-New Data Upload               :  45%|████▍     |  188MB /  419MB, 24.7MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  45%|████▌     |  190MB /  419MB            [A[AProcessing Files (0 / 1)      :  45%|████▌     |  190MB /  419MB, 24.4MB/s  
-New Data Upload               :  45%|████▌     |  190MB /  419MB, 24.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  46%|████▌     |  193MB /  419MB            [A[AProcessing Files (0 / 1)      :  46%|████▌     |  193MB /  419MB, 24.1MB/s  
-New Data Upload               :  46%|████▌     |  193MB /  419MB, 24.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  47%|████▋     |  197MB /  419MB            [A[AProcessing Files (0 / 1)      :  47%|████▋     |  197MB /  419MB, 24.1MB/s  
-New Data Upload               :  47%|████▋     |  197MB /  419MB, 24.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  48%|████▊     |  202MB /  419MB            [A[AProcessing Files (0 / 1)      :  48%|████▊     |  202MB /  419MB, 24.0MB/s  
-New Data Upload               :  48%|████▊     |  202MB /  419MB, 24.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  49%|████▉     |  205MB /  419MB            [A[AProcessing Files (0 / 1)      :  49%|████▉     |  205MB /  419MB, 23.8MB/s  
-New Data Upload               :  49%|████▉     |  205MB /  419MB, 23.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  50%|█████     |  210MB /  419MB            [A[AProcessing Files (0 / 1)      :  50%|█████     |  210MB /  419MB, 23.9MB/s  
-New Data Upload               :  50%|█████     |  210MB /  419MB, 23.9MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  51%|█████     |  213MB /  419MB            [A[AProcessing Files (0 / 1)      :  51%|█████     |  213MB /  419MB, 23.7MB/s  
-New Data Upload               :  51%|█████     |  213MB /  419MB, 23.7MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  52%|█████▏    |  216MB /  419MB            [A[AProcessing Files (0 / 1)      :  52%|█████▏    |  216MB /  419MB, 23.5MB/s  
-New Data Upload               :  52%|█████▏    |  216MB /  419MB, 23.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  52%|█████▏    |  219MB /  419MB            [A[AProcessing Files (0 / 1)      :  52%|█████▏    |  219MB /  419MB, 23.3MB/s  
-New Data Upload               :  52%|█████▏    |  219MB /  419MB, 23.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  53%|█████▎    |  222MB /  419MB            [A[AProcessing Files (0 / 1)      :  53%|█████▎    |  222MB /  419MB, 23.2MB/s  
-New Data Upload               :  53%|█████▎    |  222MB /  419MB, 23.2MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  54%|█████▍    |  226MB /  419MB            [A[AProcessing Files (0 / 1)      :  54%|█████▍    |  226MB /  419MB, 23.1MB/s  
-New Data Upload               :  54%|█████▍    |  226MB /  419MB, 23.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  55%|█████▍    |  230MB /  419MB            [A[AProcessing Files (0 / 1)      :  55%|█████▍    |  230MB /  419MB, 23.0MB/s  
-New Data Upload               :  55%|█████▍    |  230MB /  419MB, 23.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  55%|█████▌    |  232MB /  419MB            [A[AProcessing Files (0 / 1)      :  55%|█████▌    |  232MB /  419MB, 22.7MB/s  
-New Data Upload               :  55%|█████▌    |  232MB /  419MB, 22.7MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  56%|█████▋    |  236MB /  419MB            [A[AProcessing Files (0 / 1)      :  56%|█████▋    |  236MB /  419MB, 23.1MB/s  
-New Data Upload               :  56%|█████▋    |  236MB /  419MB, 23.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  57%|█████▋    |  238MB /  419MB            [A[AProcessing Files (0 / 1)      :  57%|█████▋    |  238MB /  419MB, 23.3MB/s  
-New Data Upload               :  57%|█████▋    |  238MB /  419MB, 23.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  58%|█████▊    |  241MB /  419MB            [A[AProcessing Files (0 / 1)      :  58%|█████▊    |  241MB /  419MB, 22.6MB/s  
-New Data Upload               :  58%|█████▊    |  241MB /  419MB, 22.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  58%|█████▊    |  244MB /  419MB            [A[AProcessing Files (0 / 1)      :  58%|█████▊    |  244MB /  419MB, 20.6MB/s  
-New Data Upload               :  58%|█████▊    |  244MB /  419MB, 20.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  59%|█████▊    |  246MB /  419MB            [A[AProcessing Files (0 / 1)      :  59%|█████▊    |  246MB /  419MB, 20.6MB/s  
-New Data Upload               :  59%|█████▊    |  246MB /  419MB, 20.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  59%|█████▉    |  249MB /  419MB            [A[AProcessing Files (0 / 1)      :  59%|█████▉    |  249MB /  419MB, 20.6MB/s  
-New Data Upload               :  59%|█████▉    |  249MB /  419MB, 20.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  61%|██████    |  254MB /  419MB            [A[AProcessing Files (0 / 1)      :  61%|██████    |  254MB /  419MB, 20.5MB/s  
-New Data Upload               :  61%|██████    |  254MB /  419MB, 20.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  61%|██████▏   |  257MB /  419MB            [A[AProcessing Files (0 / 1)      :  61%|██████▏   |  257MB /  419MB, 20.5MB/s  
-New Data Upload               :  61%|██████▏   |  257MB /  419MB, 20.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  62%|██████▏   |  259MB /  419MB            [A[AProcessing Files (0 / 1)      :  62%|██████▏   |  259MB /  419MB, 20.3MB/s  
-New Data Upload               :  62%|██████▏   |  259MB /  419MB, 20.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  63%|██████▎   |  264MB /  419MB            [A[AProcessing Files (0 / 1)      :  63%|██████▎   |  264MB /  419MB, 20.3MB/s  
-New Data Upload               :  63%|██████▎   |  264MB /  419MB, 20.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  63%|██████▎   |  266MB /  419MB            [A[AProcessing Files (0 / 1)      :  63%|██████▎   |  266MB /  419MB, 19.7MB/s  
-New Data Upload               :  63%|██████▎   |  266MB /  419MB, 19.7MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  65%|██████▍   |  271MB /  419MB            [A[AProcessing Files (0 / 1)      :  65%|██████▍   |  271MB /  419MB, 19.8MB/s  
-New Data Upload               :  65%|██████▍   |  271MB /  419MB, 19.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  65%|██████▌   |  274MB /  419MB            [A[AProcessing Files (0 / 1)      :  65%|██████▌   |  274MB /  419MB, 19.5MB/s  
-New Data Upload               :  65%|██████▌   |  274MB /  419MB, 19.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  65%|██████▌   |  274MB /  419MB            [A[AProcessing Files (0 / 1)      :  65%|██████▌   |  274MB /  419MB, 18.7MB/s  
-New Data Upload               :  65%|██████▌   |  274MB /  419MB, 18.7MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  66%|██████▌   |  277MB /  419MB            [A[AProcessing Files (0 / 1)      :  66%|██████▌   |  277MB /  419MB, 18.0MB/s  
-New Data Upload               :  66%|██████▌   |  277MB /  419MB, 18.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  67%|██████▋   |  280MB /  419MB            [A[AProcessing Files (0 / 1)      :  67%|██████▋   |  280MB /  419MB, 17.6MB/s  
-New Data Upload               :  67%|██████▋   |  280MB /  419MB, 17.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  67%|██████▋   |  281MB /  419MB            [A[AProcessing Files (0 / 1)      :  67%|██████▋   |  281MB /  419MB, 17.0MB/s  
-New Data Upload               :  67%|██████▋   |  281MB /  419MB, 17.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  68%|██████▊   |  284MB /  419MB            [A[AProcessing Files (0 / 1)      :  68%|██████▊   |  284MB /  419MB, 16.4MB/s  
-New Data Upload               :  68%|██████▊   |  284MB /  419MB, 16.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  69%|██████▊   |  288MB /  419MB            [A[AProcessing Files (0 / 1)      :  69%|██████▊   |  288MB /  419MB, 16.1MB/s  
-New Data Upload               :  69%|██████▊   |  288MB /  419MB, 16.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  69%|██████▉   |  289MB /  419MB            [A[AProcessing Files (0 / 1)      :  69%|██████▉   |  289MB /  419MB, 15.8MB/s  
-New Data Upload               :  69%|██████▉   |  289MB /  419MB, 15.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  70%|██████▉   |  292MB /  419MB            [A[AProcessing Files (0 / 1)      :  70%|██████▉   |  292MB /  419MB, 15.6MB/s  
-New Data Upload               :  70%|██████▉   |  292MB /  419MB, 15.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  70%|███████   |  294MB /  419MB            [A[AProcessing Files (0 / 1)      :  70%|███████   |  294MB /  419MB, 15.6MB/s  
-New Data Upload               :  70%|███████   |  294MB /  419MB, 15.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  71%|███████▏  |  299MB /  419MB            [A[AProcessing Files (0 / 1)      :  71%|███████▏  |  299MB /  419MB, 15.8MB/s  
-New Data Upload               :  71%|███████▏  |  299MB /  419MB, 15.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  72%|███████▏  |  301MB /  419MB            [A[AProcessing Files (0 / 1)      :  72%|███████▏  |  301MB /  419MB, 15.5MB/s  
-New Data Upload               :  72%|███████▏  |  301MB /  419MB, 15.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  72%|███████▏  |  304MB /  419MB            [A[AProcessing Files (0 / 1)      :  72%|███████▏  |  304MB /  419MB, 15.5MB/s  
-New Data Upload               :  72%|███████▏  |  304MB /  419MB, 15.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  73%|███████▎  |  306MB /  419MB            [A[AProcessing Files (0 / 1)      :  73%|███████▎  |  306MB /  419MB, 15.4MB/s  
-New Data Upload               :  73%|███████▎  |  306MB /  419MB, 15.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  73%|███████▎  |  308MB /  419MB            [A[AProcessing Files (0 / 1)      :  73%|███████▎  |  308MB /  419MB, 15.3MB/s  
-New Data Upload               :  73%|███████▎  |  308MB /  419MB, 15.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  74%|███████▍  |  311MB /  419MB            [A[AProcessing Files (0 / 1)      :  74%|███████▍  |  311MB /  419MB, 15.2MB/s  
-New Data Upload               :  74%|███████▍  |  311MB /  419MB, 15.2MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  74%|███████▍  |  312MB /  419MB            [A[AProcessing Files (0 / 1)      :  74%|███████▍  |  312MB /  419MB, 15.2MB/s  
-New Data Upload               :  74%|███████▍  |  312MB /  419MB, 15.2MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  75%|███████▌  |  315MB /  419MB            [A[AProcessing Files (0 / 1)      :  75%|███████▌  |  315MB /  419MB, 15.1MB/s  
-New Data Upload               :  75%|███████▌  |  315MB /  419MB, 15.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  76%|███████▌  |  317MB /  419MB            [A[AProcessing Files (0 / 1)      :  76%|███████▌  |  317MB /  419MB, 15.0MB/s  
-New Data Upload               :  76%|███████▌  |  317MB /  419MB, 15.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  76%|███████▌  |  318MB /  419MB            [A[AProcessing Files (0 / 1)      :  76%|███████▌  |  318MB /  419MB, 14.8MB/s  
-New Data Upload               :  76%|███████▌  |  318MB /  419MB, 14.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  77%|███████▋  |  321MB /  419MB            [A[AProcessing Files (0 / 1)      :  77%|███████▋  |  321MB /  419MB, 14.9MB/s  
-New Data Upload               :  77%|███████▋  |  321MB /  419MB, 14.9MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  77%|███████▋  |  322MB /  419MB            [A[AProcessing Files (0 / 1)      :  77%|███████▋  |  322MB /  419MB, 14.6MB/s  
-New Data Upload               :  77%|███████▋  |  322MB /  419MB, 14.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  77%|███████▋  |  324MB /  419MB            [A[AProcessing Files (0 / 1)      :  77%|███████▋  |  324MB /  419MB, 14.4MB/s  
-New Data Upload               :  77%|███████▋  |  324MB /  419MB, 14.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  78%|███████▊  |  326MB /  419MB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  |  326MB /  419MB, 14.4MB/s  
-New Data Upload               :  78%|███████▊  |  326MB /  419MB, 14.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  78%|███████▊  |  328MB /  419MB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  |  328MB /  419MB, 14.2MB/s  
-New Data Upload               :  78%|███████▊  |  328MB /  419MB, 14.2MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  78%|███████▊  |  329MB /  419MB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  |  329MB /  419MB, 13.8MB/s  
-New Data Upload               :  78%|███████▊  |  329MB /  419MB, 13.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  79%|███████▉  |  332MB /  419MB            [A[AProcessing Files (0 / 1)      :  79%|███████▉  |  332MB /  419MB, 13.9MB/s  
-New Data Upload               :  79%|███████▉  |  332MB /  419MB, 13.9MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  80%|███████▉  |  334MB /  419MB            [A[AProcessing Files (0 / 1)      :  80%|███████▉  |  334MB /  419MB, 13.8MB/s  
-New Data Upload               :  80%|███████▉  |  334MB /  419MB, 13.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  80%|████████  |  336MB /  419MB            [A[AProcessing Files (0 / 1)      :  80%|████████  |  336MB /  419MB, 13.6MB/s  
-New Data Upload               :  80%|████████  |  336MB /  419MB, 13.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  80%|████████  |  337MB /  419MB            [A[AProcessing Files (0 / 1)      :  80%|████████  |  337MB /  419MB, 13.2MB/s  
-New Data Upload               :  80%|████████  |  337MB /  419MB, 13.2MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  81%|████████  |  339MB /  419MB            [A[AProcessing Files (0 / 1)      :  81%|████████  |  339MB /  419MB, 13.2MB/s  
-New Data Upload               :  81%|████████  |  339MB /  419MB, 13.2MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  82%|████████▏ |  342MB /  419MB            [A[AProcessing Files (0 / 1)      :  82%|████████▏ |  342MB /  419MB, 12.9MB/s  
-New Data Upload               :  82%|████████▏ |  342MB /  419MB, 12.9MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  82%|████████▏ |  343MB /  419MB            [A[AProcessing Files (0 / 1)      :  82%|████████▏ |  343MB /  419MB, 12.7MB/s  
-New Data Upload               :  82%|████████▏ |  343MB /  419MB, 12.7MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  83%|████████▎ |  346MB /  419MB            [A[AProcessing Files (0 / 1)      :  83%|████████▎ |  346MB /  419MB, 12.7MB/s  
-New Data Upload               :  83%|████████▎ |  346MB /  419MB, 12.7MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  83%|████████▎ |  348MB /  419MB            [A[AProcessing Files (0 / 1)      :  83%|████████▎ |  348MB /  419MB, 12.7MB/s  
-New Data Upload               :  83%|████████▎ |  348MB /  419MB, 12.7MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  84%|████████▎ |  351MB /  419MB            [A[AProcessing Files (0 / 1)      :  84%|████████▎ |  351MB /  419MB, 12.6MB/s  
-New Data Upload               :  84%|████████▎ |  351MB /  419MB, 12.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  84%|████████▍ |  354MB /  419MB            [A[AProcessing Files (0 / 1)      :  84%|████████▍ |  354MB /  419MB, 12.6MB/s  
-New Data Upload               :  84%|████████▍ |  354MB /  419MB, 12.6MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  85%|████████▍ |  355MB /  419MB            [A[AProcessing Files (0 / 1)      :  85%|████████▍ |  355MB /  419MB, 12.3MB/s  
-New Data Upload               :  85%|████████▍ |  355MB /  419MB, 12.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  86%|████████▌ |  359MB /  419MB            [A[AProcessing Files (0 / 1)      :  86%|████████▌ |  359MB /  419MB, 12.4MB/s  
-New Data Upload               :  86%|████████▌ |  359MB /  419MB, 12.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  86%|████████▌ |  360MB /  419MB            [A[AProcessing Files (0 / 1)      :  86%|████████▌ |  360MB /  419MB, 12.1MB/s  
-New Data Upload               :  86%|████████▌ |  360MB /  419MB, 12.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  87%|████████▋ |  364MB /  419MB            [A[AProcessing Files (0 / 1)      :  87%|████████▋ |  364MB /  419MB, 12.4MB/s  
-New Data Upload               :  87%|████████▋ |  364MB /  419MB, 12.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  87%|████████▋ |  365MB /  419MB            [A[AProcessing Files (0 / 1)      :  87%|████████▋ |  365MB /  419MB, 12.1MB/s  
-New Data Upload               :  87%|████████▋ |  365MB /  419MB, 12.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  88%|████████▊ |  368MB /  419MB            [A[AProcessing Files (0 / 1)      :  88%|████████▊ |  368MB /  419MB, 12.1MB/s  
-New Data Upload               :  88%|████████▊ |  368MB /  419MB, 12.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  89%|████████▊ |  371MB /  419MB            [A[AProcessing Files (0 / 1)      :  89%|████████▊ |  371MB /  419MB, 12.3MB/s  
-New Data Upload               :  89%|████████▊ |  371MB /  419MB, 12.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  89%|████████▉ |  374MB /  419MB            [A[AProcessing Files (0 / 1)      :  89%|████████▉ |  374MB /  419MB, 12.3MB/s  
-New Data Upload               :  89%|████████▉ |  374MB /  419MB, 12.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  90%|█████████ |  377MB /  419MB            [A[AProcessing Files (0 / 1)      :  90%|█████████ |  377MB /  419MB, 12.1MB/s  
-New Data Upload               :  90%|█████████ |  377MB /  419MB, 12.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  91%|█████████ |  381MB /  419MB            [A[AProcessing Files (0 / 1)      :  91%|█████████ |  381MB /  419MB, 12.1MB/s  
-New Data Upload               :  91%|█████████ |  381MB /  419MB, 12.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  92%|█████████▏|  384MB /  419MB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏|  384MB /  419MB, 12.3MB/s  
-New Data Upload               :  92%|█████████▏|  384MB /  419MB, 12.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  92%|█████████▏|  387MB /  419MB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏|  387MB /  419MB, 12.0MB/s  
-New Data Upload               :  92%|█████████▏|  387MB /  419MB, 12.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  93%|█████████▎|  390MB /  419MB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎|  390MB /  419MB, 12.2MB/s  
-New Data Upload               :  93%|█████████▎|  390MB /  419MB, 12.2MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  94%|█████████▍|  394MB /  419MB            [A[AProcessing Files (0 / 1)      :  94%|█████████▍|  394MB /  419MB, 12.1MB/s  
-New Data Upload               :  94%|█████████▍|  394MB /  419MB, 12.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  95%|█████████▍|  396MB /  419MB            [A[AProcessing Files (0 / 1)      :  95%|█████████▍|  396MB /  419MB, 12.0MB/s  
-New Data Upload               :  95%|█████████▍|  396MB /  419MB, 12.0MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  95%|█████████▌|  399MB /  419MB            [A[AProcessing Files (0 / 1)      :  95%|█████████▌|  399MB /  419MB, 12.3MB/s  
-New Data Upload               :  95%|█████████▌|  399MB /  419MB, 12.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  96%|█████████▌|  401MB /  419MB            [A[AProcessing Files (0 / 1)      :  96%|█████████▌|  401MB /  419MB, 12.1MB/s  
-New Data Upload               :  96%|█████████▌|  401MB /  419MB, 12.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  96%|█████████▋|  404MB /  419MB            [A[AProcessing Files (0 / 1)      :  96%|█████████▋|  404MB /  419MB, 12.1MB/s  
-New Data Upload               :  96%|█████████▋|  404MB /  419MB, 12.1MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  97%|█████████▋|  408MB /  419MB            [A[AProcessing Files (0 / 1)      :  97%|█████████▋|  408MB /  419MB, 12.4MB/s  
-New Data Upload               :  97%|█████████▋|  408MB /  419MB, 12.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  98%|█████████▊|  410MB /  419MB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊|  410MB /  419MB, 12.4MB/s  
-New Data Upload               :  98%|█████████▊|  410MB /  419MB, 12.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  99%|█████████▊|  414MB /  419MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▊|  414MB /  419MB, 12.3MB/s  
-New Data Upload               :  99%|█████████▊|  414MB /  419MB, 12.3MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl:  99%|█████████▉|  417MB /  419MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉|  417MB /  419MB, 12.5MB/s  
-New Data Upload               :  99%|█████████▉|  417MB /  419MB, 12.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|█████████▉|  418MB /  419MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉|  418MB /  419MB, 12.4MB/s  
-New Data Upload               : 100%|█████████▉|  418MB /  419MB, 12.4MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|█████████▉|  418MB /  419MB            [A[A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|█████████▉|  418MB /  419MB            [A[A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|█████████▉|  418MB /  419MB            [A[A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|█████████▉|  418MB /  419MB            [A[A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|█████████▉|  418MB /  419MB            [A[A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|█████████▉|  418MB /  419MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉|  418MB /  419MB, 10.8MB/s  
-New Data Upload               : 100%|█████████▉|  418MB /  419MB, 10.8MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|█████████▉|  418MB /  419MB            [A[A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|█████████▉|  419MB /  419MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉|  419MB /  419MB, 10.5MB/s  
-New Data Upload               : 100%|█████████▉|  419MB /  419MB, 10.5MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|██████████|  419MB /  419MB            [A[AProcessing Files (1 / 1)      : 100%|██████████|  419MB /  419MB, 10.2MB/s  
-New Data Upload               : 100%|██████████|  419MB /  419MB, 10.2MB/s  [A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|██████████|  419MB /  419MB            [A[A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|██████████|  419MB /  419MB            [A[A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|██████████|  419MB /  419MB            [A[A
-
-  ...-ncbi/gene_embeddings.pkl: 100%|██████████|  419MB /  419MB            [A[AProcessing Files (1 / 1)      : 100%|██████████|  419MB /  419MB, 9.75MB/s  
-New Data Upload               : 100%|██████████|  419MB /  419MB, 9.75MB/s  
-  ...-ncbi/gene_embeddings.pkl: 100%|██████████|  419MB /  419MB            
-✅ Successfully uploaded: perturblab/scelmo-gene-ncbi
-   View at: https://huggingface.co/perturblab/scelmo-gene-ncbi
-
-======================================================================
-Uploading: scelmo-celltypes-gpt-3.5
-Local directory: /home/wzq/Code/Projects/PerturbLab/weights/scelmo-celltypes-gpt-3.5
-Repository: perturblab/scelmo-celltypes-gpt-3.5
-======================================================================
-✓ Repository created/verified: perturblab/scelmo-celltypes-gpt-3.5
-📤 Uploading files...
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  395kB /  395kB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  395kB /  395kB            [A[AProcessing Files (1 / 1)      : 100%|██████████|  395kB /  395kB,  659kB/s  
-New Data Upload               : 100%|██████████|  395kB /  395kB,  659kB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  395kB /  395kB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  395kB /  395kB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  395kB /  395kB            [A[AProcessing Files (1 / 1)      : 100%|██████████|  395kB /  395kB,  395kB/s  
-New Data Upload               : 100%|██████████|  395kB /  395kB,  395kB/s  
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  395kB /  395kB            
-✅ Successfully uploaded: perturblab/scelmo-celltypes-gpt-3.5
-   View at: https://huggingface.co/perturblab/scelmo-celltypes-gpt-3.5
-
-======================================================================
-Uploading: scelmo-drugs-gpt-3.5
-Local directory: /home/wzq/Code/Projects/PerturbLab/weights/scelmo-drugs-gpt-3.5
-Repository: perturblab/scelmo-drugs-gpt-3.5
-======================================================================
-✓ Repository created/verified: perturblab/scelmo-drugs-gpt-3.5
-📤 Uploading files...
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...t-3.5/gene_embeddings.pkl:   6%|▌         | 3.53MB / 57.0MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:   6%|▌         | 3.53MB / 57.0MB            [A[AProcessing Files (0 / 1)      :   6%|▌         | 3.53MB / 57.0MB, 8.81MB/s  
-New Data Upload               :   6%|▌         | 3.53MB / 57.0MB, 8.81MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:   8%|▊         | 4.70MB / 57.0MB            [A[AProcessing Files (0 / 1)      :   8%|▊         | 4.70MB / 57.0MB, 7.83MB/s  
-New Data Upload               :   8%|▊         | 4.70MB / 57.0MB, 7.83MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  10%|█         | 5.88MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  10%|█         | 5.88MB / 57.0MB, 7.34MB/s  
-New Data Upload               :  10%|█         | 5.88MB / 57.0MB, 7.34MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  12%|█▏        | 7.05MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  12%|█▏        | 7.05MB / 57.0MB, 7.06MB/s  
-New Data Upload               :  12%|█▏        | 7.05MB / 57.0MB, 7.06MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  14%|█▍        | 8.23MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  14%|█▍        | 8.23MB / 57.0MB, 6.85MB/s  
-New Data Upload               :  14%|█▍        | 8.23MB / 57.0MB, 6.85MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  16%|█▋        | 9.40MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  16%|█▋        | 9.40MB / 57.0MB, 6.72MB/s  
-New Data Upload               :  16%|█▋        | 9.40MB / 57.0MB, 6.72MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  19%|█▊        | 10.6MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  19%|█▊        | 10.6MB / 57.0MB, 6.61MB/s  
-New Data Upload               :  19%|█▊        | 10.6MB / 57.0MB, 6.61MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  21%|██        | 11.8MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  21%|██        | 11.8MB / 57.0MB, 6.53MB/s  
-New Data Upload               :  21%|██        | 11.8MB / 57.0MB, 6.53MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  23%|██▎       | 12.9MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  23%|██▎       | 12.9MB / 57.0MB, 6.47MB/s  
-New Data Upload               :  23%|██▎       | 12.9MB / 57.0MB, 6.47MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  25%|██▍       | 14.1MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  25%|██▍       | 14.1MB / 57.0MB, 6.41MB/s  
-New Data Upload               :  25%|██▍       | 14.1MB / 57.0MB, 6.41MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  28%|██▊       | 15.9MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  28%|██▊       | 15.9MB / 57.0MB, 6.61MB/s  
-New Data Upload               :  28%|██▊       | 15.9MB / 57.0MB, 6.61MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  30%|██▉       | 17.0MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  30%|██▉       | 17.0MB / 57.0MB, 6.56MB/s  
-New Data Upload               :  30%|██▉       | 17.0MB / 57.0MB, 6.56MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  33%|███▎      | 18.8MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  33%|███▎      | 18.8MB / 57.0MB, 6.72MB/s  
-New Data Upload               :  33%|███▎      | 18.8MB / 57.0MB, 6.72MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  35%|███▌      | 20.0MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  35%|███▌      | 20.0MB / 57.0MB, 6.66MB/s  
-New Data Upload               :  35%|███▌      | 20.0MB / 57.0MB, 6.66MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  38%|███▊      | 21.7MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  38%|███▊      | 21.7MB / 57.0MB, 6.80MB/s  
-New Data Upload               :  38%|███▊      | 21.7MB / 57.0MB, 6.80MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  41%|████      | 23.5MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  41%|████      | 23.5MB / 57.0MB, 6.91MB/s  
-New Data Upload               :  41%|████      | 23.5MB / 57.0MB, 6.91MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  45%|████▌     | 25.9MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  45%|████▌     | 25.9MB / 57.0MB, 7.18MB/s  
-New Data Upload               :  45%|████▌     | 25.9MB / 57.0MB, 7.18MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  48%|████▊     | 27.6MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  48%|████▊     | 27.6MB / 57.0MB, 7.27MB/s  
-New Data Upload               :  48%|████▊     | 27.6MB / 57.0MB, 7.27MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  52%|█████▏    | 29.4MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  52%|█████▏    | 29.4MB / 57.0MB, 7.35MB/s  
-New Data Upload               :  52%|█████▏    | 29.4MB / 57.0MB, 7.35MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  56%|█████▌    | 31.7MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  56%|█████▌    | 31.7MB / 57.0MB, 7.56MB/s  
-New Data Upload               :  56%|█████▌    | 31.7MB / 57.0MB, 7.56MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  61%|██████    | 34.7MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  61%|██████    | 34.7MB / 57.0MB, 7.88MB/s  
-New Data Upload               :  61%|██████    | 34.7MB / 57.0MB, 7.88MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  64%|██████▍   | 36.4MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  64%|██████▍   | 36.4MB / 57.0MB, 7.92MB/s  
-New Data Upload               :  64%|██████▍   | 36.4MB / 57.0MB, 7.92MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  68%|██████▊   | 38.8MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  68%|██████▊   | 38.8MB / 57.0MB, 8.08MB/s  
-New Data Upload               :  68%|██████▊   | 38.8MB / 57.0MB, 8.08MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  73%|███████▎  | 41.7MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  73%|███████▎  | 41.7MB / 57.0MB, 8.35MB/s  
-New Data Upload               :  73%|███████▎  | 41.7MB / 57.0MB, 8.35MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  77%|███████▋  | 44.1MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  77%|███████▋  | 44.1MB / 57.0MB, 8.48MB/s  
-New Data Upload               :  77%|███████▋  | 44.1MB / 57.0MB, 8.48MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  84%|████████▎ | 47.6MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  84%|████████▎ | 47.6MB / 57.0MB, 8.81MB/s  
-New Data Upload               :  84%|████████▎ | 47.6MB / 57.0MB, 8.81MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  89%|████████▊ | 50.5MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  89%|████████▊ | 50.5MB / 57.0MB, 9.03MB/s  
-New Data Upload               :  89%|████████▊ | 50.5MB / 57.0MB, 9.03MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  94%|█████████▍| 53.5MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  94%|█████████▍| 53.5MB / 57.0MB, 9.22MB/s  
-New Data Upload               :  94%|█████████▍| 53.5MB / 57.0MB, 9.22MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 56.4MB / 57.0MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 56.4MB / 57.0MB, 9.40MB/s  
-New Data Upload               :  99%|█████████▉| 56.4MB / 57.0MB, 9.40MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 56.4MB / 57.0MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 56.4MB / 57.0MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 56.4MB / 57.0MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 56.4MB / 57.0MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 56.4MB / 57.0MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 56.4MB / 57.0MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 56.4MB / 57.0MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 57.0MB / 57.0MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 57.0MB / 57.0MB, 7.50MB/s  
-New Data Upload               : 100%|██████████| 57.0MB / 57.0MB, 7.50MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 57.0MB / 57.0MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 57.0MB / 57.0MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 57.0MB / 57.0MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 57.0MB / 57.0MB, 7.13MB/s  
-New Data Upload               : 100%|██████████| 57.0MB / 57.0MB, 7.13MB/s  
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 57.0MB / 57.0MB            
-✅ Successfully uploaded: perturblab/scelmo-drugs-gpt-3.5
-   View at: https://huggingface.co/perturblab/scelmo-drugs-gpt-3.5
-
-======================================================================
-Uploading: scelmo-celllines-gpt-3.5
-Local directory: /home/wzq/Code/Projects/PerturbLab/weights/scelmo-celllines-gpt-3.5
-Repository: perturblab/scelmo-celllines-gpt-3.5
-======================================================================
-✓ Repository created/verified: perturblab/scelmo-celllines-gpt-3.5
-📤 Uploading files...
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...t-3.5/gene_embeddings.pkl:  18%|█▊        | 4.37MB / 24.6MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:  18%|█▊        | 4.37MB / 24.6MB            [A[AProcessing Files (0 / 1)      :  18%|█▊        | 4.37MB / 24.6MB, 21.8MB/s  
-New Data Upload               :  18%|█▊        | 4.37MB / 24.6MB, 21.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  30%|███       | 7.48MB / 24.6MB            [A[AProcessing Files (0 / 1)      :  30%|███       | 7.48MB / 24.6MB, 18.7MB/s  
-New Data Upload               :  30%|███       | 7.48MB / 24.6MB, 18.7MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  48%|████▊     | 11.9MB / 24.6MB            [A[AProcessing Files (0 / 1)      :  48%|████▊     | 11.9MB / 24.6MB, 19.8MB/s  
-New Data Upload               :  48%|████▊     | 11.9MB / 24.6MB, 19.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  66%|██████▌   | 16.2MB / 24.6MB            [A[AProcessing Files (0 / 1)      :  66%|██████▌   | 16.2MB / 24.6MB, 20.3MB/s  
-New Data Upload               :  66%|██████▌   | 16.2MB / 24.6MB, 20.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  89%|████████▊ | 21.8MB / 24.6MB            [A[AProcessing Files (0 / 1)      :  89%|████████▊ | 21.8MB / 24.6MB, 21.8MB/s  
-New Data Upload               :  89%|████████▊ | 21.8MB / 24.6MB, 21.8MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 24.3MB / 24.6MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 24.3MB / 24.6MB, 20.3MB/s  
-New Data Upload               :  99%|█████████▉| 24.3MB / 24.6MB, 20.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 24.3MB / 24.6MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 24.3MB / 24.6MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:  99%|█████████▉| 24.3MB / 24.6MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 24.6MB / 24.6MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 24.6MB / 24.6MB, 12.3MB/s  
-New Data Upload               : 100%|██████████| 24.6MB / 24.6MB, 12.3MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 24.6MB / 24.6MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 24.6MB / 24.6MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 24.6MB / 24.6MB, 11.2MB/s  
-New Data Upload               : 100%|██████████| 24.6MB / 24.6MB, 11.2MB/s  
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 24.6MB / 24.6MB            
-✅ Successfully uploaded: perturblab/scelmo-celllines-gpt-3.5
-   View at: https://huggingface.co/perturblab/scelmo-celllines-gpt-3.5
-
-======================================================================
-Uploading: scelmo-protein-gpt-3.5
-Local directory: /home/wzq/Code/Projects/PerturbLab/weights/scelmo-protein-gpt-3.5
-Repository: perturblab/scelmo-protein-gpt-3.5
-======================================================================
-✓ Repository created/verified: perturblab/scelmo-protein-gpt-3.5
-📤 Uploading files...
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...t-3.5/gene_embeddings.pkl:  80%|████████  | 2.31MB / 2.87MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl:  80%|████████  | 2.31MB / 2.87MB            [A[AProcessing Files (0 / 1)      :  80%|████████  | 2.31MB / 2.87MB, 11.5MB/s  
-New Data Upload               :  80%|████████  | 2.31MB / 2.87MB, 11.5MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl:  80%|████████  | 2.31MB / 2.87MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 2.87MB / 2.87MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 2.87MB / 2.87MB, 4.78MB/s  
-New Data Upload               : 100%|██████████| 2.87MB / 2.87MB, 4.78MB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 2.87MB / 2.87MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 2.87MB / 2.87MB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 2.87MB / 2.87MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 2.87MB / 2.87MB, 2.87MB/s  
-New Data Upload               : 100%|██████████| 2.87MB / 2.87MB, 2.87MB/s  
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████| 2.87MB / 2.87MB            
-✅ Successfully uploaded: perturblab/scelmo-protein-gpt-3.5
-   View at: https://huggingface.co/perturblab/scelmo-protein-gpt-3.5
-
-======================================================================
-Uploading: scelmo-perturbation-gpt-3.5
-Local directory: /home/wzq/Code/Projects/PerturbLab/weights/scelmo-perturbation-gpt-3.5
-Repository: perturblab/scelmo-perturbation-gpt-3.5
-======================================================================
-✓ Repository created/verified: perturblab/scelmo-perturbation-gpt-3.5
-📤 Uploading files...
-Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
-New Data Upload               : |          |  0.00B /  0.00B            [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  222kB /  222kB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  222kB /  222kB            [A[AProcessing Files (1 / 1)      : 100%|██████████|  222kB /  222kB,  555kB/s  
-New Data Upload               : 100%|██████████|  222kB /  222kB,  555kB/s  [A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  222kB /  222kB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  222kB /  222kB            [A[A
-
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  222kB /  222kB            [A[AProcessing Files (1 / 1)      : 100%|██████████|  222kB /  222kB,  278kB/s  
-New Data Upload               : 100%|██████████|  222kB /  222kB,  278kB/s  
-  ...t-3.5/gene_embeddings.pkl: 100%|██████████|  222kB /  222kB            
-✅ Successfully uploaded: perturblab/scelmo-perturbation-gpt-3.5
-   View at: https://huggingface.co/perturblab/scelmo-perturbation-gpt-3.5
-
-======================================================================
-Upload Summary
-======================================================================
-✅ Successfully uploaded: 8/8
-======================================================================
-
-🎉 All models uploaded successfully!
-
-View all models at: https://huggingface.co/perturblab

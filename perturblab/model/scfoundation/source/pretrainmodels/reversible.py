@@ -1,5 +1,6 @@
-# modified from https://github.com/BiomedSciAI/scFoundation
-## Modeified Code from https://github.com/TencentAILabHealthcare/scBERT
+# modified from https://github.com/biomap-research/scFoundation
+# Original source: biomap-research/scFoundation (based on TencentAILabHealthcare/scBERT)
+# License: Apache-2.0 (see original repository for details)
 
 from operator import itemgetter
 

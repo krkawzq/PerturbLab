@@ -1,4 +1,7 @@
-# modified from https://github.com/BiomedSciAI/scFoundation
+# modified from https://github.com/biomap-research/scFoundation
+# Original source: biomap-research/scFoundation
+# License: Apache-2.0 (see original repository for details)
+
 import sys
 
 import numpy as np
