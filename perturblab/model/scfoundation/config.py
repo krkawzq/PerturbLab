@@ -1,25 +1,23 @@
 import json
+import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from ..configuration import ModelConfig
 
+logger = logging.getLogger(__name__)
 
 class scFoundationConfig(ModelConfig):
-    """
-    Configuration class for scFoundation model.
+    """Configuration class for scFoundation model.
     
-    This config can be loaded/saved using the base class methods:
-    - config.save(path): Save to JSON file
-    - scFoundationConfig.load(path): Load from JSON file
-    
-    Default config can be found at: source/configs/config.json
+    Provides parameters for both the core scFoundation architecture (encoder/decoder)
+    and the GEARS perturbation head.
     """
+
     def __init__(
         self,
         model_series: str = 'scfoundation',
         model_name: str = 'default',
-        # Model architecture
         num_tokens: int = 19264,
         encoder_hidden_dim: int = 768,
         decoder_hidden_dim: int = 512,
@@ -29,20 +27,15 @@ class scFoundationConfig(ModelConfig):
         decoder_heads: int = 8,
         encoder_dim_head: int = 64,
         decoder_dim_head: int = 64,
-        # Embedding parameters
         bin_num: int = 100,
         bin_alpha: float = 1.0,
-        # Special tokens
         pad_token_id: Optional[int] = None,
         mask_token_id: Optional[int] = None,
-        # Module types
         encoder_module_type: str = 'performer',
         decoder_module_type: str = 'performer',
         model_type: str = 'mae_autobin',
-        # Dropout
         ff_dropout: float = 0.0,
         attn_dropout: float = 0.0,
-        # GEARS perturbation head parameters
         gears_hidden_size: int = 64,
         gears_num_go_gnn_layers: int = 1,
         gears_num_gene_gnn_layers: int = 1,
@@ -59,6 +52,7 @@ class scFoundationConfig(ModelConfig):
         gears_coexpress_top_k: int = 20,
         **kwargs
     ):
+        """Initialize scFoundationConfig with architecture and perturbation parameters."""
         super().__init__(
             model_series=model_series,
             model_name=model_name,
@@ -67,19 +61,19 @@ class scFoundationConfig(ModelConfig):
         )
         self._set_all(locals())
         
+        # Initialize default token IDs if not provided
         if self.pad_token_id is None:
             self.pad_token_id = self.num_tokens
         if self.mask_token_id is None:
             self.mask_token_id = self.num_tokens + 1
             
         self.max_seq_len = self.num_tokens + 2
-    
+
     def get_gears_config(self) -> 'GearsConfig':
-        """
-        将 scFoundationConfig 中的 GEARS 参数转换为 GearsConfig。
-        
+        """Convert scFoundation parameters to a GEARS specific configuration.
+
         Returns:
-            GearsConfig: GEARS 配置对象
+            GearsConfig: Configuration object for the GEARS perturbation head.
         """
         from ..gears.config import GearsConfig
         
@@ -101,6 +95,11 @@ class scFoundationConfig(ModelConfig):
         )
 
     def to_model_config_dict(self) -> Dict[str, Any]:
+        """Generate a nested dictionary for model internal initialization.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing model, encoder, and decoder configs.
+        """
         return {
             'model': self.model_type,
             'n_class': self.num_tokens,
@@ -130,51 +129,54 @@ class scFoundationConfig(ModelConfig):
         }
 
 
-def load_gene_list(path: str = None) -> list:
-    """
-    Load the gene list from source/gene_index.json.
-    
+def load_gene_list(path: Optional[str] = None) -> List[str]:
+    """Load the gene list from a JSON file.
+
     Args:
-        path (str, optional): Custom path to gene list file. If None, uses default source/gene_index.json.
-    
+        path: Custom path to gene list file. Defaults to source/gene_index.json.
+
     Returns:
-        list: List of 19264 gene names
-        
-    Example:
-        ```python
-        from perturblab.model.scfoundation.config import load_gene_list
-        
-        genes = load_gene_list()
-        print(len(genes))  # 19264
-        ```
+        List[str]: A list of gene names.
     """
-    if path is None:
-        gene_list_path = os.path.join(
-            os.path.dirname(__file__),
-            'source',
-            'gene_index.json'
-        )
-    else:
-        gene_list_path = path
+    gene_list_path = path or os.path.join(
+        os.path.dirname(__file__), 'source', 'gene_index.json'
+    )
     
     if not os.path.exists(gene_list_path):
+        logger.error("Gene list not found at: %s", gene_list_path)
         raise FileNotFoundError(f"Gene list file not found: {gene_list_path}")
     
     with open(gene_list_path, 'r') as f:
         return json.load(f)
 
-def load_default_gene_list() -> list:
+def load_default_gene_list() -> List[str]:
+    """Load the default gene list.
+
+    Returns:
+        List[str]: Default gene list from source directory.
+    """
     return load_gene_list()
 
-def load_config(path: str) -> dict:
-    if os.path.exists(path):
-        with open(path, 'r') as f:
-            return json.load(f)
-    else:
-        raise FileNotFoundError(f"Config file not found: {path}")
+def load_config(path: str) -> Dict[str, Any]:
+    """Utility to load JSON configuration files.
 
-def load_default_model_config() -> dict:
+    Args:
+        path: Path to the JSON file.
+
+    Returns:
+        Dict[str, Any]: Parsed configuration dictionary.
+    """
+    if not os.path.exists(path):
+        logger.error("Config file not found: %s", path)
+        raise FileNotFoundError(f"Config file not found: {path}")
+    
+    with open(path, 'r') as f:
+        return json.load(f)
+
+def load_default_model_config() -> Dict[str, Any]:
+    """Load default model configuration."""
     return load_config(os.path.join(os.path.dirname(__file__), 'source', 'configs', 'config.json'))
 
-def load_default_training_config() -> dict:
+def load_default_training_config() -> Dict[str, Any]:
+    """Load default training configuration."""
     return load_config(os.path.join(os.path.dirname(__file__), 'source', 'configs', 'training_config.json'))

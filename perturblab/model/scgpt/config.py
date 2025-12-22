@@ -1,9 +1,13 @@
+import logging
 from typing import Any, Literal
 
-from ..configuration import ModelConfig  # 确保路径正确
+from ..configuration import ModelConfig
 
+logger = logging.getLogger(__name__)
 
 class scGPTConfig(ModelConfig):
+    """Configuration class for scGPT models."""
+
     def __init__(
         self,
         *,
@@ -47,12 +51,15 @@ class scGPTConfig(ModelConfig):
         dab_weight: float = 1.0,
         **kwargs,
     ):
+        """Initialize scGPTConfig with model hyperparameters."""
         super().__init__(**kwargs)
-
+        
+        # Batch set attributes from local variables
         self._set_all(locals())
 
     @classmethod
     def _get_key_mapping(cls) -> dict[str, str]:
+        """Get mapping for legacy key names to current attribute names."""
         return {
             "d_model": "embsize",
             "nhead": "nheads",

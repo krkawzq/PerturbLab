@@ -2,12 +2,14 @@ import json
 import logging
 import os
 import time
-from typing import Dict, Literal, Optional, Union
+import warnings
+from typing import Dict, List, Literal, Optional, Union
 
 import numpy as np
+import scipy.sparse
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 
 from ...data import PerturbationData
@@ -16,9 +18,11 @@ from ..base import PerturbationModel
 from .config import scGPTConfig
 from .source.loss import criterion_neg_log_bernoulli, masked_mse_loss
 from .source.model import TransformerGenerator, TransformerModel
-from .source.tokenizer.gene_tokenizer import (GeneVocab,
-                                              get_default_gene_vocab,
-                                              random_mask_value)
+from .source.tokenizer.gene_tokenizer import (
+    GeneVocab,
+    get_default_gene_vocab,
+    random_mask_value,
+)
 from .source.utils.util import load_pretrained
 
 logger = logging.getLogger(__name__)
@@ -27,8 +31,12 @@ logger = logging.getLogger(__name__)
 class scGPTModel(PerturbationModel):
     """
     scGPT model for single-cell gene expression analysis.
-    Supports pretraining, fine-tuning, and various downstream tasks.
+
     
+
+    Supports pretraining, fine-tuning, and various downstream tasks using a
+    Transformer-based architecture specialized for single-cell data.
+
     Available pretrained models on HuggingFace (perturblab organization):
     - scgpt-human: General human single-cell model
     - scgpt-blood: Blood cell specialized model
@@ -39,7 +47,7 @@ class scGPTModel(PerturbationModel):
     - scgpt-pan-cancer: Pan-cancer model
     - scgpt-continual-pretrained: Continual pretrained model
     """
-    
+
     # Available pretrained models on HuggingFace
     PRETRAINED_MODELS = {
         "scgpt-human": "perturblab/scgpt-human",
@@ -51,29 +59,54 @@ class scGPTModel(PerturbationModel):
         "scgpt-pan-cancer": "perturblab/scgpt-pan-cancer",
         "scgpt-continual-pretrained": "perturblab/scgpt-continual-pretrained",
     }
-    
-    def __init__(self, config: scGPTConfig, gene_list: list[str] = None, device: str = 'cuda', **kwargs):
+
+    def __init__(
+        self,
+        config: scGPTConfig,
+        gene_list: Optional[List[str]] = None,
+        device: str = "cuda",
+        **kwargs,
+    ):
+        """
+        Initializes the scGPT model.
+
+        Args:
+            config: Model configuration.
+            gene_list: List of gene names (required if not using default vocab).
+            device: Computation device ('cuda' or 'cpu').
+        """
         super().__init__(config)
-        
-        if device == 'cuda':
-            self.device = 'cuda' if torch.cuda.is_available() and torch.cuda.device_count() > 0 else 'cpu'
+
+        if device == "cuda":
+            self.device = (
+                "cuda"
+                if torch.cuda.is_available() and torch.cuda.device_count() > 0
+                else "cpu"
+            )
         else:
-            self.device = 'cpu'
-        
+            self.device = "cpu"
+
+        # Initialize Vocabulary
         if config.use_default_gene_vocab:
             self.vocab = get_default_gene_vocab()
         else:
             if gene_list is None:
-                raise ValueError("gene_list is required when config.use_default_gene_vocab is False")
-            self.vocab = GeneVocab(gene_list, config.specials, config.special_first, config.default_token)
-        
+                raise ValueError(
+                    "gene_list is required when config.use_default_gene_vocab is False"
+                )
+            self.vocab = GeneVocab(
+                gene_list,
+                config.specials,
+                config.special_first,
+                config.default_token,
+            )
+
         # Ensure pad_token exists in vocab and set as default index
         if config.pad_token not in self.vocab:
-            # Add pad_token to vocab if it doesn't exist
             self.vocab.append_token(config.pad_token)
-        # Set default index to pad_token
         self.vocab.set_default_index(self.vocab[config.pad_token])
-        
+
+        # Initialize Transformer
         self.model = TransformerModel(
             ntoken=config.ntoken,
             d_model=config.d_model,
@@ -101,33 +134,34 @@ class scGPTModel(PerturbationModel):
             fast_transformer_backend=config.fast_transformer_backend,
             pre_norm=config.pre_norm,
         ).to(self.device)
-    
+
     def train(self, mode: bool = True):
         """Set the model to training mode."""
         self.model.train(mode)
         return self
-    
+
     def eval(self):
         """Set the model to evaluation mode."""
         return self.train(False)
-    
+
     @classmethod
     def mask_values(
-        cls, 
-        values: Union[torch.Tensor, np.ndarray], 
-        mask_ratio: float = 0.4, 
-        mask_value: int = -1, 
-        pad_value: int = 0
+        cls,
+        values: Union[torch.Tensor, np.ndarray],
+        mask_ratio: float = 0.4,
+        mask_value: int = -1,
+        pad_value: int = 0,
     ) -> torch.Tensor:
         """
-        Class method to perform random masking on values.
-        Wraps the tokenizer's random_mask_value function.
+        Performs random masking on values for Masked Language Modeling (MLM).
+
+        
         """
         return random_mask_value(
             values,
             mask_ratio=mask_ratio,
             mask_value=mask_value,
-            pad_value=pad_value
+            pad_value=pad_value,
         )
 
     def prepare_dataloader(
@@ -137,39 +171,38 @@ class scGPTModel(PerturbationModel):
         shuffle: bool = True,
         drop_last: bool = False,
         num_workers: int = 0,
-        mask_ratio: float = 0.0,  # Default to 0.0 (no masking) for inference/general usage
+        mask_ratio: float = 0.0,
         mask_value: int = -1,
-        return_split: Optional[str] = None,  # 'all', 'train', 'test', etc. or None for all splits
+        return_split: Optional[str] = None,
     ) -> Union[DataLoader, Dict[str, DataLoader]]:
         """
-        Prepare dataloaders for the dataset.
-        
-        Args:
-            dataset: PerturbationData object
-            batch_size: Batch size
-            shuffle: Whether to shuffle data
-            drop_last: Whether to drop last incomplete batch
-            num_workers: Number of workers for data loading
-            mask_ratio: Ratio of values to mask (0.0 = no masking)
-            mask_value: Value to use for masking
-            return_split: If specified, return only this split as a single DataLoader.
-                         If 'all', return all data as a single DataLoader.
-                         If None, return dict of all splits.
-        
-        Returns:
-            DataLoader or Dict[str, DataLoader] depending on return_split
-        """
-        import scipy.sparse
-        from torch.utils.data import DataLoader, TensorDataset
+        Prepares DataLoaders for the dataset.
 
+        Args:
+            dataset: Input dataset.
+            batch_size: Batch size.
+            shuffle: Whether to shuffle data.
+            drop_last: Whether to drop incomplete batches.
+            num_workers: Number of worker threads.
+            mask_ratio: Ratio of values to mask (0.0 = no masking).
+            mask_value: Value to use for masking.
+            return_split: Specific split to return ('train', 'test', 'all'), or None for all.
+
+        Returns:
+            DataLoader or Dictionary of DataLoaders.
+        """
         gene_names = dataset.adata.var_names.tolist()
         gene_ids = [
             self.vocab[g] if g in self.vocab else self.vocab[self.config.pad_token]
             for g in gene_names
         ]
 
-        # Determine max sequence length: None = no limit (use all genes)
-        max_len = self.config.max_seq_len if self.config.max_seq_len is not None else len(gene_ids)
+        # Determine max sequence length
+        max_len = (
+            self.config.max_seq_len
+            if self.config.max_seq_len is not None
+            else len(gene_ids)
+        )
         if len(gene_ids) > max_len:
             logger.info(f"Truncating genes from {len(gene_ids)} to {max_len}")
             gene_ids = gene_ids[:max_len]
@@ -183,35 +216,35 @@ class scGPTModel(PerturbationModel):
         # Collate function with masking logic
         def scgpt_collate(batch):
             # batch structure: [(values_0, label_0?), (values_1, label_1?), ...]
-            
+
             # Stack values: (batch_size, seq_len)
             batch_values = torch.stack([item[0] for item in batch])
             curr_batch_size = batch_values.shape[0]
-            
+
             # Replicate src for the batch
             batch_src = src_tensor.unsqueeze(0).repeat(curr_batch_size, 1)
-            
-            # Generate padding mask (assuming all selected genes are valid for now)
+
+            # Generate padding mask (assuming all selected genes are valid)
             batch_padding_mask = torch.zeros_like(batch_src, dtype=torch.bool)
 
             output = {
                 "src": batch_src,
-                "values": batch_values, # This will be the TARGET if we mask
-                "src_key_padding_mask": batch_padding_mask
+                "values": batch_values,  # Target if masking is applied
+                "src_key_padding_mask": batch_padding_mask,
             }
 
-            # Apply masking if mask_ratio > 0
+            # Apply masking
             if mask_ratio > 0:
                 masked_values = self.mask_values(
                     batch_values,
                     mask_ratio=mask_ratio,
                     mask_value=mask_value,
-                    pad_value=self.config.pad_value
+                    pad_value=self.config.pad_value,
                 )
                 output["masked_values"] = masked_values
-                output["target_values"] = batch_values # Original values are targets
+                output["target_values"] = batch_values
             else:
-                 output["masked_values"] = batch_values # No masking
+                output["masked_values"] = batch_values
 
             # Handle batch labels
             if len(batch[0]) > 1:
@@ -220,27 +253,28 @@ class scGPTModel(PerturbationModel):
 
             return output
 
-        # Split handling
+        # Handle Splits
         adata_map = {}
-        if return_split == 'all' or ('split' not in dataset.adata.obs):
-            # Return all data as a single loader
-            adata_map['all'] = dataset.adata
+        if return_split == "all" or ("split" not in dataset.adata.obs):
+            adata_map["all"] = dataset.adata
         elif return_split is not None:
-            # Return only specified split
-            if 'split' in dataset.adata.obs and return_split in dataset.adata.obs['split'].values:
-                subset = dataset.adata[dataset.adata.obs['split'] == return_split]
+            if (
+                "split" in dataset.adata.obs
+                and return_split in dataset.adata.obs["split"].values
+            ):
+                subset = dataset.adata[dataset.adata.obs["split"] == return_split]
                 adata_map[return_split] = subset
             else:
                 raise ValueError(f"Split '{return_split}' not found in dataset")
         else:
-            # Return all splits as separate loaders
-            if 'split' in dataset.adata.obs:
-                split_names = dataset.adata.obs['split'].unique()
+            # Return all splits
+            if "split" in dataset.adata.obs:
+                split_names = dataset.adata.obs["split"].unique()
                 for split_name in split_names:
-                    subset = dataset.adata[dataset.adata.obs['split'] == split_name]
+                    subset = dataset.adata[dataset.adata.obs["split"] == split_name]
                     adata_map[str(split_name)] = subset
             else:
-                adata_map['all'] = dataset.adata
+                adata_map["all"] = dataset.adata
 
         dataloaders = {}
 
@@ -251,58 +285,60 @@ class scGPTModel(PerturbationModel):
             X = adata_subset.X
             if slice_cols != slice(None):
                 X = X[:, slice_cols]
-            
+
             if scipy.sparse.issparse(X):
                 X = X.toarray()
-            
+
             if self.config.input_emb_style == "category":
                 values_tensor = torch.tensor(X, dtype=torch.long)
             else:
                 values_tensor = torch.tensor(X, dtype=torch.float32)
 
             tensors_to_pack = [values_tensor]
-            
+
             if self.config.use_batch_labels:
                 batch_label_key = self.config.batch_label_key
                 if batch_label_key in adata_subset.obs:
-                    batch_labels = adata_subset.obs[batch_label_key].astype('category').cat.codes.values
+                    batch_labels = (
+                        adata_subset.obs[batch_label_key]
+                        .astype("category")
+                        .cat.codes.values
+                    )
                     tensors_to_pack.append(torch.tensor(batch_labels, dtype=torch.long))
                 else:
-                    tensors_to_pack.append(torch.zeros(len(adata_subset), dtype=torch.long))
+                    tensors_to_pack.append(
+                        torch.zeros(len(adata_subset), dtype=torch.long)
+                    )
 
             dataset_tensor = TensorDataset(*tensors_to_pack)
-            
+
             loader = DataLoader(
                 dataset_tensor,
                 batch_size=batch_size,
                 shuffle=shuffle,
                 drop_last=drop_last,
                 num_workers=num_workers,
-                collate_fn=scgpt_collate
+                collate_fn=scgpt_collate,
             )
-            
+
             dataloaders[split_name] = loader
 
-        # Return single loader or dict based on return_split
         if return_split is not None:
             return dataloaders[list(dataloaders.keys())[0]]
         return dataloaders
-    
-    
+
     def forward(
-        self, 
-        batch_data: Dict[str, torch.Tensor], 
-        CLS: bool = False, 
-        CCE: bool = False, 
-        MVC: bool = False, 
-        ECS: bool = False, 
-        do_sample: bool = False
+        self,
+        batch_data: Dict[str, torch.Tensor],
+        CLS: bool = False,
+        CCE: bool = False,
+        MVC: bool = False,
+        ECS: bool = False,
+        do_sample: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """
-        Forward pass. Only retrieves embeddings and model outputs. 
-        Does NOT calculate loss.
+        Forward pass. Retrieves embeddings and model outputs without loss calculation.
         """
-        # Move to device
         batch_data = {k: v.to(self.device) for k, v in batch_data.items()}
 
         src = batch_data["src"]
@@ -311,7 +347,6 @@ class scGPTModel(PerturbationModel):
         src_key_padding_mask = batch_data["src_key_padding_mask"]
         batch_labels = batch_data.get("batch_labels", None)
 
-        # Forward pass through TransformerModel
         output_dict = self.model(
             src=src,
             values=values,
@@ -321,32 +356,35 @@ class scGPTModel(PerturbationModel):
             CCE=CCE,
             MVC=MVC,
             ECS=ECS,
-            do_sample=do_sample
+            do_sample=do_sample,
         )
-        
+
         return output_dict
 
     def compute_loss(
         self,
         batch_data: Dict[str, torch.Tensor],
         output_dict: Optional[Dict[str, torch.Tensor]] = None,
-        CLS: bool = False, 
-        CCE: bool = False, 
-        MVC: bool = False, 
-        ECS: bool = False, 
+        CLS: bool = False,
+        CCE: bool = False,
+        MVC: bool = False,
+        ECS: bool = False,
         do_sample: bool = False,
-        mask_value: int = -1
+        mask_value: int = -1,
     ) -> Dict[str, torch.Tensor]:
         """
-        Computes the loss for the model.
-        If output_dict is provided, uses it. Otherwise calls forward first.
+        Computes model losses (MSE, GEPC, ECS, DAB, Zero-prob).
         """
         if output_dict is None:
             output_dict = self.forward(
-                batch_data, 
-                CLS=CLS, CCE=CCE, MVC=MVC, ECS=ECS, do_sample=do_sample
+                batch_data,
+                CLS=CLS,
+                CCE=CCE,
+                MVC=MVC,
+                ECS=ECS,
+                do_sample=do_sample,
             )
-        
+
         losses = {}
         total_loss = 0.0
 
@@ -354,9 +392,9 @@ class scGPTModel(PerturbationModel):
             batch_data = {k: v.to(self.device) for k, v in batch_data.items()}
             target_values = batch_data["target_values"]
             values = batch_data.get("masked_values", batch_data["values"])
-            
+
             masked_positions = values.eq(mask_value)
-            
+
             # 1. Masked MSE Loss (MLM)
             loss_mse = masked_mse_loss(
                 output_dict["mlm_output"], target_values, masked_positions
@@ -382,17 +420,23 @@ class scGPTModel(PerturbationModel):
 
             # 4. ECS Loss
             if ECS and "loss_ecs" in output_dict:
-                # Scaling factor 10 is commonly used in scGPT tutorials
-                loss_ecs = output_dict["loss_ecs"] * 10 
+                # Scaling factor 10 is standard in scGPT
+                loss_ecs = output_dict["loss_ecs"] * 10
                 total_loss += loss_ecs
                 losses["loss_ecs"] = loss_ecs
 
             # 5. DAB Loss
-            if self.config.do_dab and "dab_output" in output_dict and "batch_labels" in batch_data:
-                loss_dab = self.criterion_dab(output_dict["dab_output"], batch_data["batch_labels"])
+            if (
+                self.config.do_dab
+                and "dab_output" in output_dict
+                and "batch_labels" in batch_data
+            ):
+                loss_dab = self.criterion_dab(
+                    output_dict["dab_output"], batch_data["batch_labels"]
+                )
                 total_loss += loss_dab * self.config.dab_weight
                 losses["loss_dab"] = loss_dab
-            
+
         losses["loss"] = total_loss
         return losses
 
@@ -401,51 +445,49 @@ class scGPTModel(PerturbationModel):
         dataset: PerturbationData,
         batch_size: int = 32,
         embedding_type: Literal["cell", "gene"] = "cell",
-        **kwargs
+        **kwargs,
     ) -> np.ndarray:
         """
         Unified embedding prediction method.
-        
+
         Args:
-            dataset: Input dataset
-            batch_size: Batch size for inference
-            embedding_type: Type of embedding to predict ("cell" or "gene")
-            **kwargs: Additional arguments (unused for scGPTModel)
-            
+            dataset: Input dataset.
+            batch_size: Batch size.
+            embedding_type: 'cell' or 'gene'.
+
         Returns:
-            np.ndarray: Embeddings of shape (n_samples, embedding_dim) for cells
-                       or (n_genes, embedding_dim) for genes
+            Numpy array of embeddings.
         """
         self.eval()
-        
+
         if embedding_type == "gene":
-            # For gene embeddings, directly return encoder embeddings
             with torch.no_grad():
                 gene_embs = self.model.encoder.embedding.weight.cpu().numpy()
             return gene_embs
-        
+
         elif embedding_type == "cell":
-            # For cell embeddings, process through the model
             loader = self.prepare_dataloader(
-                dataset, 
-                batch_size=batch_size, 
-                shuffle=False, 
+                dataset,
+                batch_size=batch_size,
+                shuffle=False,
                 mask_ratio=0.0,
-                return_split='all'
+                return_split="all",
             )
-            
+
             embeddings = []
             with torch.no_grad():
                 for batch in tqdm(loader, desc="Encoding cells"):
                     batch = {k: v.to(self.device) for k, v in batch.items()}
-                    
+
                     out = self.forward(batch)
                     cell_emb = out["cell_emb"]  # (batch, embsize)
                     embeddings.append(cell_emb.cpu().numpy())
-                    
+
             return np.concatenate(embeddings, axis=0)
         else:
-            raise ValueError(f"embedding_type must be 'cell' or 'gene', got {embedding_type}")
+            raise ValueError(
+                f"embedding_type must be 'cell' or 'gene', got {embedding_type}"
+            )
 
     def train_model(
         self,
@@ -466,76 +508,62 @@ class scGPTModel(PerturbationModel):
         ECS: bool = False,
         scheduler_step: int = 1,
         scheduler_gamma: float = 0.99,
-        **kwargs
+        **kwargs,
     ):
         """
-        Train the scGPT model.
-        
+        Trains the scGPT model.
+
         Args:
-            dataset: PerturbationData object with train/valid splits
-            epochs: Number of training epochs
-            batch_size: Batch size for training
-            lr: Learning rate
-            mask_ratio: Ratio of values to mask for MLM task
-            mask_value: Value to use for masking
-            use_amp: Whether to use automatic mixed precision
-            grad_clip: Gradient clipping threshold
-            log_interval: Log every N batches
-            save_dir: Directory to save checkpoints (if None, no saving)
-            save_interval: Save checkpoint every N batches (if None, save per epoch)
-            CLS: Whether to use CLS objective
-            CCE: Whether to use CCE objective
-            MVC: Whether to use MVC objective
-            ECS: Whether to use ECS objective
-            scheduler_step: Scheduler step size
-            scheduler_gamma: Scheduler gamma
-            **kwargs: Additional arguments
-            
+            dataset: Training data.
+            epochs: Number of epochs.
+            batch_size: Batch size.
+            lr: Learning rate.
+            mask_ratio: Masking ratio for MLM.
+            mask_value: Value used for masking.
+            use_amp: Whether to use Automatic Mixed Precision.
+            grad_clip: Gradient clipping value.
+            log_interval: Logging frequency.
+            save_dir: Directory to save checkpoints.
+            save_interval: Checkpoint saving frequency.
+            CLS, CCE, MVC, ECS: Loss flags.
+            scheduler_step: Scheduler step size.
+            scheduler_gamma: Scheduler gamma.
+
         Returns:
-            Training history dict
+            Dictionary containing training history.
         """
-        import warnings
-
-        from tqdm import tqdm
-
-        # Prepare dataloaders
         dataloaders = self.prepare_dataloader(
             dataset,
             batch_size=batch_size,
             shuffle=True,
             mask_ratio=mask_ratio,
             mask_value=mask_value,
-            return_split=None  # Get all splits
+            return_split=None,  # Get all splits
         )
-        
-        train_loader = dataloaders.get('train', dataloaders.get('all'))
-        valid_loader = dataloaders.get('valid', dataloaders.get('test', None))
-        
-        # Setup optimizer and scheduler
+
+        train_loader = dataloaders.get("train", dataloaders.get("all"))
+        valid_loader = dataloaders.get("valid", dataloaders.get("test", None))
+
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, eps=1e-8)
         scheduler = torch.optim.lr_scheduler.StepLR(
             optimizer, step_size=scheduler_step, gamma=scheduler_gamma
         )
         scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
-        
-        # Training history
-        history = {
-            'train_loss': [],
-            'valid_loss': [],
-            'epoch_times': []
-        }
-        
-        logger.info(f"Starting training for {epochs} epochs")
-        logger.info(f"Train batches: {len(train_loader)}, Valid batches: {len(valid_loader) if valid_loader else 0}")
-        
+
+        history = {"train_loss": [], "valid_loss": [], "epoch_times": []}
+
+        logger.info(
+            f"Starting training: {epochs} epochs | Train batches: {len(train_loader)}"
+        )
+
         for epoch in range(1, epochs + 1):
             epoch_start_time = time.time()
-            
-            # Training
+
+            # Training Phase
             self.train()
             total_loss = 0.0
             num_batches = len(train_loader)
-            
+
             with tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}") as pbar:
                 for batch_idx, batch_data in enumerate(pbar, 1):
                     # Forward pass with AMP
@@ -547,8 +575,7 @@ class scGPTModel(PerturbationModel):
                             MVC=MVC,
                             ECS=ECS,
                         )
-                        
-                        # Compute loss
+
                         losses = self.compute_loss(
                             batch_data,
                             output_dict=output_dict,
@@ -556,15 +583,15 @@ class scGPTModel(PerturbationModel):
                             CCE=CCE,
                             MVC=MVC,
                             ECS=ECS,
-                            mask_value=mask_value
+                            mask_value=mask_value,
                         )
-                        loss = losses['loss']
-                    
+                        loss = losses["loss"]
+
                     # Backward pass
                     optimizer.zero_grad()
                     scaler.scale(loss).backward()
                     scaler.unscale_(optimizer)
-                    
+
                     # Gradient clipping
                     with warnings.catch_warnings(record=True) as w:
                         warnings.filterwarnings("always")
@@ -575,60 +602,65 @@ class scGPTModel(PerturbationModel):
                         )
                         if len(w) > 0:
                             logger.warning(
-                                f"Found infinite gradient at batch {batch_idx}. "
-                                f"Scale: {scaler.get_scale()}"
+                                f"Found infinite gradient at batch {batch_idx}. Scale: {scaler.get_scale()}"
                             )
-                    
+
                     scaler.step(optimizer)
                     scaler.update()
-                    
+
                     total_loss += loss.item()
-                    
-                    # Logging
+
                     if batch_idx % log_interval == 0:
                         avg_loss = total_loss / batch_idx
-                        pbar.set_postfix({
-                            'loss': f'{avg_loss:.4f}',
-                            'lr': f'{scheduler.get_last_lr()[0]:.2e}'
-                        })
-                    
-                    # Save checkpoint
-                    if save_dir and save_interval and batch_idx % save_interval == 0:
-                        ckpt_path = os.path.join(save_dir, f"checkpoint_epoch{epoch}_batch{batch_idx}")
+                        pbar.set_postfix(
+                            {
+                                "loss": f"{avg_loss:.4f}",
+                                "lr": f"{scheduler.get_last_lr()[0]:.2e}",
+                            }
+                        )
+
+                    # Interval Checkpoint
+                    if (
+                        save_dir
+                        and save_interval
+                        and batch_idx % save_interval == 0
+                    ):
+                        ckpt_path = os.path.join(
+                            save_dir, f"checkpoint_epoch{epoch}_batch{batch_idx}"
+                        )
                         self.save(ckpt_path)
-                        logger.info(f"Checkpoint saved to {ckpt_path}")
-            
+
             avg_train_loss = total_loss / num_batches
-            history['train_loss'].append(avg_train_loss)
-            
-            # Validation
+            history["train_loss"].append(avg_train_loss)
+
+            # Validation Phase
             if valid_loader:
                 self.eval()
                 valid_loss = 0.0
                 num_valid_batches = 0
-                
+
                 with torch.no_grad():
                     for batch_data in valid_loader:
                         with torch.cuda.amp.autocast(enabled=use_amp):
                             output_dict = self.forward(
                                 batch_data,
                                 CLS=CLS,
-                                CCE=False,  # No CCE in validation
-                                MVC=False,  # No MVC in validation
-                                ECS=False,  # No ECS in validation
+                                CCE=False,
+                                MVC=False,
+                                ECS=False,
                             )
-                            
+
                             losses = self.compute_loss(
                                 batch_data,
                                 output_dict=output_dict,
                                 CLS=CLS,
-                                mask_value=mask_value
+                                mask_value=mask_value,
                             )
-                            valid_loss += losses['loss'].item()
+                            valid_loss += losses["loss"].item()
                             num_valid_batches += 1
-                
+
                 avg_valid_loss = valid_loss / num_valid_batches
-                history['valid_loss'].append(avg_valid_loss)
+                history["valid_loss"].append(avg_valid_loss)
                 logger.info(
                     f"Epoch {epoch:3d} | Train Loss: {avg_train_loss:.4f} | "
                     f"Valid Loss: {avg_valid_loss:.4f} | "
@@ -639,146 +671,106 @@ class scGPTModel(PerturbationModel):
                     f"Epoch {epoch:3d} | Train Loss: {avg_train_loss:.4f} | "
                     f"Time: {time.time() - epoch_start_time:.2f}s"
                 )
-            
-            history['epoch_times'].append(time.time() - epoch_start_time)
-            
-            # Step scheduler
+
+            history["epoch_times"].append(time.time() - epoch_start_time)
             scheduler.step()
-            
-            # Save epoch checkpoint
+
+            # Epoch Checkpoint
             if save_dir:
                 epoch_ckpt_path = os.path.join(save_dir, f"epoch_{epoch}")
                 self.save(epoch_ckpt_path)
-                logger.info(f"Epoch checkpoint saved to {epoch_ckpt_path}")
-        
+
         logger.info("Training completed!")
         return history
-    
+
     def save(self, save_directory: str):
-        """
-        Save model weights and config to a directory.
-        
-        Args:
-            save_directory: Directory path to save the model
-        """
+        """Saves model weights and configuration."""
         os.makedirs(save_directory, exist_ok=True)
-        
-        # Save model state dict as model.pt (scGPT convention)
+
         model_file = os.path.join(save_directory, "model.pt")
         torch.save(self.model.state_dict(), model_file)
-        
-        # Save config as args.json (hardcoded, scGPT convention)
+
         config_file = os.path.join(save_directory, "args.json")
         self.config.save(config_file)
-        
+
         logger.info(f"Model saved to {save_directory}")
 
     @classmethod
     def from_pretrained(
-        cls, 
-        model_name_or_path: str, 
-        device: str = 'cuda',
-        **kwargs
-    ) -> 'scGPTModel':
+        cls,
+        model_name_or_path: str,
+        device: str = "cuda",
+        **kwargs,
+    ) -> "scGPTModel":
         """
-        Load a pretrained scGPT model.
-        
-        Supports multiple loading methods:
-        1. HuggingFace models (perturblab organization)
-        2. Local directory paths
-        3. Custom URLs (future support)
-        
+        Loads a pretrained scGPT model from HuggingFace or a local path.
+
         Args:
-            model_name_or_path: Can be:
-                - Model name: "scgpt-human" → downloads from perturblab/scgpt-human
-                - Full HuggingFace repo ID: "perturblab/scgpt-human"
-                - Local directory path: "/path/to/model"
-            device: Device to load the model on ('cuda' or 'cpu')
-            **kwargs: Additional arguments
-                - Model initialization: gene_list, etc.
-                - HuggingFace download: revision, token, cache_dir, force_download, resume_download
-            
+            model_name_or_path: HuggingFace ID or local directory.
+            device: Computation device.
+            **kwargs: Extra arguments for HF download or model init.
+
         Returns:
-            Loaded scGPTModel instance
-            
-        Example:
-            >>> # Load from HuggingFace (auto-cached)
-            >>> model = scGPTModel.from_pretrained("scgpt-human")
-            >>> 
-            >>> # Load tissue-specific model
-            >>> model = scGPTModel.from_pretrained("scgpt-brain", device='cpu')
-            >>> 
-            >>> # Load from local path
-            >>> model = scGPTModel.from_pretrained("/path/to/model")
-            >>> 
-            >>> # Load with custom parameters
-            >>> model = scGPTModel.from_pretrained(
-            ...     "scgpt-human",
-            ...     gene_list=my_genes,
-            ...     revision="v1.0",
-            ...     token="hf_xxx"
-            ... )
+            Loaded scGPTModel instance.
         """
-        # Separate HuggingFace kwargs from model init kwargs
         hf_kwargs = {}
         model_init_kwargs = {}
-        hf_keys = {'revision', 'token', 'cache_dir', 'force_download', 'resume_download'}
-        
+        hf_keys = {
+            "revision",
+            "token",
+            "cache_dir",
+            "force_download",
+            "resume_download",
+        }
+
         for key, value in kwargs.items():
             if key in hf_keys:
                 hf_kwargs[key] = value
             else:
                 model_init_kwargs[key] = value
-        
+
         # Resolve model path
         if os.path.exists(model_name_or_path):
-            # It's a local path
             model_path = model_name_or_path
             logger.info(f"Loading model from local path: {model_path}")
         else:
-            # Check if it's a registered model name or HuggingFace repo
-            # For scGPT models, we use HuggingFace
             try:
-                logger.info(f"Downloading model '{model_name_or_path}' from HuggingFace...")
+                logger.info(
+                    f"Downloading model '{model_name_or_path}' from HuggingFace..."
+                )
                 model_path = download_from_huggingface(
-                    model_name_or_path,
-                    organization="perturblab",
-                    **hf_kwargs
+                    model_name_or_path, organization="perturblab", **hf_kwargs
                 )
                 logger.info(f"✓ Model cached at: {model_path}")
             except Exception as e:
                 raise ValueError(
                     f"Failed to load model '{model_name_or_path}'. "
-                    f"Make sure it's either:\n"
-                    f"  - A valid local directory path\n"
-                    f"  - A HuggingFace model name (e.g., 'scgpt-human')\n"
-                    f"  - A full repo ID (e.g., 'perturblab/scgpt-human')\n"
+                    f"Ensure it is a valid local path or HuggingFace ID.\n"
                     f"Error: {str(e)}"
                 )
-        
-        # Load config from args.json (hardcoded, scGPT convention)
+
+        # Load config
         config_file = os.path.join(model_path, "args.json")
         config = scGPTConfig.load(config_file)
-        
-        # If ntoken is None, load from vocab.json
+
+        # Load ntoken from vocab if needed
         if config.ntoken is None:
             vocab_file = os.path.join(model_path, "vocab.json")
             if os.path.exists(vocab_file):
                 try:
-                    with open(vocab_file, 'r') as f:
+                    with open(vocab_file, "r") as f:
                         vocab_data = json.load(f)
-                        # vocab.json is a dict of {gene: index}, ntoken = max_index + 1
                         if isinstance(vocab_data, dict):
                             config.ntoken = max(vocab_data.values()) + 1
                         else:
                             config.ntoken = len(vocab_data)
                 except Exception as e:
                     logger.warning(f"Failed to load ntoken from vocab.json: {e}")
-                    config.ntoken = 60697  # Fallback default
+                    config.ntoken = 60697
             else:
-                config.ntoken = 60697  # Fallback default
-        
-        # Find model file (try both model.pt and best_model.pt)
+                config.ntoken = 60697
+
+        # Find weights
         model_file = os.path.join(model_path, "model.pt")
         if not os.path.exists(model_file):
             model_file = os.path.join(model_path, "best_model.pt")
@@ -787,55 +779,68 @@ class scGPTModel(PerturbationModel):
                     f"Model weights not found at {model_path}. "
                     f"Expected 'model.pt' or 'best_model.pt'."
                 )
-        
-        # Create model instance
+
+        # Instantiate
         model = cls(config, device=device, **model_init_kwargs)
-        
-        # Load state dict using official load_pretrained (handles flash-attn <-> pytorch conversion)
+
+        # Load weights
         state_dict = torch.load(model_file, map_location=device)
         load_pretrained(model.model, state_dict, verbose=False)
-        
-        logger.info(f"✓ Model loaded successfully")
-        
+
+        logger.info("✓ Model loaded successfully")
         return model
+
 
 class scGPTPerturbationModel(PerturbationModel):
     """
     scGPT model specialized for perturbation prediction tasks.
-    Uses TransformerGenerator architecture for generating perturbed cell states.
+
     
-    Note: Perturbation models will be added to HuggingFace in the future.
-    Currently, use the general scGPT models and fine-tune for perturbation tasks.
+
+    Uses the TransformerGenerator architecture to predict the gene expression
+    state of a cell after perturbation, given a control state and perturbation tokens.
     """
-    
-    # Registry of pretrained models for perturbation (to be added)
-    PRETRAINED_MODELS = {
-        # Future perturbation-specific models
-        # "scgpt-perturb-human": "perturblab/scgpt-perturb-human",
-    }
-    
-    def __init__(self, config: scGPTConfig, gene_list: list[str] = None, device: str = 'cuda', **kwargs):
+
+    # Registry of pretrained models for perturbation (placeholder)
+    PRETRAINED_MODELS = {}
+
+    def __init__(
+        self,
+        config: scGPTConfig,
+        gene_list: Optional[List[str]] = None,
+        device: str = "cuda",
+        **kwargs,
+    ):
+        """Initializes the scGPT perturbation model."""
         super().__init__(config)
-        
-        if device == 'cuda':
-            self.device = 'cuda' if torch.cuda.is_available() and torch.cuda.device_count() > 0 else 'cpu'
+
+        if device == "cuda":
+            self.device = (
+                "cuda"
+                if torch.cuda.is_available() and torch.cuda.device_count() > 0
+                else "cpu"
+            )
         else:
-            self.device = 'cpu'
-        
+            self.device = "cpu"
+
         if config.use_default_gene_vocab:
             self.vocab = get_default_gene_vocab()
         else:
             if gene_list is None:
-                raise ValueError("gene_list is required when config.use_default_gene_vocab is False")
-            self.vocab = GeneVocab(gene_list, config.specials, config.special_first, config.default_token)
-        
-        # Ensure pad_token exists in vocab and set as default index
+                raise ValueError(
+                    "gene_list is required when config.use_default_gene_vocab is False"
+                )
+            self.vocab = GeneVocab(
+                gene_list,
+                config.specials,
+                config.special_first,
+                config.default_token,
+            )
+
         if config.pad_token not in self.vocab:
-            # Add pad_token to vocab if it doesn't exist
             self.vocab.append_token(config.pad_token)
-        # Set default index to pad_token
         self.vocab.set_default_index(self.vocab[config.pad_token])
-        
+
         self.model = TransformerGenerator(
             ntoken=config.ntoken,
             d_model=config.d_model,
@@ -862,14 +867,12 @@ class scGPTPerturbationModel(PerturbationModel):
             fast_transformer_backend=config.fast_transformer_backend,
             pre_norm=config.pre_norm,
         ).to(self.device)
-    
+
     def train(self, mode: bool = True):
-        """Set the model to training mode."""
         self.model.train(mode)
         return self
-    
+
     def eval(self):
-        """Set the model to evaluation mode."""
         return self.train(False)
 
     def prepare_dataloader(
@@ -883,27 +886,10 @@ class scGPTPerturbationModel(PerturbationModel):
         return_split: Optional[str] = None,
     ) -> Union[DataLoader, Dict[str, DataLoader]]:
         """
-        Prepare dataloaders for perturbation prediction task.
-        
-        Args:
-            dataset: PerturbationData object
-            batch_size: Batch size
-            shuffle: Whether to shuffle data
-            drop_last: Whether to drop last incomplete batch
-            num_workers: Number of workers for data loading
-            mask_ratio: Not used for perturbation task
-            return_split: If specified, return only this split as a single DataLoader.
-                         If 'all', return all data as a single DataLoader.
-                         If None, return dict of all splits.
-        
-        Returns:
-            DataLoader or Dict[str, DataLoader] depending on return_split
+        Prepares DataLoaders for perturbation prediction.
+        Requires paired control-perturbation data.
         """
-        import scipy.sparse
-        from torch.utils.data import DataLoader, TensorDataset
-
-        # Ensure we have paired control cells
-        if 'ctrl_indices' not in dataset.adata.obsm:
+        if "ctrl_indices" not in dataset.adata.obsm:
             logger.info("Pairing cells for perturbation task...")
             dataset.pair_cells()
 
@@ -913,8 +899,11 @@ class scGPTPerturbationModel(PerturbationModel):
             for g in gene_names
         ]
 
-        # Determine max sequence length: None = no limit (use all genes)
-        max_len = self.config.max_seq_len if self.config.max_seq_len is not None else len(gene_ids)
+        max_len = (
+            self.config.max_seq_len
+            if self.config.max_seq_len is not None
+            else len(gene_ids)
+        )
         if len(gene_ids) > max_len:
             gene_ids = gene_ids[:max_len]
             slice_cols = slice(0, max_len)
@@ -925,45 +914,46 @@ class scGPTPerturbationModel(PerturbationModel):
         src_tensor = torch.tensor(gene_ids, dtype=torch.long)
         gene_name_to_idx = {name: i for i, name in enumerate(gene_names)}
 
-        # Data Split
+        # Handle Splits
         adata_map = {}
-        if return_split == 'all' or ('split' not in dataset.adata.obs):
-            # Return all data as a single loader
-            adata_map['all'] = np.arange(dataset.adata.n_obs)
+        if return_split == "all" or ("split" not in dataset.adata.obs):
+            adata_map["all"] = np.arange(dataset.adata.n_obs)
         elif return_split is not None:
-            # Return only specified split
-            if 'split' in dataset.adata.obs and return_split in dataset.adata.obs['split'].values:
-                indices = np.where(dataset.adata.obs['split'] == return_split)[0]
+            if (
+                "split" in dataset.adata.obs
+                and return_split in dataset.adata.obs["split"].values
+            ):
+                indices = np.where(dataset.adata.obs["split"] == return_split)[0]
                 adata_map[return_split] = indices
             else:
                 raise ValueError(f"Split '{return_split}' not found in dataset")
         else:
-            # Return all splits as separate loaders
-            if 'split' in dataset.adata.obs:
-                for split_name in dataset.adata.obs['split'].unique():
-                    indices = np.where(dataset.adata.obs['split'] == split_name)[0]
+            if "split" in dataset.adata.obs:
+                for split_name in dataset.adata.obs["split"].unique():
+                    indices = np.where(dataset.adata.obs["split"] == split_name)[0]
                     adata_map[str(split_name)] = indices
             else:
-                adata_map['all'] = np.arange(dataset.adata.n_obs)
+                adata_map["all"] = np.arange(dataset.adata.n_obs)
 
         dataloaders = {}
-        
+
         for split_name, indices in adata_map.items():
-            if len(indices) == 0: 
+            if len(indices) == 0:
                 continue
-            
-            # Create TensorDataset wrapping just the indices
+
             index_dataset = TensorDataset(torch.tensor(indices, dtype=torch.long))
-            
-            # Create collate function with proper closure
-            def make_collate_fn(gene_name_to_idx_local, src_tensor_local, slice_cols_local):
+
+            def make_collate_fn(
+                gene_name_to_idx_local, src_tensor_local, slice_cols_local
+            ):
                 def pert_collate(batch):
-                    # batch is list of tuples [(index,), (index,), ...]
                     batch_indices = torch.stack([item[0] for item in batch]).numpy()
-                    
-                    # Fetch control indices: (batch_size,) - taking first sample [:, 0]
-                    ctrl_indices = dataset.adata.obsm['ctrl_indices'][batch_indices, 0]
-                    
+
+                    # Fetch control indices (using first sample)
+                    ctrl_indices = dataset.adata.obsm["ctrl_indices"][
+                        batch_indices, 0
+                    ]
+
                     # Fetch expressions
                     X = dataset.adata.X
                     if scipy.sparse.issparse(X):
@@ -972,48 +962,51 @@ class scGPTPerturbationModel(PerturbationModel):
                     else:
                         x_val = X[ctrl_indices, slice_cols_local]
                         y_val = X[batch_indices, slice_cols_local]
-                    
+
                     # Identify perturbed genes
-                    conditions = dataset.adata.obs.iloc[batch_indices]['condition'].values
+                    conditions = dataset.adata.obs.iloc[batch_indices][
+                        "condition"
+                    ].values
                     pert_flags = np.zeros_like(x_val, dtype=np.int64)
-                    
+
                     for i, cond in enumerate(conditions):
-                        if cond != 'ctrl':
-                            perts = cond.split('+')
+                        if cond != "ctrl":
+                            perts = cond.split("+")
                             for p in perts:
                                 if p in gene_name_to_idx_local:
                                     pert_flags[i, gene_name_to_idx_local[p]] = 1
-                    
-                    # To Tensors
+
                     input_values = torch.tensor(x_val, dtype=torch.float32)
                     target_values = torch.tensor(y_val, dtype=torch.float32)
                     pert_flags_tensor = torch.tensor(pert_flags, dtype=torch.long)
-                    
+
                     curr_bs = input_values.shape[0]
                     batch_src = src_tensor_local.unsqueeze(0).repeat(curr_bs, 1)
-                    batch_padding_mask = torch.zeros_like(batch_src, dtype=torch.bool)
-                    
+                    batch_padding_mask = torch.zeros_like(
+                        batch_src, dtype=torch.bool
+                    )
+
                     return {
                         "src": batch_src,
                         "values": input_values,
                         "target_values": target_values,
                         "input_pert_flags": pert_flags_tensor,
-                        "src_key_padding_mask": batch_padding_mask
+                        "src_key_padding_mask": batch_padding_mask,
                     }
+
                 return pert_collate
-            
+
             collate_fn = make_collate_fn(gene_name_to_idx, src_tensor, slice_cols)
 
             dataloaders[split_name] = DataLoader(
                 index_dataset,
                 batch_size=batch_size,
-                shuffle=(shuffle and split_name == 'train'),
+                shuffle=(shuffle and split_name == "train"),
                 drop_last=drop_last,
                 num_workers=num_workers,
-                collate_fn=collate_fn
+                collate_fn=collate_fn,
             )
 
-        # Return single loader or dict based on return_split
         if return_split is not None:
             return dataloaders[list(dataloaders.keys())[0]]
         return dataloaders
@@ -1025,11 +1018,10 @@ class scGPTPerturbationModel(PerturbationModel):
         CCE: bool = False,
         MVC: bool = False,
         ECS: bool = False,
-        do_sample: bool = False
+        do_sample: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        
         batch_data = {k: v.to(self.device) for k, v in batch_data.items()}
-        
+
         output_dict = self.model(
             src=batch_data["src"],
             values=batch_data["values"],
@@ -1039,7 +1031,7 @@ class scGPTPerturbationModel(PerturbationModel):
             CCE=CCE,
             MVC=MVC,
             ECS=ECS,
-            do_sample=do_sample
+            do_sample=do_sample,
         )
         return output_dict
 
@@ -1053,30 +1045,30 @@ class scGPTPerturbationModel(PerturbationModel):
         ECS: bool = False,
         do_sample: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        
         if output_dict is None:
             output_dict = self.forward(
                 batch_data,
-                CLS=CLS, CCE=CCE, MVC=MVC, ECS=ECS, do_sample=do_sample
+                CLS=CLS,
+                CCE=CCE,
+                MVC=MVC,
+                ECS=ECS,
+                do_sample=do_sample,
             )
-            
+
         losses = {}
         total_loss = 0.0
-        
+
         if "target_values" in batch_data:
             target_values = batch_data["target_values"].to(self.device)
-            # For perturbation prediction, we typically predict all values (or masking some?)
-            # Tutorial uses all ones for masked_positions
+            # Typically predict all values in perturbation tasks
             masked_positions = torch.ones_like(target_values, dtype=torch.bool)
-            
+
             loss_mse = masked_mse_loss(
                 output_dict["mlm_output"], target_values, masked_positions
             )
             total_loss += loss_mse
             losses["loss_mse"] = loss_mse
-            
-            # Add other losses if needed (ECS, etc.)
-            
+
         losses["loss"] = total_loss
         return losses
 
@@ -1085,106 +1077,95 @@ class scGPTPerturbationModel(PerturbationModel):
         dataset: PerturbationData,
         batch_size: int = 32,
         embedding_type: Literal["cell", "gene"] = "cell",
-        **kwargs
+        **kwargs,
     ) -> np.ndarray:
         """
-        Unified embedding prediction method.
-        
-        Args:
-            dataset: Input dataset (required for cell embeddings, optional for gene)
-            batch_size: Batch size for inference
-            embedding_type: Type of embedding to predict ("cell" or "gene")
-            **kwargs: Additional arguments (unused for scGPTPerturbationModel)
-            
-        Returns:
-            np.ndarray: Embeddings of shape (n_samples, embedding_dim) for cells
-                       or (n_genes, embedding_dim) for genes
+        Unified embedding prediction.
         """
         self.eval()
-        
+
         if embedding_type == "gene":
-            # For gene embeddings, directly return encoder embeddings
             with torch.no_grad():
                 gene_embs = self.model.encoder.embedding.weight.cpu().numpy()
             return gene_embs
-        
+
         elif embedding_type == "cell":
-            # For cell embeddings, use internal methods to get cell embeddings
             loader = self.prepare_dataloader(
-                dataset, 
-                batch_size=batch_size, 
+                dataset,
+                batch_size=batch_size,
                 shuffle=False,
-                return_split='all'
+                return_split="all",
             )
-            
+
             embeddings = []
             with torch.no_grad():
                 for batch in tqdm(loader, desc="Encoding cells"):
                     batch = {k: v.to(self.device) for k, v in batch.items()}
-                    
-                    # Use internal encode to get cell embeddings
-                    # TransformerGenerator computes cell_emb but doesn't return it in output dict
-                    # We need to call internal methods directly
+
+                    # Use internal methods to retrieve cell embeddings from TransformerGenerator
                     src = batch["src"]
                     values = batch["values"]
                     input_pert_flags = batch["input_pert_flags"]
                     src_key_padding_mask = batch["src_key_padding_mask"]
-                    
+
                     transformer_output = self.model._encode(
                         src, values, input_pert_flags, src_key_padding_mask
                     )
-                    cell_emb = self.model._get_cell_emb_from_layer(transformer_output, values)
-                    
+                    cell_emb = self.model._get_cell_emb_from_layer(
+                        transformer_output, values
+                    )
+
                     embeddings.append(cell_emb.cpu().numpy())
-                    
+
             return np.concatenate(embeddings, axis=0)
         else:
-            raise ValueError(f"embedding_type must be 'cell' or 'gene', got {embedding_type}")
-    
+            raise ValueError(
+                f"embedding_type must be 'cell' or 'gene', got {embedding_type}"
+            )
+
     def predict_perturbation(
         self,
         dataset: PerturbationData,
         batch_size: int = 32,
         return_numpy: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Union[np.ndarray, torch.Tensor]:
         """
-        Predict perturbation effects.
-        
+        Predicts perturbation effects.
+
         Args:
-            dataset: PerturbationData with perturbation conditions
-            batch_size: Batch size for inference
-            return_numpy: If True, return numpy array; otherwise return torch tensor
-            **kwargs: Additional arguments
-            
+            dataset: Input data.
+            batch_size: Batch size.
+            return_numpy: Whether to return numpy array.
+
         Returns:
-            Predicted gene expressions after perturbation
+            Predicted gene expressions.
         """
         self.eval()
         loader = self.prepare_dataloader(
             dataset,
             batch_size=batch_size,
             shuffle=False,
-            return_split='all'
+            return_split="all",
         )
-        
+
         predictions = []
         with torch.no_grad():
             for batch in tqdm(loader, desc="Predicting perturbations"):
                 batch = {k: v.to(self.device) for k, v in batch.items()}
                 output = self.forward(batch)
                 pred = output["mlm_output"]  # (batch, seq_len)
-                
+
                 if return_numpy:
                     predictions.append(pred.cpu().numpy())
                 else:
                     predictions.append(pred.cpu())
-        
+
         if return_numpy:
             return np.concatenate(predictions, axis=0)
         else:
             return torch.cat(predictions, dim=0)
-    
+
     def train_model(
         self,
         dataset: PerturbationData,
@@ -1202,75 +1183,42 @@ class scGPTPerturbationModel(PerturbationModel):
         ECS: bool = False,
         scheduler_step: int = 1,
         scheduler_gamma: float = 0.99,
-        **kwargs
+        **kwargs,
     ):
         """
-        Train the scGPT perturbation model.
-        
-        Args:
-            dataset: PerturbationData object with train/valid splits and perturbation conditions
-            epochs: Number of training epochs
-            batch_size: Batch size for training
-            lr: Learning rate
-            use_amp: Whether to use automatic mixed precision
-            grad_clip: Gradient clipping threshold
-            log_interval: Log every N batches
-            save_dir: Directory to save checkpoints (if None, no saving)
-            save_interval: Save checkpoint every N batches (if None, save per epoch)
-            CLS: Whether to use CLS objective
-            CCE: Whether to use CCE objective
-            MVC: Whether to use MVC objective
-            ECS: Whether to use ECS objective
-            scheduler_step: Scheduler step size
-            scheduler_gamma: Scheduler gamma
-            **kwargs: Additional arguments
-            
-        Returns:
-            Training history dict
+        Trains the scGPT perturbation model.
         """
-        import warnings
-
-        from tqdm import tqdm
-
-        # Prepare dataloaders
         dataloaders = self.prepare_dataloader(
             dataset,
             batch_size=batch_size,
             shuffle=True,
-            return_split=None  # Get all splits
+            return_split=None,
         )
-        
-        train_loader = dataloaders.get('train', dataloaders.get('all'))
-        valid_loader = dataloaders.get('valid', dataloaders.get('test', None))
-        
-        # Setup optimizer and scheduler
+
+        train_loader = dataloaders.get("train", dataloaders.get("all"))
+        valid_loader = dataloaders.get("valid", dataloaders.get("test", None))
+
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, eps=1e-8)
         scheduler = torch.optim.lr_scheduler.StepLR(
             optimizer, step_size=scheduler_step, gamma=scheduler_gamma
         )
         scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
-        
-        # Training history
-        history = {
-            'train_loss': [],
-            'valid_loss': [],
-            'epoch_times': []
-        }
-        
-        logger.info(f"Starting perturbation model training for {epochs} epochs")
-        logger.info(f"Train batches: {len(train_loader)}, Valid batches: {len(valid_loader) if valid_loader else 0}")
-        
+
+        history = {"train_loss": [], "valid_loss": [], "epoch_times": []}
+
+        logger.info(
+            f"Starting perturbation training: {epochs} epochs | Train batches: {len(train_loader)}"
+        )
+
         for epoch in range(1, epochs + 1):
             epoch_start_time = time.time()
-            
-            # Training
+
             self.train()
             total_loss = 0.0
             num_batches = len(train_loader)
-            
+
             with tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}") as pbar:
                 for batch_idx, batch_data in enumerate(pbar, 1):
-                    # Forward pass with AMP
                     with torch.cuda.amp.autocast(enabled=use_amp):
                         output_dict = self.forward(
                             batch_data,
@@ -1279,8 +1227,7 @@ class scGPTPerturbationModel(PerturbationModel):
                             MVC=MVC,
                             ECS=ECS,
                         )
-                        
-                        # Compute loss
+
                         losses = self.compute_loss(
                             batch_data,
                             output_dict=output_dict,
@@ -1289,14 +1236,12 @@ class scGPTPerturbationModel(PerturbationModel):
                             MVC=MVC,
                             ECS=ECS,
                         )
-                        loss = losses['loss']
-                    
-                    # Backward pass
+                        loss = losses["loss"]
+
                     optimizer.zero_grad()
                     scaler.scale(loss).backward()
                     scaler.unscale_(optimizer)
-                    
-                    # Gradient clipping
+
                     with warnings.catch_warnings(record=True) as w:
                         warnings.filterwarnings("always")
                         torch.nn.utils.clip_grad_norm_(
@@ -1306,38 +1251,41 @@ class scGPTPerturbationModel(PerturbationModel):
                         )
                         if len(w) > 0:
                             logger.warning(
-                                f"Found infinite gradient at batch {batch_idx}. "
-                                f"Scale: {scaler.get_scale()}"
+                                f"Found infinite gradient at batch {batch_idx}. Scale: {scaler.get_scale()}"
                             )
-                    
+
                     scaler.step(optimizer)
                     scaler.update()
-                    
+
                     total_loss += loss.item()
-                    
-                    # Logging
+
                     if batch_idx % log_interval == 0:
                         avg_loss = total_loss / batch_idx
-                        pbar.set_postfix({
-                            'loss': f'{avg_loss:.4f}',
-                            'lr': f'{scheduler.get_last_lr()[0]:.2e}'
-                        })
-                    
-                    # Save checkpoint
-                    if save_dir and save_interval and batch_idx % save_interval == 0:
-                        ckpt_path = os.path.join(save_dir, f"checkpoint_epoch{epoch}_batch{batch_idx}")
+                        pbar.set_postfix(
+                            {
+                                "loss": f"{avg_loss:.4f}",
+                                "lr": f"{scheduler.get_last_lr()[0]:.2e}",
+                            }
+                        )
+
+                    if (
+                        save_dir
+                        and save_interval
+                        and batch_idx % save_interval == 0
+                    ):
+                        ckpt_path = os.path.join(
+                            save_dir, f"checkpoint_epoch{epoch}_batch{batch_idx}"
+                        )
                         self.save(ckpt_path)
-                        logger.info(f"Checkpoint saved to {ckpt_path}")
-            
+
             avg_train_loss = total_loss / num_batches
-            history['train_loss'].append(avg_train_loss)
-            
-            # Validation
+            history["train_loss"].append(avg_train_loss)
+
             if valid_loader:
                 self.eval()
                 valid_loss = 0.0
                 num_valid_batches = 0
-                
+
                 with torch.no_grad():
                     for batch_data in valid_loader:
                         with torch.cuda.amp.autocast(enabled=use_amp):
@@ -1348,17 +1296,17 @@ class scGPTPerturbationModel(PerturbationModel):
                                 MVC=False,
                                 ECS=False,
                             )
-                            
+
                             losses = self.compute_loss(
                                 batch_data,
                                 output_dict=output_dict,
                                 CLS=CLS,
                             )
-                            valid_loss += losses['loss'].item()
+                            valid_loss += losses["loss"].item()
                             num_valid_batches += 1
-                
+
                 avg_valid_loss = valid_loss / num_valid_batches
-                history['valid_loss'].append(avg_valid_loss)
+                history["valid_loss"].append(avg_valid_loss)
                 logger.info(
                     f"Epoch {epoch:3d} | Train Loss: {avg_train_loss:.4f} | "
                     f"Valid Loss: {avg_valid_loss:.4f} | "
@@ -1369,133 +1317,101 @@ class scGPTPerturbationModel(PerturbationModel):
                     f"Epoch {epoch:3d} | Train Loss: {avg_train_loss:.4f} | "
                     f"Time: {time.time() - epoch_start_time:.2f}s"
                 )
-            
-            history['epoch_times'].append(time.time() - epoch_start_time)
-            
-            # Step scheduler
+
+            history["epoch_times"].append(time.time() - epoch_start_time)
             scheduler.step()
-            
-            # Save epoch checkpoint
+
             if save_dir:
                 epoch_ckpt_path = os.path.join(save_dir, f"epoch_{epoch}")
                 self.save(epoch_ckpt_path)
-                logger.info(f"Epoch checkpoint saved to {epoch_ckpt_path}")
-        
+
         logger.info("Perturbation model training completed!")
         return history
-    
+
     def save(self, save_directory: str):
-        """
-        Save model weights and config to a directory.
-        
-        Args:
-            save_directory: Directory path to save the model
-        """
+        """Saves model weights and configuration."""
         os.makedirs(save_directory, exist_ok=True)
-        
-        # Save model state dict as model.pt (scGPT convention)
+
         model_file = os.path.join(save_directory, "model.pt")
         torch.save(self.model.state_dict(), model_file)
-        
-        # Save config as args.json (hardcoded, scGPT convention)
+
         config_file = os.path.join(save_directory, "args.json")
         self.config.save(config_file)
-        
+
         logger.info(f"Model saved to {save_directory}")
 
     @classmethod
     def from_pretrained(
-        cls, 
-        model_name_or_path: str, 
-        device: str = 'cuda',
-        **kwargs
-    ) -> 'scGPTPerturbationModel':
+        cls,
+        model_name_or_path: str,
+        device: str = "cuda",
+        **kwargs,
+    ) -> "scGPTPerturbationModel":
         """
-        Load a pretrained scGPT perturbation model.
-        
-        Currently, perturbation models are typically fine-tuned locally.
-        Future support for HuggingFace perturbation models will be added.
-        
+        Loads a pretrained scGPT perturbation model.
+
         Args:
-            model_name_or_path: Can be:
-                - Local directory path: "/path/to/model" (most common)
-                - HuggingFace repo ID (future): "perturblab/scgpt-perturb-human"
-            device: Device to load the model on ('cuda' or 'cpu')
-            **kwargs: Additional arguments
-                - Model initialization: gene_list, etc.
-                - HuggingFace download: revision, token, etc. (if applicable)
-            
+            model_name_or_path: Local path or HF ID.
+            device: Computation device.
+            **kwargs: Extra arguments.
+
         Returns:
-            Loaded scGPTPerturbationModel instance
-            
-        Example:
-            >>> # Load from local fine-tuned model
-            >>> model = scGPTPerturbationModel.from_pretrained("/path/to/finetuned")
-            >>> 
-            >>> # Load with custom gene list
-            >>> model = scGPTPerturbationModel.from_pretrained(
-            ...     "/path/to/model", 
-            ...     gene_list=my_genes,
-            ...     device='cpu'
-            ... )
+            Loaded scGPTPerturbationModel instance.
         """
-        # Separate HuggingFace kwargs from model init kwargs
         hf_kwargs = {}
         model_init_kwargs = {}
-        hf_keys = {'revision', 'token', 'cache_dir', 'force_download', 'resume_download'}
-        
+        hf_keys = {
+            "revision",
+            "token",
+            "cache_dir",
+            "force_download",
+            "resume_download",
+        }
+
         for key, value in kwargs.items():
             if key in hf_keys:
                 hf_kwargs[key] = value
             else:
                 model_init_kwargs[key] = value
-        
-        # Resolve model path
+
         if os.path.exists(model_name_or_path):
-            # It's a local path
             model_path = model_name_or_path
             logger.info(f"Loading model from local path: {model_path}")
         else:
-            # Try HuggingFace (for future perturbation models)
             try:
-                logger.info(f"Attempting to download '{model_name_or_path}' from HuggingFace...")
+                logger.info(
+                    f"Downloading model '{model_name_or_path}' from HuggingFace..."
+                )
                 model_path = download_from_huggingface(
-                    model_name_or_path,
-                    organization="perturblab",
-                    **hf_kwargs
+                    model_name_or_path, organization="perturblab", **hf_kwargs
                 )
                 logger.info(f"✓ Model cached at: {model_path}")
             except Exception as e:
                 raise ValueError(
                     f"Failed to load model '{model_name_or_path}'. "
-                    f"Perturbation models are typically fine-tuned locally.\n"
-                    f"Make sure the path exists or specify a valid local directory.\n"
+                    f"Ensure path is valid or specify a valid HuggingFace ID.\n"
                     f"Error: {str(e)}"
                 )
-        
-        # Load config from args.json (hardcoded, scGPT convention)
+
         config_file = os.path.join(model_path, "args.json")
         config = scGPTConfig.load(config_file)
-        
-        # If ntoken is None, load from vocab.json
+
         if config.ntoken is None:
             vocab_file = os.path.join(model_path, "vocab.json")
             if os.path.exists(vocab_file):
                 try:
-                    with open(vocab_file, 'r') as f:
+                    with open(vocab_file, "r") as f:
                         vocab_data = json.load(f)
-                        # vocab.json is a dict of {gene: index}, ntoken = max_index + 1
                         if isinstance(vocab_data, dict):
                             config.ntoken = max(vocab_data.values()) + 1
                         else:
                             config.ntoken = len(vocab_data)
                 except Exception as e:
                     logger.warning(f"Failed to load ntoken from vocab.json: {e}")
-                    config.ntoken = 60697  # Fallback default
+                    config.ntoken = 60697
             else:
-                config.ntoken = 60697  # Fallback default
-        
-        # Find model file (try both model.pt and best_model.pt)
+                config.ntoken = 60697
+
         model_file = os.path.join(model_path, "model.pt")
         if not os.path.exists(model_file):
             model_file = os.path.join(model_path, "best_model.pt")
@@ -1504,14 +1420,11 @@ class scGPTPerturbationModel(PerturbationModel):
                     f"Model weights not found at {model_path}. "
                     f"Expected 'model.pt' or 'best_model.pt'."
                 )
-        
-        # Create model instance
+
         model = cls(config, device=device, **model_init_kwargs)
-        
-        # Load state dict using official load_pretrained (handles flash-attn <-> pytorch conversion)
+
         state_dict = torch.load(model_file, map_location=device)
         load_pretrained(model.model, state_dict, verbose=False)
-        
-        logger.info(f"✓ Model loaded successfully")
-        
+
+        logger.info("✓ Model loaded successfully")
         return model
