@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "perturblab"
+version = "0.1.0"
+description = "A wrapper repository for the single cell foundation model in perturbation tasks"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+
+dependencies = [
+    "anndata>=0.12.7",
+    "datasets>=4.4.2",
+    "httpx[socks]>=0.28.1",
+    "huggingface-hub[cli]>=1.2.3",
+    "matplotlib>=3.10.8",
+    "numpy<2.4",
+    "scanpy>=1.11.5",
+    "scikit-learn>=1.6.0",
+    "scipy>=1.15.0",
+    "torch>=2.9.1",
+    "tqdm>=4.67.1",
+]
+
+[project.optional-dependencies]
+scgpt = [
+]
+scfoundation = [
+    "apex>=0.9.10.dev0",
+    "einops>=0.8.1",
+    "local-attention>=1.11.2",
+]
+gears = [
+    "dcor>=0.6",
+    "torch-geometric>=2.7.0",
+    "wandb>=0.23.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["perturblab*"]
