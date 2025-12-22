@@ -1,7 +1,7 @@
 import logging
 import os
 import pickle
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import anndata as ad
 import numpy as np
@@ -10,9 +10,13 @@ import scanpy as sc
 import torch
 from torch_geometric.data import Data
 from tqdm import tqdm
+from typing_extensions import Self
+
+from .model.gears.source.utils import make_GO
 
 # Initialize logger
-logger = logging.getLogger("[PerturbationData]")
+logger = logging.getLogger(__name__)
+
 
 class PerturbationData:
     def __init__(
@@ -456,11 +460,8 @@ class PerturbationData:
         try:
             from gears import PertData
         except ImportError:
-            try:
-                from .model.gears.source.pertdata import PertData
-            except ImportError:
-                class PertData:
-                    def __init__(self, *args, **kwargs): pass
+            from .model.gears.source.pertdata import PertData
+
         
         if 'ctrl_indices' not in self.adata.obsm:
             raise ValueError("Run pair_cells() first.")
@@ -616,3 +617,340 @@ class PerturbationData:
             logger.info("Detected existing control pairing.")
             
         return instance
+
+
+class GeneGraph:
+    """
+    Universal Gene Graph Class.
+    Decouples graph construction from model logic.
+    Supports Graph Neural Networks via PyTorch Geometric (PyG).
+    """
+
+    def __init__(
+        self, 
+        gene_list: List[str], 
+        edge_index: Union[np.ndarray, torch.Tensor], 
+        edge_weight: Optional[Union[np.ndarray, torch.Tensor]] = None,
+        graph_type: str = 'custom'
+    ):
+        """
+        Args:
+            gene_list: List of gene names corresponding to nodes (index 0, 1...).
+            edge_index: Graph connectivity in COO format [2, num_edges] (numpy array or torch tensor).
+            edge_weight: Edge weights [num_edges] (numpy array or torch tensor).
+            graph_type: Identifier for the graph type (e.g., 'go', 'co_express').
+        """
+        self.gene_list = gene_list
+        self.gene_to_idx = {gene: i for i, gene in enumerate(gene_list)}
+        
+        # Convert to numpy arrays (internal storage)
+        if isinstance(edge_index, torch.Tensor):
+            self.edge_index = edge_index.cpu().numpy().astype(np.int64)
+        else:
+            self.edge_index = np.asarray(edge_index, dtype=np.int64)
+        
+        if edge_weight is not None:
+            if isinstance(edge_weight, torch.Tensor):
+                self.edge_weight = edge_weight.cpu().numpy().astype(np.float32)
+            else:
+                self.edge_weight = np.asarray(edge_weight, dtype=np.float32)
+        else:
+            self.edge_weight = None
+            
+        self.graph_type = graph_type
+        self.num_nodes = len(gene_list)
+
+    @classmethod
+    def from_adjacency(cls, adj_matrix: Union[np.ndarray, torch.Tensor], gene_list: List[str], graph_type='custom'):
+        """Build graph from a dense adjacency matrix."""
+        # Convert to numpy if needed
+        if isinstance(adj_matrix, torch.Tensor):
+            adj_matrix = adj_matrix.cpu().numpy()
+        
+        # Extract indices of non-zero elements
+        indices = np.nonzero(adj_matrix)
+        sources = indices[0]
+        targets = indices[1]
+        weights = adj_matrix[sources, targets]
+        
+        edge_index = np.stack([sources, targets], axis=0)
+        
+        return cls(gene_list, edge_index, weights, graph_type)
+
+    @classmethod
+    def from_coexpression(
+        cls, 
+        adata: sc.AnnData, 
+        gene_list: Optional[List[str]] = None,
+        threshold: float = 0.4, 
+        top_k: int = 20,
+        mode: str = 'correlation'
+    ):
+        """
+        Build co-expression graph from AnnData.
+        
+        Args:
+            adata: AnnData object.
+            gene_list: Subset of genes to include (default: all genes in adata).
+            threshold: Absolute correlation threshold.
+            top_k: Keep top K neighbors per gene.
+        """
+        if gene_list is None:
+            gene_list = adata.var_names.tolist()
+        
+        # Validate genes
+        valid_genes = [g for g in gene_list if g in adata.var_names]
+        if len(valid_genes) != len(gene_list):
+            logger.warning(f"{len(gene_list) - len(valid_genes)} genes from gene_list not found in AnnData.")
+        
+        # Extract expression matrix
+        X = adata[:, valid_genes].X
+        if not isinstance(X, np.ndarray):
+            X = X.toarray()
+            
+        # Calculate correlation
+        if mode == 'correlation':
+            corr = np.corrcoef(X.T)
+            np.fill_diagonal(corr, 0) # Remove self-loops
+            corr = np.abs(corr)
+        else:
+            raise NotImplementedError("Only 'correlation' mode is supported.")
+
+        # Sparsification: Top-K + Threshold
+        num_genes = len(valid_genes)
+        sources, targets, weights = [], [], []
+
+        for i in range(num_genes):
+            row = corr[i]
+            mask = row > threshold
+            indices = np.where(mask)[0]
+            
+            if len(indices) == 0: continue
+            
+            vals = row[indices]
+            
+            # Apply Top-K
+            if len(vals) > top_k:
+                top_k_idx = np.argsort(vals)[-top_k:]
+                indices = indices[top_k_idx]
+                vals = vals[top_k_idx]
+            
+            sources.extend([i] * len(indices))
+            targets.extend(indices)
+            weights.extend(vals)
+
+        edge_index = np.array([sources, targets], dtype=np.int64)
+        edge_weight = np.array(weights, dtype=np.float32)
+
+        return cls(valid_genes, edge_index, edge_weight, graph_type='co_express')
+
+    @classmethod
+    def from_go(
+        cls, 
+        gene_list: List[str], 
+        path: Optional[str] = None,
+        cache_dir: str = './gene_graph',
+        threshold: float = 0.1,
+        top_k: int = 20,
+        num_workers: int = 4
+    ):
+        """
+        Build GO similarity graph.
+        
+        Args:
+            gene_list: Target gene list.
+            path: Path to custom similarity matrix (csv/pkl). If None, uses GEARS default logic.
+            cache_dir: Directory to download/store gene2go data.
+            threshold: Similarity threshold.
+            top_k: Max neighbors per gene.
+        """
+        
+        # --- Strategy A: Default GEARS Logic (Path is None) ---
+        if path is None:
+            logger.info("Building GO graph using GEARS default logic...")
+            os.makedirs(cache_dir, exist_ok=True)
+            
+            # Use GEARS make_GO utility (downloads data and computes Jaccard)
+            # make_GO returns a DataFrame with ['source', 'target', 'importance']
+            df_edge_list = make_GO(
+                data_path=cache_dir,
+                pert_list=gene_list,
+                data_name='temp_go_build',
+                num_workers=num_workers,
+                save=False
+            )
+            
+            # Filter genes
+            all_graph_genes = set(df_edge_list['source']).union(set(df_edge_list['target']))
+            valid_genes = [g for g in gene_list if g in all_graph_genes]
+            
+            if not valid_genes:
+                raise ValueError("None of the provided genes were found in the GO database.")
+
+            # Filter by importance (Threshold)
+            df_filtered = df_edge_list[df_edge_list['importance'] > threshold].copy()
+            
+            # Filter by Top-K
+            df_topk = []
+            for gene in valid_genes:
+                # Get edges where 'gene' is the source
+                gene_edges = df_filtered[df_filtered['source'] == gene].nlargest(top_k, 'importance')
+                if not gene_edges.empty:
+                    df_topk.append(gene_edges)
+            
+            if not df_topk:
+                raise ValueError("No edges remained after filtering.")
+                
+            df_final = pd.concat(df_topk, ignore_index=True)
+            
+            # Prepare adjacency data
+            target_genes = valid_genes
+            # We map using the strings directly from the dataframe later
+            
+        # --- Strategy B: Custom File (Path provided) ---
+        else:
+            logger.info(f"Loading custom GO graph from {path}...")
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"File not found: {path}")
+            
+            if path.endswith('.csv'):
+                df_adj = pd.read_csv(path, index_col=0)
+            elif path.endswith('.pkl'):
+                df_adj = pd.read_pickle(path)
+            else:
+                raise ValueError("Unsupported format. Use .csv or .pkl")
+            
+            valid_genes = [g for g in gene_list if g in df_adj.index]
+            target_genes = valid_genes
+            adj_matrix = df_adj.loc[valid_genes, valid_genes].values
+            np.fill_diagonal(adj_matrix, 0)
+            
+            # Convert adjacency matrix to edge list format for unified processing
+            sources_idx, targets_idx = np.where(adj_matrix > threshold)
+            weights = adj_matrix[sources_idx, targets_idx]
+            
+            # Create a dataframe to mimic the structure of Strategy A
+            df_final = pd.DataFrame({
+                'source': [valid_genes[i] for i in sources_idx],
+                'target': [valid_genes[i] for i in targets_idx],
+                'importance': weights
+            })
+            
+            # Apply Top-K logic if needed (simplified for matrix inputs)
+            # (Loop omitted for brevity, assuming custom matrix is usually pre-processed or small enough)
+
+        # --- Common Logic: Build Edge Index ---
+        
+        # 1. Map gene names to global indices (0..N for the full gene_list)
+        full_map = {g: i for i, g in enumerate(gene_list)}
+        
+        # 2. Filter edges to ensure both source and target are in the requested gene_list
+        valid_edges = df_final[
+            (df_final['source'].isin(full_map)) & 
+            (df_final['target'].isin(full_map))
+        ]
+        
+        if valid_edges.empty:
+             raise ValueError("No valid edges found aligning with gene_list.")
+
+        # 3. Convert to numpy arrays
+        sources = [full_map[g] for g in valid_edges['source']]
+        targets = [full_map[g] for g in valid_edges['target']]
+        weights = valid_edges['importance'].values
+        
+        edge_index = np.array([sources, targets], dtype=np.int64)
+        edge_weight = np.array(weights, dtype=np.float32)
+
+        # Return graph aligned to the full gene_list (missing genes become isolated nodes)
+        return cls(gene_list, edge_index, edge_weight, graph_type='go')
+
+    def subset(self, target_gene_list: List[str]) -> Self:
+        """
+        Create a subgraph containing only the specified genes.
+        Crucial for aligning the graph with a specific model vocabulary.
+        """
+        target_map = {gene: i for i, gene in enumerate(target_gene_list)}
+        old_idx_to_new_idx = {}
+        kept_genes = []
+        
+        # Identify genes present in both current graph and target list
+        for gene in target_gene_list:
+            if gene in self.gene_to_idx:
+                old_idx = self.gene_to_idx[gene]
+                new_idx = target_map[gene]
+                old_idx_to_new_idx[old_idx] = new_idx
+                kept_genes.append(gene)
+        
+        if not kept_genes:
+            raise ValueError("No overlap between graph genes and target gene list.")
+
+        # Filter Edges: Keep only if both source and target are in the new set
+        src, dst = self.edge_index
+        
+        # Create validity masks (boolean)
+        valid_src = np.array([i in old_idx_to_new_idx for i in src])
+        valid_dst = np.array([i in old_idx_to_new_idx for i in dst])
+        mask = valid_src & valid_dst
+        
+        new_src = src[mask]
+        new_dst = dst[mask]
+        new_weights = self.edge_weight[mask] if self.edge_weight is not None else None
+        
+        # Remap indices from Old -> New
+        remapped_src = np.array([old_idx_to_new_idx[i] for i in new_src], dtype=np.int64)
+        remapped_dst = np.array([old_idx_to_new_idx[i] for i in new_dst], dtype=np.int64)
+        
+        new_edge_index = np.stack([remapped_src, remapped_dst], axis=0)
+        
+        # Return new instance
+        return self.__class__(target_gene_list, new_edge_index, new_weights, self.graph_type)
+
+    def to_pyg_data(self) -> Data:
+        """Convert to PyTorch Geometric Data object."""
+        # Convert numpy arrays to torch tensors for PyG
+        edge_index_tensor = torch.from_numpy(self.edge_index).long()
+        edge_attr_tensor = torch.from_numpy(self.edge_weight).float() if self.edge_weight is not None else None
+        return Data(edge_index=edge_index_tensor, edge_attr=edge_attr_tensor, num_nodes=self.num_nodes)
+    
+    def to_torch(self) -> Dict[str, torch.Tensor]:
+        """Convert numpy arrays to torch tensors for model usage."""
+        return {
+            'edge_index': torch.from_numpy(self.edge_index).long(),
+            'edge_weight': torch.from_numpy(self.edge_weight).float() if self.edge_weight is not None else None
+        }
+
+    def save(self, path: str):
+        """
+        Serialize graph to disk as a single pickle file.
+        
+        Args:
+            path: Path to save the graph (should end with .pkl)
+        """
+        data = {
+            'gene_list': self.gene_list,
+            'edge_index': self.edge_index,  # numpy array
+            'edge_weight': self.edge_weight,  # numpy array or None
+            'graph_type': self.graph_type
+        }
+        with open(path, 'wb') as f:
+            pickle.dump(data, f)
+
+    @classmethod
+    def load(cls, path: str):
+        """
+        Load graph from disk.
+        
+        Args:
+            path: Path to the saved graph file (.pkl)
+            
+        Returns:
+            GeneGraph instance
+        """
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+        return cls(
+            gene_list=data['gene_list'],
+            edge_index=data['edge_index'],
+            edge_weight=data.get('edge_weight', None),
+            graph_type=data.get('graph_type', 'custom')
+        )

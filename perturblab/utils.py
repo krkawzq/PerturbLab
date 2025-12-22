@@ -5,6 +5,7 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 import scipy.sparse as sparse
+from scipy import sparse
 
 
 def apply_gears_format(
@@ -20,6 +21,7 @@ def apply_gears_format(
     Standardizes an AnnData object into the format required by the GEARS model.
     
     Optimized with fully vectorized label parsing and dictionary mapping.
+    Adds 'pert_list' to adata.uns containing all unique perturbation conditions.
     """
     
     # 1. Validation & Setup
@@ -34,7 +36,6 @@ def apply_gears_format(
     ignore_tags_set = set(ignore_tags) if ignore_tags else set()
 
     # 2. Filter Valid Cells (Vectorized Filter)
-    # Use the Series directly to avoid copying the whole adata if not needed initially
     obs_series = adata.obs[perturb_col].astype(str)
     
     if ignore_tags_set and remove_ignore:
@@ -43,12 +44,11 @@ def apply_gears_format(
             raise ValueError("No cells left after filtering ignore_tags.")
         
         adata_gears = adata[valid_mask].copy()
-        # Re-slice the series for the subset
         obs_series = adata_gears.obs[perturb_col].astype(str)
     else:
         adata_gears = adata.copy()
 
-    # 3. Vectorized Label Parsing (The Core Optimization)
+    # 3. Vectorized Label Parsing
     # Strategy: Compute logic on Unique labels (K) -> Map back to All cells (N)
     unique_series = pd.Series(obs_series.unique())
 
@@ -57,7 +57,6 @@ def apply_gears_format(
     is_ignore = unique_series.isin(ignore_tags_set)
 
     # 3.2 Parse gene strings
-    # Note: Custom parse_fn still requires apply (Python loop), but only runs K times.
     if parse_fn is None:
         def default_parser(pert_str: str) -> List[str]:
             parts = {p.strip() for p in pert_str.split('+')}
@@ -65,23 +64,17 @@ def apply_gears_format(
             return sorted(list(parts))
         parse_fn = default_parser
     
-    # Result is a Series of lists: [['A'], ['A', 'B'], ...]
     parsed_lists = unique_series.apply(parse_fn)
     
     # 3.3 Compute attributes for logic
     counts = parsed_lists.map(len)
-    
-    # Prepare string components (Vectorized)
-    # Case: Single Gene -> "Gene" (extract first element safely)
     first_gene = parsed_lists.str[0]
-    # Case: Multi Gene -> "GeneA+GeneB" (join list)
     joined_genes = parsed_lists.str.join('+') 
     
-    # 3.4 Construct Condition Strings using np.select (Vectorized if/else)
-    # Logic priority (top to bottom):
+    # 3.4 Construct Condition Strings using np.select
     conditions = [
         is_ctrl,                         # 1. Is explicitly a control tag?
-        is_ignore,                       # 2. Is in ignore list (and remove_ignore=False)?
+        is_ignore,                       # 2. Is in ignore list?
         counts == 0,                     # 3. Parsed to empty (treat as ctrl)
         counts == 1,                     # 4. Single perturbation
         counts >= 2                      # 5. Multi perturbation
@@ -95,14 +88,24 @@ def apply_gears_format(
         joined_genes                     # -> 'GeneA+GeneB'
     ]
     
-    # Generate the mapped values
-    # default='ctrl' covers any edge cases
     final_labels = np.select(conditions, choices, default='ctrl')
     
     # 4. Apply Map & Optimize Memory
-    # map is efficient; astype('category') saves massive memory for repeated strings
     label_map = dict(zip(unique_series, final_labels))
     adata_gears.obs['condition'] = obs_series.map(label_map).astype('category')
+
+    # -------------------------------------------------------------------------
+    # 4.5 Store Unique Perturbation List (NEW ADDITION)
+    # -------------------------------------------------------------------------
+    # 从已经生成的 condition 列中提取唯一值，确保包含了解析后的组合名称
+    unique_conditions = adata_gears.obs['condition'].unique().tolist()
+    
+    # 移除 'ctrl'，因为通常 pert_list 只关心实际的扰动
+    if 'ctrl' in unique_conditions:
+        unique_conditions.remove('ctrl')
+    
+    # 排序以保证结果的确定性 (Deterministic)
+    adata_gears.uns['pert_list'] = sorted(unique_conditions)
 
     # 5. Metadata Standardization
     if 'cell_type' not in adata_gears.obs.columns:
@@ -115,16 +118,13 @@ def apply_gears_format(
     if not sparse.isspmatrix_csr(adata_gears.X):
         adata_gears.X = sparse.csr_matrix(adata_gears.X)
 
-    # 7. Warnings (computed from vectorized stats)
-    # Check if we have both singles (count==1) and multis (count>=2) in the *active* dataset
-    # (Excluding controls and ignores)
+    # 7. Warnings
     active_mask = ~(is_ctrl | is_ignore | (counts == 0))
     active_counts = counts[active_mask]
     
     if not active_counts.empty:
         has_single = (active_counts == 1).any()
         has_multi = (active_counts >= 2).any()
-        
         if has_single and has_multi:
             warnings.warn(
                 "Mixed Perturbation Format Detected: Dataset contains both single and "

@@ -495,8 +495,9 @@ class scGPTModel(PerturbationModel):
             Training history dict
         """
         import warnings
+
         from tqdm import tqdm
-        
+
         # Prepare dataloaders
         dataloaders = self.prepare_dataloader(
             dataset,
@@ -1228,8 +1229,9 @@ class scGPTPerturbationModel(PerturbationModel):
             Training history dict
         """
         import warnings
+
         from tqdm import tqdm
-        
+
         # Prepare dataloaders
         dataloaders = self.prepare_dataloader(
             dataset,
