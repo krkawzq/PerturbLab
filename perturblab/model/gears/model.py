@@ -1,11 +1,15 @@
 import json
 import logging
 import os
+from copy import deepcopy
 
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.optim as optim
+from torch.optim.lr_scheduler import StepLR
 from tqdm import tqdm
+from scipy.stats import pearsonr
 
 from ...data import GeneGraph, PerturbationData
 from ..base import PerturbationModel
@@ -193,8 +197,14 @@ class GearsModel(PerturbationModel):
             if isinstance(rank_data, dict):
                 for cond, top_genes in rank_data.items():
                     if cond not in ['names', 'scores', 'pvals', 'pvals_adj', 'logfoldchanges']:
-                        # 兼容 list 或其他序列
-                        genes_iter = top_genes if isinstance(top_genes, list) else top_genes
+                        # 兼容 list 或其他序列，确保可以切片
+                        if isinstance(top_genes, list):
+                            genes_iter = top_genes
+                        elif hasattr(top_genes, '__iter__'):
+                            # numpy array 或其他可迭代对象
+                            genes_iter = list(top_genes)
+                        else:
+                            genes_iter = [top_genes]
                         de_gene_map[cond] = [gene_name_to_idx.get(g, -1) for g in genes_iter[:top_n] if g in gene_name_to_idx]
             else:
                 if hasattr(rank_data, 'dtype') and hasattr(rank_data.dtype, 'names'):
@@ -342,14 +352,19 @@ class GearsModel(PerturbationModel):
                 unique_perts = set(perts)
                 for pert in unique_perts:
                     if pert != 'ctrl':
-                        pert_indices = [i for i, p in enumerate(perts) if p == pert]
-                        if pert_indices:
-                            # 取第一个样本的 de_idx（假设同一扰动的所有样本使用相同的 DE genes）
-                            de_idx = batch.de_idx[pert_indices[0]]
+                        # 查找该 perturbation 在当前 batch 中的第一个索引
+                        try:
+                            idx = perts.index(pert)
+                            # batch.de_idx 是一个列表，对应每个样本的 DE gene indices
+                            de_idx = batch.de_idx[idx]
+                            
                             if isinstance(de_idx, torch.Tensor):
                                 de_idx = de_idx.tolist()
+                            
                             # 过滤掉 -1（无效索引）
                             dict_filter[pert] = [idx for idx in de_idx if idx >= 0]
+                        except (ValueError, IndexError):
+                            continue
         
         # 计算损失
         if self.config.uncertainty:
@@ -377,10 +392,15 @@ class GearsModel(PerturbationModel):
                 dict_filter=dict_filter
             )
         
-        return {
+        # [修复] 正确构建返回字典（避免使用 .update() 返回 None）
+        result = {
             'pred': pred,
             'loss': loss,
-        }.update({} if not self.config.uncertainty else {'logvar': logvar})
+        }
+        if self.config.uncertainty:
+            result['logvar'] = output_dict.get('logvar')
+        
+        return result
 
     def predict_perturbation(
         self,
@@ -703,3 +723,359 @@ class GearsModel(PerturbationModel):
             json.dump(metadata, f, indent=2)
         
         logger.info(f"Model saved to {path}")
+    
+    def train(self):
+        """
+        设置模型为训练模式（兼容 torch.nn.Module.train()）
+        
+        Returns
+        -------
+        self
+        """
+        self.gears_model.train()
+        return self
+    
+    def eval(self):
+        """
+        设置模型为评估模式（兼容 torch.nn.Module.eval()）
+        
+        Returns
+        -------
+        self
+        """
+        self.gears_model.eval()
+        return self
+    
+    def evaluate(
+        self,
+        dataset: PerturbationData,
+        batch_size: int = 32,
+        split: str = 'val',
+    ):
+        """
+        评估模型性能
+        
+        Parameters
+        ----------
+        dataset : PerturbationData
+            评估数据集
+        batch_size : int, optional
+            批大小, by default 32
+        split : str, optional
+            数据分割类型: 'train', 'val', 'test', by default 'val'
+            
+        Returns
+        -------
+        dict
+            包含评估结果的字典，包括 'pred', 'truth', 'pert_cat', 'pred_de', 'truth_de' 等
+        """
+        loader = self.get_dataloader(dataset, batch_size, split=split, shuffle=False)
+        
+        self.gears_model = self.gears_model.to(self.device)
+        self.gears_model.eval()
+        
+        pert_cat = []
+        pred = []
+        truth = []
+        pred_de = []
+        truth_de = []
+        logvar = []
+        
+        uncertainty_mode = self.config.uncertainty
+        
+        with torch.no_grad():
+            for batch in loader:
+                batch = batch.to(self.device)
+                pert_cat.extend(batch.pert)
+                
+                if uncertainty_mode:
+                    p, unc = self.gears_model(batch)
+                    logvar.append(unc.cpu())
+                else:
+                    p = self.gears_model(batch)
+                
+                t = batch.y
+                # 处理 y 的形状
+                if t.dim() == 2 and t.shape[1] == 1:
+                    num_samples = len(batch.batch.unique())
+                    t = t.reshape(num_samples, -1)
+                
+                pred.append(p.cpu())
+                truth.append(t.cpu())
+                
+                # Differentially expressed genes
+                if hasattr(batch, 'de_idx') and batch.de_idx is not None:
+                    for idx, de_idx in enumerate(batch.de_idx):
+                        if isinstance(de_idx, torch.Tensor):
+                            de_idx = de_idx.tolist()
+                        # 过滤掉 -1（无效索引）
+                        valid_de_idx = [i for i in de_idx if i >= 0]
+                        if valid_de_idx:
+                            pred_de.append(p[idx, valid_de_idx].cpu())
+                            truth_de.append(t[idx, valid_de_idx].cpu())
+        
+        # 合并结果
+        results = {
+            'pert_cat': np.array(pert_cat),
+            'pred': torch.cat(pred, dim=0).detach().cpu().numpy(),
+            'truth': torch.cat(truth, dim=0).detach().cpu().numpy(),
+        }
+        
+        if pred_de:
+            results['pred_de'] = torch.stack(pred_de).detach().cpu().numpy()
+            results['truth_de'] = torch.stack(truth_de).detach().cpu().numpy()
+        
+        if uncertainty_mode and logvar:
+            results['logvar'] = torch.cat(logvar, dim=0).detach().cpu().numpy()
+        
+        return results
+    def compute_metrics(self, results):
+        """
+        计算评估指标
+        
+        Parameters
+        ----------
+        results : dict
+            评估结果字典，包含 'pred', 'truth', 'pert_cat', 'pred_de', 'truth_de'
+            
+        Returns
+        -------
+        dict
+            包含总体指标和每个扰动的指标的字典
+        """
+        def mse(pred, truth):
+            return np.mean((pred - truth) ** 2)
+        
+        metrics = {}
+        metrics_pert = {}
+        
+        metric2fct = {
+            'mse': mse,
+            'pearson': pearsonr
+        }
+        
+        for m in metric2fct.keys():
+            metrics[m] = []
+            metrics[m + '_de'] = []
+        
+        for pert in np.unique(results['pert_cat']):
+            metrics_pert[pert] = {}
+            p_idx = np.where(results['pert_cat'] == pert)[0]
+            
+            for m, fct in metric2fct.items():
+                if m == 'pearson':
+                    val = fct(results['pred'][p_idx].mean(0), results['truth'][p_idx].mean(0))[0]
+                    if np.isnan(val):
+                        val = 0
+                else:
+                    val = fct(results['pred'][p_idx].mean(0), results['truth'][p_idx].mean(0))
+                
+                metrics_pert[pert][m] = val
+                metrics[m].append(metrics_pert[pert][m])
+            
+            if pert != 'ctrl' and 'pred_de' in results:
+                for m, fct in metric2fct.items():
+                    if m == 'pearson':
+                        val = fct(results['pred_de'][p_idx].mean(0), results['truth_de'][p_idx].mean(0))[0]
+                        if np.isnan(val):
+                            val = 0
+                    else:
+                        val = fct(results['pred_de'][p_idx].mean(0), results['truth_de'][p_idx].mean(0))
+                    
+                    metrics_pert[pert][m + '_de'] = val
+                    metrics[m + '_de'].append(metrics_pert[pert][m + '_de'])
+            else:
+                for m in metric2fct.keys():
+                    metrics_pert[pert][m + '_de'] = 0
+        
+        for m in metric2fct.keys():
+            metrics[m] = np.mean(metrics[m])
+            metrics[m + '_de'] = np.mean(metrics[m + '_de'])
+        
+        return {
+            'mse': metrics['mse'],
+            'mse_de': metrics['mse_de'],
+            'pearson': metrics['pearson'],
+            'pearson_de': metrics['pearson_de'],
+            'per_perturbation': metrics_pert
+        }
+    
+    def train_model(
+        self,
+        dataset: PerturbationData,
+        epochs: int = 20,
+        lr: float = 1e-3,
+        weight_decay: float = 5e-4,
+        batch_size: int = 32,
+        train_split: str = 'train',
+        val_split: str = 'val',
+        log_interval: int = 50,
+        save_best: bool = True,
+        save_path: str = None,
+    ):
+        """
+        训练模型
+        
+        Parameters
+        ----------
+        dataset : PerturbationData
+            训练数据集
+        epochs : int, optional
+            训练轮数, by default 20
+        lr : float, optional
+            学习率, by default 1e-3
+        weight_decay : float, optional
+            权重衰减, by default 5e-4
+        batch_size : int, optional
+            批大小, by default 32
+        train_split : str, optional
+            训练集分割, by default 'train'
+        val_split : str, optional
+            验证集分割, by default 'val'
+        log_interval : int, optional
+            日志打印间隔（步数）, by default 50
+        save_best : bool, optional
+            是否保存最佳模型, by default True
+        save_path : str, optional
+            保存路径, by default None
+            
+        Returns
+        -------
+        dict
+            训练历史，包含每个 epoch 的指标
+        """
+        # 准备数据
+        if not dataset.gears_format:
+            dataset.set_gears_format(fallback_cell_type='unknown')
+        
+        if 'rank_genes_groups_cov_all' not in dataset.adata.uns:
+            logger.warning("DE genes not found. Computing DE genes...")
+            dataset.compute_de_genes()
+        
+        if 'ctrl_indices' not in dataset.adata.obsm:
+            logger.warning("Control cell pairing not found. Pairing cells...")
+            dataset.pair_cells()
+        
+        # 计算 ctrl_expression 和 dict_filter
+        ctrl_cells = dataset.adata[dataset.adata.obs['condition'] == 'ctrl']
+        ctrl_expression = torch.tensor(
+            np.array(ctrl_cells.X.mean(axis=0)).flatten(),
+            dtype=torch.float32,
+            device=self.device
+        )
+        
+        # 构建 dict_filter（DE genes 映射）
+        dict_filter = {}
+        if 'rank_genes_groups_cov_all' in dataset.adata.uns:
+            rank_data = dataset.adata.uns['rank_genes_groups_cov_all']
+            top_n = dataset.adata.uns.get('top_de_n', 20)
+            gene_list = dataset.adata.var['gene_name'].tolist()
+            gene_name_to_idx = {name: i for i, name in enumerate(gene_list)}
+            
+            if isinstance(rank_data, dict):
+                for cond, top_genes in rank_data.items():
+                    if cond not in ['names', 'scores', 'pvals', 'pvals_adj', 'logfoldchanges']:
+                        # 兼容 list 或其他序列，确保可以切片
+                        if isinstance(top_genes, list):
+                            genes_iter = top_genes
+                        elif hasattr(top_genes, '__iter__'):
+                            # numpy array 或其他可迭代对象
+                            genes_iter = list(top_genes)
+                        else:
+                            genes_iter = [top_genes]
+                        dict_filter[cond] = [gene_name_to_idx.get(g, -1) for g in genes_iter[:top_n] if g in gene_name_to_idx]
+            else:
+                if hasattr(rank_data, 'dtype') and hasattr(rank_data.dtype, 'names'):
+                    for cond in rank_data['names'].dtype.names:
+                        top_genes = rank_data['names'][cond][:top_n]
+                        dict_filter[cond] = [gene_name_to_idx.get(g, -1) for g in top_genes if g in gene_name_to_idx]
+        
+        # 创建数据加载器
+        train_loader = self.get_dataloader(dataset, batch_size, split=train_split, shuffle=True)
+        val_loader = self.get_dataloader(dataset, batch_size, split=val_split, shuffle=False)
+        
+        # 初始化优化器和调度器
+        self.gears_model = self.gears_model.to(self.device)
+        best_model = deepcopy(self.gears_model)
+        optimizer = optim.Adam(self.gears_model.parameters(), lr=lr, weight_decay=weight_decay)
+        scheduler = StepLR(optimizer, step_size=1, gamma=0.5)
+        
+        min_val = np.inf
+        history = {
+            'train_loss': [],
+            'train_mse': [],
+            'train_mse_de': [],
+            'val_mse': [],
+            'val_mse_de': [],
+        }
+        
+        logger.info('Start Training...')
+        
+        for epoch in range(epochs):
+            self.gears_model.train()
+            epoch_loss = 0.0
+            num_batches = 0
+            
+            for step, batch in enumerate(train_loader):
+                batch = batch.to(self.device)
+                optimizer.zero_grad()
+                
+                # 计算损失
+                loss_dict = self.compute_loss(
+                    batch,
+                    ctrl_expression=ctrl_expression,
+                    dict_filter=dict_filter
+                )
+                loss = loss_dict['loss']
+                
+                loss.backward()
+                nn.utils.clip_grad_value_(self.gears_model.parameters(), clip_value=1.0)
+                optimizer.step()
+                
+                epoch_loss += loss.item()
+                num_batches += 1
+                
+                if step % log_interval == 0:
+                    logger.info(f"Epoch {epoch + 1} Step {step + 1} Train Loss: {loss.item():.4f}")
+            
+            scheduler.step()
+            
+            # 评估模型性能
+            train_res = self.evaluate(dataset, batch_size=batch_size, split=train_split)
+            val_res = self.evaluate(dataset, batch_size=batch_size, split=val_split)
+            
+            train_metrics, _ = self.compute_metrics(train_res)
+            val_metrics, _ = self.compute_metrics(val_res)
+            
+            # 记录历史
+            history['train_loss'].append(epoch_loss / num_batches)
+            history['train_mse'].append(train_metrics['mse'])
+            history['train_mse_de'].append(train_metrics['mse_de'])
+            history['val_mse'].append(val_metrics['mse'])
+            history['val_mse_de'].append(val_metrics['mse_de'])
+            
+            # 打印 epoch 性能
+            logger.info(
+                f"Epoch {epoch + 1}: Train Overall MSE: {train_metrics['mse']:.4f} "
+                f"Validation Overall MSE: {val_metrics['mse']:.4f}"
+            )
+            logger.info(
+                f"Epoch {epoch + 1}: Train Top 20 DE MSE: {train_metrics['mse_de']:.4f} "
+                f"Validation Top 20 DE MSE: {val_metrics['mse_de']:.4f}"
+            )
+            
+            # 保存最佳模型
+            if val_metrics['mse_de'] < min_val:
+                min_val = val_metrics['mse_de']
+                best_model = deepcopy(self.gears_model)
+                logger.info(f"New best model found! Val DE MSE: {min_val:.4f}")
+        
+        logger.info("Training Done!")
+        self.gears_model = best_model
+        
+        # 保存最佳模型
+        if save_best and save_path is not None:
+            self.save(save_path)
+            logger.info(f"Best model saved to {save_path}")
+        
+        return history

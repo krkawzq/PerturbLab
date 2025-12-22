@@ -12,8 +12,6 @@ from torch_geometric.data import Data
 from tqdm import tqdm
 from typing_extensions import Self
 
-from .model.gears.source.utils import make_GO
-
 # Initialize logger
 logger = logging.getLogger(__name__)
 
@@ -770,22 +768,97 @@ class GeneGraph:
             logger.info("Building GO graph using GEARS default logic...")
             os.makedirs(cache_dir, exist_ok=True)
             
+            # 延迟导入以避免循环导入
+            from .model.gears.source.utils import make_GO, dataverse_download
+            
+            # 检查并下载 gene2go_all.pkl（如果不存在）
+            gene2go_path = os.path.join(cache_dir, 'gene2go_all.pkl')
+            if not os.path.exists(gene2go_path):
+                logger.info("Downloading gene2go_all.pkl (this may take a while)...")
+                # 使用与 get_go_auto 相同的下载源
+                server_path = 'https://dataverse.harvard.edu/api/access/datafile/6153417'
+                # 注意：这个文件是 gene2go.pkl，但 make_GO 需要 gene2go_all.pkl
+                # 如果文件不存在，尝试下载 gene2go.pkl 并重命名
+                gene2go_temp_path = os.path.join(cache_dir, 'gene2go.pkl')
+                if not os.path.exists(gene2go_temp_path):
+                    dataverse_download(server_path, gene2go_temp_path)
+                # 如果下载的是 gene2go.pkl，将其复制为 gene2go_all.pkl
+                if os.path.exists(gene2go_temp_path) and not os.path.exists(gene2go_path):
+                    import shutil
+                    shutil.copy(gene2go_temp_path, gene2go_path)
+                    logger.info("Created gene2go_all.pkl from gene2go.pkl")
+            
+            # 将组合扰动拆分为单个基因（make_GO 需要单个基因列表）
+            # 例如 'Gene_10+ctrl' -> ['Gene_10'], 'Gene_20+Gene_30' -> ['Gene_20', 'Gene_30']
+            unique_genes = set()
+            for pert in gene_list:
+                if '+' in pert:
+                    # 组合扰动，拆分并过滤掉 'ctrl'
+                    genes = [g.strip() for g in pert.split('+') if g.strip() != 'ctrl']
+                    unique_genes.update(genes)
+                else:
+                    # 单个基因，过滤掉 'ctrl'
+                    if pert != 'ctrl':
+                        unique_genes.add(pert)
+            
+            # 转换为列表并保持顺序（尽可能保持原始顺序）
+            genes_for_go = [g for g in gene_list if g in unique_genes] + [g for g in unique_genes if g not in gene_list]
+            
+            if not genes_for_go:
+                raise ValueError("No valid genes found in gene_list after filtering 'ctrl' and splitting combinations.")
+            
+            # 检查哪些基因在 GO 数据库中存在
+            # 先加载 gene2go 文件，过滤掉不存在的基因
+            import pickle
+            gene2go_path = os.path.join(cache_dir, 'gene2go_all.pkl')
+            if os.path.exists(gene2go_path):
+                with open(gene2go_path, 'rb') as f:
+                    gene2go_all = pickle.load(f)
+                # 只保留在 GO 数据库中存在的基因
+                valid_genes_for_go = [g for g in genes_for_go if g in gene2go_all]
+                
+                if not valid_genes_for_go:
+                    logger.warning(
+                        f"None of the genes {genes_for_go} were found in the GO database. "
+                        "Creating an empty graph."
+                    )
+                    # 返回空图
+                    edge_index = np.array([[], []], dtype=np.int64).reshape(2, 0)
+                    edge_weight = np.array([], dtype=np.float32)
+                    return cls(gene_list, edge_index, edge_weight, graph_type='go')
+                
+                if len(valid_genes_for_go) < len(genes_for_go):
+                    missing_genes = set(genes_for_go) - set(valid_genes_for_go)
+                    logger.warning(
+                        f"The following genes were not found in the GO database and will be skipped: {missing_genes}"
+                    )
+                
+                genes_for_go = valid_genes_for_go
+            
             # Use GEARS make_GO utility (downloads data and computes Jaccard)
             # make_GO returns a DataFrame with ['source', 'target', 'importance']
             df_edge_list = make_GO(
                 data_path=cache_dir,
-                pert_list=gene_list,
+                pert_list=genes_for_go,
                 data_name='temp_go_build',
                 num_workers=num_workers,
                 save=False
             )
             
             # Filter genes
+            # all_graph_genes 包含图中所有单个基因名称
             all_graph_genes = set(df_edge_list['source']).union(set(df_edge_list['target']))
-            valid_genes = [g for g in gene_list if g in all_graph_genes]
             
-            if not valid_genes:
+            # 检查拆分后的单个基因是否在图中
+            # 注意：gene_list 可能包含组合扰动（如 'ACTB+GAPDH'），需要检查拆分后的单个基因
+            valid_single_genes = [g for g in genes_for_go if g in all_graph_genes]
+            
+            if not valid_single_genes:
                 raise ValueError("None of the provided genes were found in the GO database.")
+            
+            # 对于原始 gene_list，如果包含组合扰动，只要其组成部分在图中，就认为有效
+            # 但这里我们主要关心的是构建图，所以使用 valid_single_genes 即可
+            valid_genes = valid_single_genes
 
             # Filter by importance (Threshold)
             df_filtered = df_edge_list[df_edge_list['importance'] > threshold].copy()
@@ -842,21 +915,62 @@ class GeneGraph:
         # --- Common Logic: Build Edge Index ---
         
         # 1. Map gene names to global indices (0..N for the full gene_list)
-        full_map = {g: i for i, g in enumerate(gene_list)}
+        # 注意：gene_list 可能包含组合扰动（如 'ACTB+GAPDH'），但 df_final 中的基因都是单个基因
+        # 我们需要创建一个映射，将单个基因映射到它在 gene_list 中的位置
+        # 对于组合扰动，我们需要找到其组成部分在 gene_list 中的位置
+        
+        # 首先，提取所有单个基因及其在 gene_list 中的位置
+        single_gene_to_indices = {}
+        for i, g in enumerate(gene_list):
+            if '+' in g:
+                # 组合扰动，拆分并记录每个组成部分的位置
+                parts = [p.strip() for p in g.split('+') if p.strip() != 'ctrl']
+                for part in parts:
+                    if part not in single_gene_to_indices:
+                        single_gene_to_indices[part] = []
+                    single_gene_to_indices[part].append(i)
+            else:
+                # 单个基因
+                if g != 'ctrl':
+                    if g not in single_gene_to_indices:
+                        single_gene_to_indices[g] = []
+                    single_gene_to_indices[g].append(i)
         
         # 2. Filter edges to ensure both source and target are in the requested gene_list
+        # 使用单个基因的映射来过滤边
         valid_edges = df_final[
-            (df_final['source'].isin(full_map)) & 
-            (df_final['target'].isin(full_map))
+            (df_final['source'].isin(single_gene_to_indices)) & 
+            (df_final['target'].isin(single_gene_to_indices))
         ]
         
         if valid_edges.empty:
              raise ValueError("No valid edges found aligning with gene_list.")
 
         # 3. Convert to numpy arrays
-        sources = [full_map[g] for g in valid_edges['source']]
-        targets = [full_map[g] for g in valid_edges['target']]
-        weights = valid_edges['importance'].values
+        # 对于每个边，我们需要将单个基因映射到 gene_list 中的索引
+        # 如果一个基因在多个位置出现（组合扰动），我们为每个位置创建一条边
+        sources = []
+        targets = []
+        weights = []
+        
+        for _, row in valid_edges.iterrows():
+            source_gene = row['source']
+            target_gene = row['target']
+            weight = row['importance']
+            
+            # 获取源基因和目标基因在 gene_list 中的所有位置
+            source_indices = single_gene_to_indices.get(source_gene, [])
+            target_indices = single_gene_to_indices.get(target_gene, [])
+            
+            # 为每个源-目标位置对创建一条边
+            for src_idx in source_indices:
+                for tgt_idx in target_indices:
+                    sources.append(src_idx)
+                    targets.append(tgt_idx)
+                    weights.append(weight)
+        
+        if not sources:
+            raise ValueError("No valid edges found after mapping to gene_list indices.")
         
         edge_index = np.array([sources, targets], dtype=np.int64)
         edge_weight = np.array(weights, dtype=np.float32)

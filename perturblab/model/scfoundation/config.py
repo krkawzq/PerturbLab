@@ -42,6 +42,21 @@ class scFoundationConfig(ModelConfig):
         # Dropout
         ff_dropout: float = 0.0,
         attn_dropout: float = 0.0,
+        # GEARS perturbation head parameters
+        gears_hidden_size: int = 64,
+        gears_num_go_gnn_layers: int = 1,
+        gears_num_gene_gnn_layers: int = 1,
+        gears_decoder_hidden_size: int = 16,
+        gears_num_similar_genes_go_graph: int = 20,
+        gears_num_similar_genes_co_express_graph: int = 20,
+        gears_coexpress_threshold: float = 0.4,
+        gears_uncertainty: bool = False,
+        gears_uncertainty_reg: float = 1,
+        gears_direction_lambda: float = 1e-1,
+        gears_no_perturb: bool = False,
+        gears_go_graph_threshold: float = 0.1,
+        gears_go_graph_top_k: int = 20,
+        gears_coexpress_top_k: int = 20,
         **kwargs
     ):
         super().__init__(
@@ -58,6 +73,32 @@ class scFoundationConfig(ModelConfig):
             self.mask_token_id = self.num_tokens + 1
             
         self.max_seq_len = self.num_tokens + 2
+    
+    def get_gears_config(self) -> 'GearsConfig':
+        """
+        将 scFoundationConfig 中的 GEARS 参数转换为 GearsConfig。
+        
+        Returns:
+            GearsConfig: GEARS 配置对象
+        """
+        from ..gears.config import GearsConfig
+        
+        return GearsConfig(
+            hidden_size=self.gears_hidden_size,
+            num_go_gnn_layers=self.gears_num_go_gnn_layers,
+            num_gene_gnn_layers=self.gears_num_gene_gnn_layers,
+            decoder_hidden_size=self.gears_decoder_hidden_size,
+            num_similar_genes_go_graph=self.gears_num_similar_genes_go_graph,
+            num_similar_genes_co_express_graph=self.gears_num_similar_genes_co_express_graph,
+            coexpress_threshold=self.gears_coexpress_threshold,
+            uncertainty=self.gears_uncertainty,
+            uncertainty_reg=self.gears_uncertainty_reg,
+            direction_lambda=self.gears_direction_lambda,
+            no_perturb=self.gears_no_perturb,
+            go_graph_threshold=self.gears_go_graph_threshold,
+            go_graph_top_k=self.gears_go_graph_top_k,
+            coexpress_top_k=self.gears_coexpress_top_k,
+        )
 
     def to_model_config_dict(self) -> Dict[str, Any]:
         return {

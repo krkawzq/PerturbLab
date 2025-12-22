@@ -20,171 +20,12 @@ from tqdm import tqdm
 from ...data import GeneGraph, PerturbationData
 from ...utils import download_from_huggingface
 from ..base import PerturbationModel
-from ..gears.source import GEARS, PertData
-from ..gears.source.inference import (compute_metrics, deeper_analysis,
-                                      evaluate, non_dropout_analysis)
-from ..gears.source.utils import print_sys
+from ..gears import GearsModel, GearsConfig
 from .config import scFoundationConfig
 from .source.load import gatherData, getEncoerDecoderData
 from .source.pretrainmodels import select_model
 
 logger = logging.getLogger(__name__)
-
-
-def adata_row_to_pyg_data(
-    adata: AnnData,
-    idx: int,
-    gene_names: List[str],
-    pert_name_to_id: Dict[str, int],
-    de_gene_map: Dict[str, List[int]],
-    ctrl_indices: np.ndarray,
-    sample_idx: int = 0,
-    original_idx: Optional[int] = None,
-    original_adata: Optional[AnnData] = None
-) -> Data:
-    """
-    Convert a single AnnData row to PyTorch Geometric Data object.
-    
-    This is a pure function that extracts all necessary information from adata
-    and converts it to the format expected by GEARS model.
-    
-    Args:
-        adata: AnnData object containing expression data (may be sliced)
-        idx: Row index in adata
-        gene_names: List of gene names aligned with model vocabulary
-        pert_name_to_id: Mapping from perturbation name to index ID
-        de_gene_map: Mapping from condition to list of DE gene indices
-        ctrl_indices: Control pairing indices from original adata [n_cells_full, n_samples]
-        sample_idx: Which control sample to use (default: 0)
-        original_idx: Original adata index (if adata is sliced)
-        original_adata: Original (full) AnnData for accessing control cells
-    
-    Returns:
-        PyG Data object with x, y, pert_idx, de_idx, pert attributes
-    """
-    # 1. Get target expression (Y) from current adata
-    y_vec = adata.X[idx]
-    if sparse.issparse(y_vec):
-        y_vec = y_vec.toarray().flatten()
-    else:
-        y_vec = np.asarray(y_vec).flatten()
-    
-    # 2. Get condition and DE genes
-    condition = adata.obs['condition'].iloc[idx]
-    de_idx = de_gene_map.get(condition, [-1] * 20)
-    
-    # 3. Get perturbation indices
-    if condition == 'ctrl':
-        pert_idx = [-1]
-    else:
-        # Handle multi-gene perturbations (e.g., "GeneA+GeneB")
-        perts = [p for p in condition.split('+') if p != 'ctrl']
-        pert_idx = [pert_name_to_id.get(p, -1) for p in perts]
-        if not pert_idx or all(i == -1 for i in pert_idx):
-            pert_idx = [-1]
-    
-    # 4. Get control/basal expression (X)
-    # GEARS strategy: Pair current cell with a sampled control cell
-    # Use original_idx for ctrl_indices lookup if provided (for sliced adata)
-    lookup_idx = original_idx if original_idx is not None else idx
-    paired_ctrl_idx = ctrl_indices[lookup_idx, sample_idx]
-    
-    # Get control expression from original_adata if provided, otherwise from adata
-    ctrl_adata = original_adata if original_adata is not None else adata
-    x_vec = ctrl_adata.X[paired_ctrl_idx]
-    if sparse.issparse(x_vec):
-        x_vec = x_vec.toarray().flatten()
-    else:
-        x_vec = np.asarray(x_vec).flatten()
-    
-    # 5. Construct PyG Data
-    return Data(
-        x=torch.tensor(x_vec, dtype=torch.float).unsqueeze(1),  # [Genes, 1]
-        y=torch.tensor(y_vec, dtype=torch.float).unsqueeze(1),  # [Genes, 1]
-        pert_idx=torch.tensor(pert_idx, dtype=torch.long),
-        de_idx=torch.tensor(de_idx, dtype=torch.long),
-        pert=condition
-    )
-
-
-class PerturbationPyGDataset(Dataset):
-    """
-    Standard PyTorch Dataset that converts AnnData rows into PyG Data objects.
-    
-    Decoupled from GEARS internal logic. Uses pure function adata_row_to_pyg_data
-    for conversion.
-    
-    Note: This dataset works with sliced AnnData (e.g., train/test splits).
-    It maintains a mapping from dataset indices to original adata indices.
-    """
-    
-    def __init__(
-        self,
-        adata: AnnData,
-        gene_names: List[str],
-        pert_name_to_id: Dict[str, int],
-        de_gene_map: Dict[str, List[int]],
-        ctrl_indices: np.ndarray,
-        num_samples_per_cell: int = 1,
-        original_adata: Optional[AnnData] = None
-    ):
-        """
-        Args:
-            adata: AnnData object (may be sliced, e.g., train split)
-            gene_names: List of gene names aligned with the model
-            pert_name_to_id: Mapping from perturbation name to index ID
-            de_gene_map: Mapping from condition to list of DE gene indices
-            ctrl_indices: Control pairing indices from original (full) adata [n_cells_full, n_samples]
-            num_samples_per_cell: Number of control samples to pair with each treated cell
-            original_adata: Original (full) AnnData if adata is sliced. If None, assumes adata is full.
-        """
-        self.adata = adata
-        self.original_adata = original_adata if original_adata is not None else adata
-        self.gene_names = gene_names
-        self.pert_name_to_id = pert_name_to_id
-        self.de_gene_map = de_gene_map
-        self.ctrl_indices = ctrl_indices  # Always from original adata
-        self.num_samples = num_samples_per_cell
-        
-        # Map from dataset index to original adata index
-        # If adata is sliced, we need to map dataset indices to original indices
-        if original_adata is not None and len(adata) < len(original_adata):
-            # adata is sliced, create mapping
-            self._idx_map = {}
-            original_indices = original_adata.obs.index
-            for i, obs_name in enumerate(adata.obs_names):
-                self._idx_map[i] = original_indices.get_loc(obs_name)
-        else:
-            # adata is full, direct mapping
-            self._idx_map = {i: i for i in range(len(adata))}
-        
-        # Pre-compute indices for efficient access
-        # For num_samples > 1, we create multiple entries per cell
-        self._indices = []
-        for i in range(len(adata)):
-            for j in range(num_samples_per_cell):
-                self._indices.append((i, j))
-    
-    def __len__(self):
-        return len(self._indices)
-    
-    def __getitem__(self, idx):
-        cell_idx, sample_idx = self._indices[idx]
-        # Map dataset index to original adata index
-        original_idx = self._idx_map[cell_idx]
-        
-        return adata_row_to_pyg_data(
-            self.adata,  # Use sliced adata for target expression (Y)
-            cell_idx,    # Index in sliced adata
-            self.gene_names,
-            self.pert_name_to_id,
-            self.de_gene_map,
-            self.ctrl_indices,  # Uses original indices
-            sample_idx,
-            original_idx,  # Pass original index for ctrl_indices lookup
-            self.original_adata  # Use original adata for control expression (X)
-        )
-
 
 class scFoundationModel(PerturbationModel):
     """
@@ -700,29 +541,57 @@ class scFoundationModel(PerturbationModel):
         
         os.makedirs(output_dir, exist_ok=True)
         
-        # Setup optimizer and scheduler
+        # Get data first to calculate total steps for scheduler
+        adata = dataset.adata
+        if 'split' in adata.obs:
+            train_adata = adata[adata.obs['split'] == 'train']
+        else:
+            train_adata = adata
+        
+        # Align genes
+        gexpr_feature = self._align_genes(train_adata)
+        n_samples = gexpr_feature.shape[0]
+        steps_per_epoch = (n_samples + batch_size - 1) // batch_size
+        total_steps = epochs * steps_per_epoch
+        
+        # Setup optimizer (对齐源代码：AdamW, lr=1e-4, weight_decay=0)
         optimizer = torch.optim.AdamW(
             self.model.parameters(),
             lr=learning_rate,
             weight_decay=weight_decay
         )
         
-        # Linear warmup scheduler
+        # Warmup scheduler (对齐源代码：warmup_steps=9766, max_lr=1e-4)
+        # 使用线性 warmup，之后保持固定学习率（对齐源代码配置）
         def lr_lambda(current_step):
             if current_step < warmup_steps:
+                # Linear warmup (对齐源代码)
                 return float(current_step) / float(max(1, warmup_steps))
-            return 1.0
+            else:
+                # 保持固定学习率（对齐源代码：没有使用 cosine annealing）
+                return 1.0
         
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
         
-        # Loss function (MSE for reconstruction)
-        criterion = nn.MSELoss()
+        # Loss function (MSE for reconstruction，对齐源代码)
+        criterion = nn.MSELoss(reduction='mean')
         
-        self.train()
+        self.model.train()
         
-        logger.info(f"Starting training for {epochs} epochs")
+        logger.info("="*60)
+        logger.info("Starting scFoundation training")
+        logger.info("="*60)
+        logger.info(f"Epochs: {epochs}")
+        logger.info(f"Batch size: {batch_size}")
+        logger.info(f"Learning rate: {learning_rate}")
+        logger.info(f"Weight decay: {weight_decay}")
+        logger.info(f"Warmup steps: {warmup_steps}")
+        logger.info(f"Gradient clip value: {gradient_clip_val}")
+        logger.info(f"Total samples: {n_samples}")
+        logger.info(f"Steps per epoch: {steps_per_epoch}")
+        logger.info(f"Total steps: {total_steps}")
         logger.info(f"Output directory: {output_dir}")
-        logger.info(f"Batch size: {batch_size}, Learning rate: {learning_rate}")
+        logger.info("="*60)
         
         global_step = 0
         
@@ -730,20 +599,7 @@ class scFoundationModel(PerturbationModel):
             epoch_loss = 0.0
             num_batches = 0
             
-            # Get data
-            adata = dataset.adata
-            
-            # Split data if available
-            if 'split' in adata.obs:
-                train_adata = adata[adata.obs['split'] == 'train']
-            else:
-                train_adata = adata
-            
-            # Align genes
-            gexpr_feature = self._align_genes(train_adata)
-            n_samples = gexpr_feature.shape[0]
-            
-            # Shuffle indices
+            # Shuffle indices each epoch (对齐源代码)
             indices = np.random.permutation(n_samples)
             
             # Training loop
@@ -757,29 +613,40 @@ class scFoundationModel(PerturbationModel):
                 batch_indices = indices[start_idx:end_idx]
                 batch_data = gexpr_feature.iloc[batch_indices]
                 
-                # Prepare batch tensors
+                # Prepare batch tensors (对齐源代码的数据准备方式)
                 batch_gene_x = []
+                batch_gene_x_raw = []
                 for i in range(len(batch_data)):
-                    # Normalize if needed
-                    tmpdata = np.log1p(
-                        batch_data.iloc[i, :] / batch_data.iloc[i, :].sum() * 1e4
-                    ).tolist()
-                    totalcount = batch_data.iloc[i, :].sum()
+                    # Normalize: log1p(normalize to 10k)
+                    tmpdata = batch_data.iloc[i, :].values
+                    totalcount = tmpdata.sum()
                     
-                    # Add control tokens (high_res and total_count)
+                    # Normalize and log transform
+                    normalized = np.log1p(tmpdata / totalcount * 1e4)
+                    totalcount_log = np.log10(totalcount) if totalcount > 0 else 0.0
+                    
+                    # Add control tokens: [high_res_token, total_count_token]
+                    # high_res 默认使用 4.0 (对应 tgthighres=a5 或其他配置)
+                    # 根据源代码，high_res 可以是固定值或基于 totalcount 计算
+                    high_res_token = 4.0  # 默认值，可根据配置调整
+                    
                     gene_x = torch.tensor(
-                        tmpdata + [4.0, np.log10(totalcount)],  # Default high_res=4
-                        device=device
+                        normalized.tolist() + [high_res_token, totalcount_log],
+                        device=device,
+                        dtype=torch.float32
                     )
                     batch_gene_x.append(gene_x)
+                    batch_gene_x_raw.append(gene_x.clone())
                 
                 batch_gene_x = torch.stack(batch_gene_x, dim=0)
+                batch_gene_x_raw = torch.stack(batch_gene_x_raw, dim=0)
                 
-                # Prepare encoder/decoder data
+                # Prepare encoder/decoder data (对齐源代码)
+                model_config = self.config.to_model_config_dict()
                 encoder_data, encoder_position_gene_ids, encoder_data_padding, encoder_labels, \
                 decoder_data, decoder_data_padding, new_data_raw, data_mask_labels, \
                 decoder_position_gene_ids = getEncoerDecoderData(
-                    batch_gene_x, batch_gene_x, self.config.to_model_config_dict()
+                    batch_gene_x, batch_gene_x_raw, model_config
                 )
                 
                 # Forward pass
@@ -797,8 +664,14 @@ class scFoundationModel(PerturbationModel):
                     mask_labels=None
                 )
                 
-                # Calculate loss (only on masked positions)
-                loss = criterion(output[data_mask_labels], new_data_raw[data_mask_labels])
+                # Calculate loss (对齐源代码：MSE loss on all decoder positions)
+                # 注意：根据源代码，data_mask_labels 可能为 None，此时计算所有位置的损失
+                if data_mask_labels is not None:
+                    loss = criterion(output[data_mask_labels], new_data_raw[data_mask_labels])
+                else:
+                    # 如果没有 mask labels，计算所有非 padding 位置的损失
+                    valid_mask = ~decoder_data_padding
+                    loss = criterion(output[valid_mask], new_data_raw[valid_mask])
                 
                 # Backward pass
                 loss.backward()
@@ -818,11 +691,22 @@ class scFoundationModel(PerturbationModel):
                 num_batches += 1
                 global_step += 1
                 
-                # Update progress bar
+                # Update progress bar (对齐源代码的日志格式)
+                current_lr = scheduler.get_last_lr()[0]
                 progress_bar.set_postfix({
                     'loss': f'{loss.item():.4f}',
-                    'lr': f'{scheduler.get_last_lr()[0]:.6f}'
+                    'avg_loss': f'{epoch_loss/num_batches:.4f}',
+                    'lr': f'{current_lr:.6f}',
+                    'step': f'{global_step}/{total_steps}'
                 })
+                
+                # Log at intervals (对齐源代码的日志间隔，每100步)
+                if global_step % 100 == 0:
+                    logger.info(
+                        f"Epoch {epoch+1}/{epochs} | Step {global_step}/{total_steps} | "
+                        f"Loss: {loss.item():.4f} | Avg Loss: {epoch_loss/num_batches:.4f} | "
+                        f"LR: {current_lr:.6f}"
+                    )
             
             # Epoch summary
             avg_loss = epoch_loss / num_batches
@@ -1041,6 +925,69 @@ class scFoundationModel(PerturbationModel):
 
 
 class scFoundationPerturbationModel(scFoundationModel):
+    """
+    scFoundation model for perturbation prediction using GEARS framework.
+    
+    This model extends scFoundationModel to perform gene perturbation prediction.
+    It uses the encapsulated GearsModel with scFoundation as the base encoder.
+    
+    Architecture:
+        scFoundation (encoder) → GEARS (GNN + decoder) → Perturbation prediction
+    
+    Features:
+        - Graph Neural Networks for gene relationships
+        - Perturbation-specific embeddings
+        - Gene-specific decoders
+        - Support for single and combinatorial perturbations
+    
+    Example:
+        ```python
+        from perturblab.data import PerturbationData
+        from perturblab.model.scfoundation import scFoundationPerturbationModel
+        
+        # Create model
+        model = scFoundationPerturbationModel.from_pretrained(
+            'scfoundation-cell',
+            device='cuda'
+        )
+        
+        # Prepare data (must be in GEARS format)
+        pert_data = PerturbationData(adata, perturb_col='condition')
+        pert_data.set_gears_format(fallback_cell_type='unknown')
+        pert_data.split_data(split_type='simulation', seed=1)
+        pert_data.pair_cells()
+        pert_data.compute_de_genes(n_top_genes=20)
+        
+        # Extract perturbation list from dataset
+        pert_conditions = [c for c in pert_data.adata.obs['condition'].unique() if c != 'ctrl']
+        unique_perts = set()
+        for p in pert_conditions:
+            unique_perts.update([g for g in p.split('+') if g != 'ctrl'])
+        pert_list = sorted(list(unique_perts))
+        
+        # Build graphs using GeneGraph built-in methods
+        from perturblab.data import GeneGraph
+        go_graph = GeneGraph.from_go(pert_list, cache_dir='.gears_temp/go_graph')
+        co_graph = GeneGraph.from_coexpression(pert_data.adata, gene_list=model.gene_list)
+        
+        # Initialize perturbation head
+        gears_config = model.config.get_gears_config()
+        model.init_perturbation_head(
+            gears_config=gears_config,
+            gene_list=model.gene_list,
+            pert_list=pert_list,
+            go_graph=go_graph,
+            co_graph=co_graph
+        )
+        
+        # Train
+        model.train_model(pert_data, epochs=20, lr=1e-3)
+        
+        # Predict
+        predictions = model.predict_perturbation(pert_data, split='test')
+        ```
+    """
+    
     def __init__(
         self,
         config,
@@ -1048,68 +995,72 @@ class scFoundationPerturbationModel(scFoundationModel):
         gene_list: Optional[list[str]] = None,
         go_graph: Optional[GeneGraph] = None,
         gene_graph: Optional[GeneGraph] = None,
+        # GEARS head initialization parameters
+        gears_config: Optional[GearsConfig] = None,
+        pert_list: Optional[list[str]] = None,
+        pert_embeddings: Optional[torch.Tensor] = None,
+        gene_embeddings: Optional[torch.Tensor] = None,
         **kwargs
     ):
+        """
+        Initialize scFoundation perturbation model.
+        
+        Args:
+            config: Model configuration
+            device: Device to use. Default: 'cuda'
+            gene_list: List of gene names
+            go_graph: Pre-built GO graph (optional)
+            gene_graph: Pre-built co-expression graph (optional)
+            gears_config: GearsConfig for perturbation head initialization (optional)
+            pert_list: List of perturbations (required if initializing head in __init__)
+            pert_embeddings: Pre-trained perturbation embeddings (optional)
+            gene_embeddings: Pre-trained gene embeddings (optional)
+            **kwargs: Additional arguments
+        
+        Note:
+            If `gears_config`, `pert_list`, `go_graph`, and `co_graph` (gene_graph) are all provided,
+            the perturbation head will be automatically initialized in __init__.
+        """
         super().__init__(config, device, gene_list, **kwargs)
         
-        # 状态容器
-        self.gears_model = None  # GEARS 实例 (Head)
+        # 使用封装的 GearsModel 而不是原生 GEARS
+        self.gears_model: Optional[GearsModel] = None  # GearsModel 实例 (Head)
         
         # 图对象 (GeneGraph 实例)
         self.go_graph = go_graph
         self.gene_graph = gene_graph
-        self.gears_config = None
+        self.gears_config: Optional[GearsConfig] = None
         
         # Metadata containers (extracted from dataset)
-        self.pert_names = []
-        self.pert_name_to_id = {}
-        self.de_gene_map = {}
-        self.ctrl_expression = None
-        self.dict_filter = {}
-
-
-
-    def prepare_graphs(
-        self, 
-        dataset: PerturbationData, 
-        temp_dir: str = '.gears_temp',
-        force_recompute: bool = False,
-        coexp_threshold: float = 0.4
-    ):
-        """
-        准备 GEARS 所需的图结构。
+        self.pert_names: list[str] = []
+        self.pert_name_to_id: dict[str, int] = {}
+        self.de_gene_map: dict[str, list[int]] = {}
         
-        Args:
-            dataset: 统一格式的 PerturbationData
-            temp_dir: GEARS 处理数据的临时目录（用于 GO 图缓存）
-            force_recompute: 是否强制重新计算
-            coexp_threshold: 共表达图的阈值
-        """
-        if not dataset.gears_format:
-            raise ValueError("Dataset must be in GEARS format. Call dataset.set_gears_format() first.")
-        
-        # 准备图结构 (GeneGraph)
-        # 如果用户初始化时没有提供图，我们在这里构建
-        
-        # A. 构建共表达图 (Gene Graph)
-        if self.gene_graph is None or force_recompute:
-            logger.info("Building Co-expression Graph using GeneGraph...")
-            self.gene_graph = GeneGraph.from_coexpression(
-                dataset.adata, 
-                gene_list=self.gene_list,
-                threshold=coexp_threshold
+        # 如果提供了所有必要的参数，自动初始化 GEARS head
+        if pert_list is not None and go_graph is not None and gene_graph is not None:
+            if gene_list is None:
+                raise ValueError("gene_list is required when initializing perturbation head in __init__")
+            
+            # 使用 config 中的 GEARS 参数创建配置（如果未提供）
+            if gears_config is None:
+                gears_config = self.config.get_gears_config()
+            
+            # 自动调用 init_perturbation_head
+            self.init_perturbation_head(
+                gears_config=gears_config,
+                gene_list=gene_list,
+                pert_list=pert_list,
+                go_graph=go_graph,
+                co_graph=gene_graph,
+                pert_embeddings=pert_embeddings,
+                gene_embeddings=gene_embeddings
             )
-        
-        # B. 构建 GO 图 (GO Graph)
-        if self.go_graph is None or force_recompute:
-            logger.info("Building GO Graph using GeneGraph (Default Logic)...")
-            self.go_graph = GeneGraph.from_go(
-                gene_list=self.gene_list,
-                path=None, 
-                cache_dir=os.path.join(temp_dir, 'go_graph')
-            )
-        
-        logger.info("✓ Graphs prepared successfully.")
+            logger.info("✓ Perturbation head initialized automatically in __init__")
+        else:
+            logger.info("Initialized scFoundation perturbation model (head not initialized)")
+
+
+
 
     def _requires_perturbation_head(func):
         """Decorator to ensure perturbation head is initialized before calling method."""
@@ -1124,88 +1075,191 @@ class scFoundationPerturbationModel(scFoundationModel):
 
     def init_perturbation_head(
         self,
-        hidden_size: int = 64,
-        num_go_gnn_layers: int = 1,
-        num_gene_gnn_layers: int = 1,
-        decoder_hidden_size: int = 16,
-        num_similar_genes_go_graph: int = 20,
-        num_similar_genes_co_express_graph: int = 20,
-        coexpress_threshold: float = 0.4,
-        uncertainty: bool = False,
-        uncertainty_reg: float = 1,
-        direction_lambda: float = 1e-1,
-        no_perturb: bool = False,
-        cell_fitness_pred: bool = False,
-        weight_bias_track: bool = False,
-        proj_name: str = 'GEARS',
-        exp_name: str = 'scFoundation-GEARS',
+        gears_config: GearsConfig,
+        gene_list: list[str],
+        pert_list: list[str],
+        go_graph: GeneGraph,
+        co_graph: GeneGraph,
+        pert_embeddings: torch.Tensor = None,
+        gene_embeddings: torch.Tensor = None,
+    ):
+        """
+        初始化 GEARS 下游头（Head），直接传入图结构和配置。
+        
+        类似于 GearsModel.__init__，直接使用提供的图结构和配置初始化。
+        
+        Args:
+            gears_config: GearsConfig 配置对象
+            gene_list: 基因列表
+            pert_list: 扰动列表
+            go_graph: GO 图（GeneGraph 对象）
+            co_graph: 共表达图（GeneGraph 对象）
+            pert_embeddings: 预训练的扰动嵌入（可选）
+            gene_embeddings: 预训练的基因嵌入（可选）
+        
+        Example:
+            ```python
+            from perturblab.model.gears import GearsConfig
+            
+            # 创建 GEARS 配置
+            gears_config = GearsConfig(
+                hidden_size=64,
+                num_go_gnn_layers=1,
+                num_gene_gnn_layers=1
+            )
+            
+            # 初始化扰动头
+            model.init_perturbation_head(
+                gears_config=gears_config,
+                gene_list=gene_list,
+                pert_list=pert_list,
+                go_graph=go_graph,
+                co_graph=co_graph
+            )
+            ```
+        """
+        # 1. 创建 GearsModel 实例
+        logger.info("Initializing GearsModel with provided graphs and config...")
+        self.gears_model = GearsModel(
+            config=gears_config,
+            gene_list=gene_list,
+            pert_list=pert_list,
+            go_graph=go_graph,
+            co_graph=co_graph,
+            pert_embeddings=pert_embeddings,
+            gene_embeddings=gene_embeddings,
+            device=self.device
+        )
+        
+        # 2. 注入 scFoundation 编码器到 GEARS 模型中（参照原始实现）
+        if hasattr(self.gears_model.gears_model, 'singlecell_model'):
+            self.gears_model.gears_model.singlecell_model = self.model
+            self.gears_model.gears_model.pretrained = True
+            logger.info("✓ Injected scFoundation encoder into GEARS model")
+        else:
+            logger.warning(
+                "GEARS model does not have 'singlecell_model' attribute. "
+                "scFoundation encoder may not be used directly in GEARS forward pass."
+            )
+        
+        # 3. 保存配置和元数据
+        self.gears_config = gears_config
+        self.pert_names = pert_list
+        self.pert_name_to_id = {p: i for i, p in enumerate(pert_list)}
+        
+        logger.info("✓ GearsModel Head initialized successfully")
+        logger.info(f"  - Base encoder: scFoundation ({self.config.model_series}-{self.config.model_name})")
+        logger.info(f"  - Hidden size: {gears_config.hidden_size}")
+        logger.info(f"  - GO GNN layers: {gears_config.num_go_gnn_layers}")
+        logger.info(f"  - Gene GNN layers: {gears_config.num_gene_gnn_layers}")
+        logger.info(f"  - Number of genes: {len(gene_list)}")
+        logger.info(f"  - Number of perturbations: {len(pert_list)}")
+    
+    def init_perturbation_head_from_dataset(
+        self,
+        dataset: PerturbationData,
+        gears_config: Optional[GearsConfig] = None,
         **kwargs
     ):
         """
-        初始化 GEARS 下游头（Head），并注入 GeneGraph 定义的图结构。
+        从数据集初始化 GEARS 下游头（Head）。
+        
+        参照原始实现逻辑，从数据集中提取信息并构建图结构，然后初始化 GearsModel。
+        如果 gears_config 为 None，则使用 self.config 中的 GEARS 参数创建配置。
         
         Args:
             dataset: PerturbationData 对象，用于构造 GEARS 所需的数据结构
-            go_graph: GO 图对象（可选）
-            gene_graph: 共表达图对象（可选）
-            其他参数: GEARS 模型配置参数
-        """
-        # 1. 确定使用的图对象
-        # 优先级: 参数传入 > self.成员变量
-        active_go_graph = self.go_graph
-        active_gene_graph =  self.gene_graph
+            gears_config: GearsConfig 配置对象。如果为 None，则从 self.config 创建
+            **kwargs: 其他 GEARS 配置参数（仅在 gears_config 为 None 时使用）
         
-        if active_go_graph is None or active_gene_graph is None:
-            raise RuntimeError(
-                "Graph objects missing. Please provide `go_graph/gene_graph` or call `prepare_graphs`."
+        Raises:
+            ValueError: 如果数据集格式不正确
+            RuntimeError: 如果图对象缺失
+        """
+        # 1. 验证数据集格式
+        if not dataset.gears_format:
+            dataset.set_gears_format(fallback_cell_type='unknown')
+        
+        required_fields = ['condition', 'split', 'ctrl_indices']
+        missing = []
+        if 'condition' not in dataset.adata.obs:
+            missing.append('condition (use set_gears_format)')
+        if 'split' not in dataset.adata.obs:
+            missing.append('split (use split_data)')
+        if 'ctrl_indices' not in dataset.adata.obsm:
+            missing.append('ctrl_indices (use pair_cells)')
+        
+        if missing:
+            raise ValueError(
+                f"Dataset missing required fields: {', '.join(missing)}"
             )
         
-        # 2. Extract metadata from dataset (one-time setup)
-        logger.info("Extracting metadata from dataset...")
-        if 'ctrl_indices' not in adata.obsm:
-            raise ValueError("Run dataset.pair_cells() first.")
+        adata = dataset.adata
         
-        # 2.1 Perturbation mapping
+        # 2. 提取扰动列表
         pert_conditions = [c for c in adata.obs['condition'].unique() if c != 'ctrl']
         unique_perts = set()
         for p in pert_conditions:
             unique_perts.update([g for g in p.split('+') if g != 'ctrl'])
-        self.pert_names = sorted(list(unique_perts))
-        self.pert_name_to_id = {p: i for i, p in enumerate(self.pert_names)}
+        pert_list = sorted(list(unique_perts))
         
-        # 2.2 Control expression (basal state)
-        ctrl_mask = adata.obs['condition'] == 'ctrl'
-        ctrl_X = adata.X[ctrl_mask]
-        if sparse.issparse(ctrl_X):
-            ctrl_X = ctrl_X.toarray()
-        else:
-            ctrl_X = np.asarray(ctrl_X)
-        self.ctrl_expression = torch.tensor(np.mean(ctrl_X, axis=0), dtype=torch.float).to(self.device)
+        if not pert_list:
+            raise ValueError("No perturbations found in dataset.")
         
+        # 3. 构建图对象（如果缺失）
+        if self.go_graph is None:
+            logger.info("Building GO Graph using GeneGraph.from_go()...")
+            self.go_graph = GeneGraph.from_go(
+                gene_list=pert_list,
+                cache_dir='.gears_temp/go_graph'
+            )
         
-        # Convert DE gene names to indices in our gene_list
-        gene_name_to_idx = {name: i for i, name in enumerate(adata.var['gene_name'])}
-        gene_list_to_idx = {gene: i for i, gene in enumerate(self.gene_list)}
+        if self.gene_graph is None:
+            logger.info("Building Co-expression Graph using GeneGraph.from_coexpression()...")
+            self.gene_graph = GeneGraph.from_coexpression(
+                adata,
+                gene_list=self.gene_list
+            )
         
-        rank_data = adata.uns['rank_genes_groups_cov_all']
-        top_n = adata.uns.get('top_de_n', 20)
+        # 4. 创建或使用 GearsConfig
+        if gears_config is None:
+            # 从 self.config 创建 GearsConfig
+            gears_config = self.config.get_gears_config()
+            # 如果提供了 kwargs，更新配置
+            if kwargs:
+                gears_config_dict = gears_config.to_dict()
+                gears_config_dict.update(kwargs)
+                gears_config = GearsConfig(**gears_config_dict)
         
-        self.de_gene_map = {}
-        if hasattr(rank_data, 'dtype') and hasattr(rank_data.dtype, 'names'):
-            for cond in rank_data['names'].dtype.names:
-                top_genes = rank_data['names'][cond][:top_n]
-                # Map from adata gene names to model gene_list indices
-                de_indices = []
-                for g in top_genes:
-                    if g in gene_name_to_idx:
-                        gene_name = adata.var['gene_name'].iloc[gene_name_to_idx[g]]
-                        if gene_name in gene_list_to_idx:
-                            de_indices.append(gene_list_to_idx[gene_name])
-                self.de_gene_map[cond] = de_indices[:top_n] if de_indices else [-1] * top_n
-        else:
-            for cond in rank_data.keys():
-                if cond not in ['names', 'scores', 'pvals', 'pvals_adj', 'logfoldchanges']:
-                    top_genes = rank_data[cond][:top_n]
+        # 5. 对齐图到模型的 gene_list 和 pert_list
+        logger.info(f"Aligning graphs to model gene list (Size: {len(self.gene_list)}) and pert list (Size: {len(pert_list)})...")
+        
+        # GO 图应该对齐到 pert_list
+        aligned_go = self.go_graph.subset(pert_list)
+        # 共表达图应该对齐到 gene_list
+        aligned_gene = self.gene_graph.subset(self.gene_list)
+        
+        # 6. 调用 init_perturbation_head 初始化
+        self.init_perturbation_head(
+            gears_config=gears_config,
+            gene_list=self.gene_list,
+            pert_list=pert_list,
+            go_graph=aligned_go,
+            co_graph=aligned_gene
+        )
+        
+        # 7. 提取 DE 基因映射（如果需要）
+        if 'rank_genes_groups_cov_all' in adata.uns:
+            gene_name_to_idx = {name: i for i, name in enumerate(adata.var['gene_name'])}
+            gene_list_to_idx = {gene: i for i, gene in enumerate(self.gene_list)}
+            
+            rank_data = adata.uns['rank_genes_groups_cov_all']
+            top_n = adata.uns.get('top_de_n', 20)
+            
+            self.de_gene_map = {}
+            if hasattr(rank_data, 'dtype') and hasattr(rank_data.dtype, 'names'):
+                for cond in rank_data['names'].dtype.names:
+                    top_genes = rank_data['names'][cond][:top_n]
                     de_indices = []
                     for g in top_genes:
                         if g in gene_name_to_idx:
@@ -1213,263 +1267,191 @@ class scFoundationPerturbationModel(scFoundationModel):
                             if gene_name in gene_list_to_idx:
                                 de_indices.append(gene_list_to_idx[gene_name])
                     self.de_gene_map[cond] = de_indices[:top_n] if de_indices else [-1] * top_n
+            else:
+                for cond in rank_data.keys():
+                    if cond not in ['names', 'scores', 'pvals', 'pvals_adj', 'logfoldchanges']:
+                        top_genes = rank_data[cond][:top_n] if isinstance(rank_data[cond], (list, np.ndarray)) else []
+                        de_indices = []
+                        for g in top_genes:
+                            if g in gene_name_to_idx:
+                                gene_name = adata.var['gene_name'].iloc[gene_name_to_idx[g]]
+                                if gene_name in gene_list_to_idx:
+                                    de_indices.append(gene_list_to_idx[gene_name])
+                        self.de_gene_map[cond] = de_indices[:top_n] if de_indices else [-1] * top_n
         
-        # 2.4 Dict filter (non_zeros_gene_idx)
-        self.dict_filter = {}
-        if 'non_zeros_gene_idx' in adata.uns:
-            pert_full_id2pert = dict(adata.obs[['condition_name', 'condition']].values)
-            self.dict_filter = {
-                pert_full_id2pert[i]: j 
-                for i, j in adata.uns['non_zeros_gene_idx'].items() 
-                if i in pert_full_id2pert
-            }
-
-        # 3. 图对齐 (Graph Alignment) 
-        # 模型的 gene_list 可能与图的 gene_list 不同。
-        # 我们使用 GeneGraph.subset 方法将图"切"成模型需要的大小和顺序。
-        logger.info(f"Aligning graphs to model gene list (Size: {len(self.gene_list)})...")
-        
-        aligned_go = active_go_graph.subset(self.gene_list)
-        aligned_gene = active_gene_graph.subset(self.gene_list)
-        
-        # 提取 PyG 格式的 edge_index
-        edge_index_go = aligned_go.edge_index.to(self.device)
-        edge_weight_go = aligned_go.edge_weight.to(self.device) if aligned_go.edge_weight is not None else None
-        
-        edge_index_gene = aligned_gene.edge_index.to(self.device)
-        edge_weight_gene = aligned_gene.edge_weight.to(self.device) if aligned_gene.edge_weight is not None else None
-
-        # 4. 保存配置 (不包含 Tensor 数据，只保存超参)
-        self.gears_config = {
-            'hidden_size': hidden_size,
-            'num_go_gnn_layers': num_go_gnn_layers,
-            'num_gene_gnn_layers': num_gene_gnn_layers,
-            'decoder_hidden_size': decoder_hidden_size,
-            'num_similar_genes_go_graph': num_similar_genes_go_graph,
-            'num_similar_genes_co_express_graph': num_similar_genes_co_express_graph,
-            'coexpress_threshold': coexpress_threshold,
-            'uncertainty': uncertainty,
-            'uncertainty_reg': uncertainty_reg,
-            'direction_lambda': direction_lambda,
-            'no_perturb': no_perturb,
-            'cell_fitness_pred': cell_fitness_pred,
-            'weight_bias_track': weight_bias_track,
-            'proj_name': proj_name,
-            'exp_name': exp_name,
-            **kwargs
-        }
-
-        # 5. 创建一个最小化的 PertData 对象用于 GEARS 初始化
-        # GEARS 需要从 pert_data 中读取一些属性，我们创建一个简单的包装类
-        class MinimalPertData:
-            def __init__(self, adata, pert_names, gene_names):
-                self.adata = adata
-                self.node_map = {g: i for i, g in enumerate(gene_names)}
-                self.node_map_pert = {p: i for i, p in enumerate(pert_names)}
-                self.gene_names = pd.Series(gene_names)
-                self.pert_names = np.array(pert_names)
-                self.set2conditions = {}
-                if 'split' in adata.obs:
-                    self.set2conditions = adata.obs.groupby('split')['condition'].unique().to_dict()
-                    self.set2conditions = {k: list(v) for k, v in self.set2conditions.items()}
-                self.split = adata.obs.get('split', 'custom').iloc[0] if 'split' in adata.obs else 'custom'
-                self.data_path = ''
-                self.dataset_name = 'custom'
-                self.default_pert_graph = False
-                self._dataloader = None
-            
-            def get_dataloader(self, batch_size, test_batch_size=None):
-                # This will be set externally via gears_model.dataloader
-                return self._dataloader
-        
-        # 创建最小化的 PertData 对象
-        gene_names = adata.var['gene_name'].tolist()
-        minimal_pert_data = MinimalPertData(adata, self.pert_names, gene_names)
-        
-        # 6. 初始化 GEARS 实例
-        logger.info(f"Initializing GEARS Head...")
-        
-        self.gears_model = GEARS(
-            minimal_pert_data,
-            device=self.device,
-            weight_bias_track=weight_bias_track,
-            proj_name=proj_name,
-            exp_name=exp_name
-        )
-        
-        # 7. 手动设置 GEARS 需要的额外属性
-        self.gears_model.ctrl_expression = self.ctrl_expression
-        self.gears_model.dict_filter = self.dict_filter
-        self.gears_model.ctrl_adata = adata[adata.obs['condition'] == 'ctrl']
-        
-        # 构造 pert2gene 映射 (pert index -> gene index in model gene_list)
-        gene_list_to_idx = {gene: i for i, gene in enumerate(self.gene_list)}
-        self.gears_model.pert2gene = {
-            i: gene_list_to_idx[pert] 
-            for i, pert in enumerate(self.pert_names) 
-            if pert in gene_list_to_idx
-        }
-
-        # 8. 模型初始化与注入
-        self.gears_model.model_initialize(
-            model_type='scfoundation',
-            load_path=None, 
-            **self.gears_config
-        )
-        
-        # 9. 【关键步骤】注入 GeneGraph 的图结构
-        # 覆盖 GEARS 内部自动生成的图，强制使用我们要的图
-        # GEARS model 内部通常将 GO 图存储在 model.sim_network (或者 model.edge_index_go，视版本而定)
-        # 这里假设是标准的 GEARS SG 模块接口
-        
-        # 注入 GO 图
-        if hasattr(self.gears_model.model, 'sim_network'):
-            self.gears_model.model.sim_network = Data(
-                edge_index=edge_index_go, 
-                edge_weight=edge_weight_go, 
-                num_nodes=len(self.gene_list)
-            )
-        
-        # 注入 scFoundation Encoder
-        self.gears_model.model.singlecell_model = self.model
-        self.gears_model.model.pretrained = True
-        
-        self.gears_model.model.to(self.device)
-        
-        logger.info("✓ GEARS Head initialized with aligned GeneGraphs.")
+        logger.info("✓ GearsModel Head initialized from dataset successfully")
 
     @_requires_perturbation_head
-    def train_model(self, dataset: PerturbationData, epochs=20, lr=1e-3, batch_size=32, result_dir='./results', **kwargs):
+    def train_model(
+        self,
+        dataset: PerturbationData,
+        epochs: int = 20,
+        lr: float = 1e-3,
+        weight_decay: float = 5e-4,
+        batch_size: int = 32,
+        train_split: str = 'train',
+        val_split: str = 'val',
+        result_dir: str = './results',
+        log_interval: int = 50,
+        save_best: bool = True,
+        **kwargs
+    ):
         """
-        训练模型 (需要先初始化 Head)
+        训练扰动预测模型。
         
-        使用 PerturbationPyGDataset 构造 DataLoader，完全解耦 GEARS 的数据结构。
+        参照原始 GEARS 实现逻辑，使用封装的 GearsModel 的训练方法。
+        
+        Args:
+            dataset: 训练数据
+            epochs: 训练轮数。Default: 20
+            lr: 学习率。Default: 1e-3
+            weight_decay: 权重衰减。Default: 5e-4
+            batch_size: 批次大小。Default: 32
+            train_split: 训练集分割。Default: 'train'
+            val_split: 验证集分割。Default: 'val'
+            result_dir: 结果保存目录。Default: './results'
+            log_interval: 日志打印间隔（步数）。Default: 50
+            save_best: 是否保存最佳模型。Default: True
+            **kwargs: 其他训练参数
+        
+        Returns:
+            Dict: 训练历史，包含每个 epoch 的指标
+                - 'train_loss': 训练损失列表
+                - 'train_mse': 训练集整体 MSE 列表
+                - 'train_mse_de': 训练集 DE 基因 MSE 列表
+                - 'val_mse': 验证集整体 MSE 列表
+                - 'val_mse_de': 验证集 DE 基因 MSE 列表
         """
-        adata = dataset.adata
+        if not dataset.gears_format:
+            dataset.set_gears_format(fallback_cell_type='unknown')
         
-        if 'split' not in adata.obs:
+        if 'split' not in dataset.adata.obs.columns:
             raise ValueError("Dataset must have 'split' column. Call dataset.split_data() first.")
         
-        if 'ctrl_indices' not in adata.obsm:
+        if 'ctrl_indices' not in dataset.adata.obsm:
             raise ValueError("Run dataset.pair_cells() first.")
         
-        # 1. Create Datasets using PerturbationPyGDataset
-        # Pass original adata for proper index mapping
-        train_ds = PerturbationPyGDataset(
-            adata[adata.obs['split'] == 'train'],
-            self.gene_list,
-            self.pert_name_to_id,
-            self.de_gene_map,
-            adata.obsm['ctrl_indices'],
-            num_samples_per_cell=1,
-            original_adata=adata
+        os.makedirs(result_dir, exist_ok=True)
+        
+        logger.info("="*60)
+        logger.info("Starting perturbation prediction training")
+        logger.info("="*60)
+        logger.info(f"Epochs: {epochs}")
+        logger.info(f"Learning rate: {lr}")
+        logger.info(f"Weight decay: {weight_decay}")
+        logger.info(f"Batch size: {batch_size}")
+        logger.info(f"Result directory: {result_dir}")
+        logger.info("="*60)
+        
+        # 使用 GearsModel 的训练方法
+        save_path = os.path.join(result_dir, 'best_model') if save_best else None
+        history = self.gears_model.train_model(
+            dataset=dataset,
+            epochs=epochs,
+            lr=lr,
+            weight_decay=weight_decay,
+            batch_size=batch_size,
+            train_split=train_split,
+            val_split=val_split,
+            log_interval=log_interval,
+            save_best=save_best,
+            save_path=save_path,
+            **kwargs
         )
         
-        val_ds = PerturbationPyGDataset(
-            adata[adata.obs['split'] == 'val'],
-            self.gene_list,
-            self.pert_name_to_id,
-            self.de_gene_map,
-            adata.obsm['ctrl_indices'],
-            num_samples_per_cell=1,
-            original_adata=adata
-        )
+        logger.info("✓ Training completed")
         
-        # 2. Create Loaders
-        loaders = {
-            'train_loader': DataLoader(train_ds, batch_size=batch_size, shuffle=True, drop_last=True),
-            'val_loader': DataLoader(val_ds, batch_size=batch_size, shuffle=False)
-        }
-        
-        # Add test loader if available
-        if 'test' in adata.obs['split'].values:
-            test_ds = PerturbationPyGDataset(
-                adata[adata.obs['split'] == 'test'],
-                self.gene_list,
-                self.pert_name_to_id,
-                self.de_gene_map,
-                adata.obsm['ctrl_indices'],
-                num_samples_per_cell=1,
-                original_adata=adata
-            )
-            loaders['test_loader'] = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
-        
-        # 3. Inject Loaders into GEARS and Train
-        self.gears_model.dataloader = loaders
-        
-        logger.info(f"Starting training in {result_dir}...")
-        self.gears_model.train(epochs=epochs, lr=lr, result_dir=result_dir, **kwargs)
-        # Note: GEARS internally maintains best_model in self.gears_model.best_model
-        # Weight saving should be handled externally via save_pretrained()
-        return {}
+        return history
 
     @_requires_perturbation_head
-    def predict_perturbation(self, dataset: PerturbationData, batch_size=32, **kwargs):
+    def predict_perturbation(
+        self,
+        dataset: PerturbationData,
+        batch_size: int = 32,
+        split: str = 'test',
+        return_numpy: bool = True,
+        **kwargs
+    ):
         """
-        预测 (需要先初始化 Head)
+        预测基因表达变化。
         
-        使用 PerturbationPyGDataset 构造测试 DataLoader。
+        参照原始实现逻辑，使用 GearsModel 进行预测。
+        
+        Args:
+            dataset: 测试数据
+            batch_size: 批次大小
+            split: 数据分割（'train', 'val', 'test', 'all'）
+            return_numpy: 是否返回 NumPy 数组
+            **kwargs: 其他预测参数
+        
+        Returns:
+            Dict: 包含预测结果和指标的字典
+                - 'pred': 预测值
+                - 'pert_cat': 扰动类别
+                - 'truth': 真实值（如果可用）
+                - 'logvar': 不确定性方差（如果启用）
         """
-        from ..gears.source.inference import evaluate
+        if not dataset.gears_format:
+            dataset.set_gears_format(fallback_cell_type='unknown')
         
-        adata = dataset.adata
+        if 'split' not in dataset.adata.obs.columns:
+            raise ValueError("Dataset must have 'split' column. Call dataset.split_data() first.")
         
-        if 'split' not in adata.obs or 'test' not in adata.obs['split'].values:
-            raise ValueError("Dataset must have test split. Call dataset.split_data() first.")
+        if split != 'all' and split not in dataset.adata.obs['split'].values:
+            available_splits = dataset.adata.obs['split'].unique()
+            raise ValueError(
+                f"Split '{split}' not found in dataset. "
+                f"Available splits: {available_splits}"
+            )
         
-        if 'ctrl_indices' not in adata.obsm:
+        if 'ctrl_indices' not in dataset.adata.obsm:
             raise ValueError("Run dataset.pair_cells() first.")
         
-        # Create test dataset
-        test_ds = PerturbationPyGDataset(
-            adata[adata.obs['split'] == 'test'],
-            self.gene_list,
-            self.pert_name_to_id,
-            self.de_gene_map,
-            adata.obsm['ctrl_indices'],
-            num_samples_per_cell=1,
-            original_adata=adata
+        logger.info(f"Predicting perturbation effects for split: {split}")
+        
+        # 直接使用 GearsModel 的预测方法
+        results = self.gears_model.predict_perturbation(
+            dataset=dataset,
+            batch_size=batch_size,
+            split=split,
+            return_numpy=return_numpy,
+            **kwargs
         )
         
-        test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
+        logger.info("✓ Prediction completed")
+        if isinstance(results, dict) and 'pred' in results:
+            logger.info(f"  - Predictions shape: {results['pred'].shape}")
+            if 'pert_cat' in results:
+                unique_perts = np.unique(results['pert_cat'])
+                logger.info(f"  - Number of unique perturbations: {len(unique_perts)}")
         
-        # Use best_model from GEARS if available, otherwise use current model
-        model_to_use = getattr(self.gears_model, 'best_model', None) or self.gears_model.model
-        test_res = evaluate(
-            test_loader, 
-            model_to_use,
-            self.gears_config.get('uncertainty', False),
-            self.device
-        )
-        
-        return test_res
+        return results
 
     def save_pretrained(self, save_directory: str):
         """
         保存模型：包含基础模型权重、配置以及 GEARS Head 的配置和权重。
+        
+        参照原始实现逻辑，分别保存 scFoundation 基础模型和 GEARS Head。
+        
+        Args:
+            save_directory: 保存目录路径
         """
         os.makedirs(save_directory, exist_ok=True)
         
         # 1. 保存 scFoundation 基础配置 (config.json) 和权重 (model.pt)
-        # 调用父类的 save 方法 (假设父类只保存基础部分)
+        # 调用父类的 save 方法
         super().save(save_directory)
         
-        # 2. 如果 GEARS Head 存在，保存其特有信息
-        if self.gears_model is not None and self.gears_config is not None:
-            # 保存 GEARS 配置
-            gears_config_path = os.path.join(save_directory, 'gears_config.json')
-            with open(gears_config_path, 'w') as f:
-                json.dump(self.gears_config, f, indent=2)
-            
-            # 保存 GEARS Head 权重 (包含 GNN, Decoder 等)
-            # 这里的策略是保存整个 state_dict (包含 encoder)，加载时再处理
-            # 或者仅保存 head 部分。为简单起见，GEARS 的 save_model 通常保存整个模型。
-            # 我们将保存一个专门的 gears_head.pt
-            head_path = os.path.join(save_directory, 'gears_head.pt')
-            torch.save(self.gears_model.model.state_dict(), head_path)
-            logger.info(f"Saved GEARS head config and weights to {save_directory}")
+        # 2. 如果 GearsModel Head 存在，保存其特有信息
+        if self.gears_model is not None:
+            # 使用 GearsModel 的 save 方法保存到子目录
+            gears_save_dir = os.path.join(save_directory, 'gears_head')
+            self.gears_model.save(gears_save_dir)
+            logger.info(f"✓ Saved GearsModel head to {gears_save_dir}")
         else:
-            logger.info("Only base model saved (GEARS head not initialized).")
+            logger.info("Only base model saved (GearsModel head not initialized).")
+        
+        logger.info(f"✓ Perturbation model saved to {save_directory}")
 
     @classmethod
     def from_pretrained(
@@ -1479,81 +1461,77 @@ class scFoundationPerturbationModel(scFoundationModel):
         **kwargs
     ) -> 'scFoundationPerturbationModel':
         """
-        加载模型。
+        加载预训练模型。
         
-        逻辑：
+        参照原始实现逻辑：
         1. 加载基础 scFoundation 模型。
-        2. 检查 model_name_or_path 是否为路径且包含 'gears_config.json'。
-        3. 如果存在，则自动恢复 GEARS Head。
-        4. 如果不存在 (或是模型名称)，则仅返回基础模型，GEARS Head 为 None。
+        2. 检查 model_name_or_path 是否为路径且包含 'gears_head' 目录。
+        3. 如果存在，则自动恢复 GearsModel Head。
+        4. 如果不存在，则仅返回基础模型，GearsModel Head 为 None。
+        
+        Args:
+            model_name_or_path: 模型名称或路径
+                - 可以是本地路径
+                - 可以是内置模型名称（如 'scfoundation-cell'）
+                - 可以是 HuggingFace 模型标识符（如 'perturblab/scfoundation-cell'）
+            device: 设备 ('cuda' 或 'cpu')
+            **kwargs: 其他加载参数
+        
+        Returns:
+            scFoundationPerturbationModel: 加载的模型实例
+        
+        Example:
+            ```python
+            # Load from local directory
+            model = scFoundationPerturbationModel.from_pretrained('./models/my_model', device='cuda')
+            
+            # Load built-in model
+            model = scFoundationPerturbationModel.from_pretrained('scfoundation-cell', device='cuda')
+            
+            # Load from HuggingFace
+            model = scFoundationPerturbationModel.from_pretrained('perturblab/scfoundation-cell', device='cuda')
+            ```
         """
-        # 1. 实例化基础部分 (利用父类的加载逻辑)
-        # 注意：这里我们调用父类的 from_pretrained，但父类返回的是 scFoundationModel 类实例
-        # 我们需要一种方式将其转换为 scFoundationPerturbationModel，
-        # 或者直接在该类中重新实现加载逻辑。
-        
-        # 更稳健的做法是：复用父类逻辑获取 config 和 state_dict，然后用 cls 初始化
-        
-        # 假设父类逻辑能处理路径解析
+        # 1. 加载基础 scFoundation 模型
         base_model = super().from_pretrained(model_name_or_path, device, **kwargs)
         
         # 创建当前类的实例 (复制基础模型的属性)
         model = cls(base_model.config, device=device, gene_list=base_model.gene_list)
-        model.model = base_model.model # 共享权重
+        model.model = base_model.model  # 共享权重
         
-        # 2. 检查是否存在 GEARS Head 组件
-        gears_config_path = os.path.join(model_name_or_path, 'gears_config.json')
-        gears_weight_path = os.path.join(model_name_or_path, 'gears_head.pt')
-        
-        if os.path.exists(gears_config_path) and os.path.exists(gears_weight_path):
-            logger.info(f"Found GEARS head configuration at {gears_config_path}. Restoring...")
-            
-            # 加载配置
-            with open(gears_config_path, 'r') as f:
-                gears_config = json.load(f)
-            
-            # 这是一个特殊的恢复情况：
-            # 我们没有 PertData 数据对象 (因为它通常太大不保存)，但我们需要初始化架构。
-            # 这是一个挑战：GEARS 初始化通常强依赖数据来推断 num_genes 等。
-            # 解决方案：我们需要在 gears_config 中保存所有必要的维度参数。
-            
-            # 假设 gears_config 包含了所有初始化参数
-            # 并且我们使用一种不依赖数据的 "Dummy" 初始化方式，
-            # 或者用户需要在加载后手动 set data。
-            
-            # 这里我们尝试仅恢复架构 (Assuming GEARS supports instantiation without full PertData if dims are known)
-            # 如果 GEARS 库不支持无数据初始化，这里会报错。
-            # 为了代码的鲁棒性，我们通常在此处仅加载 Config，提示用户需要调用 prepare_graphs
-            
-            logger.warning(
-                "Detected GEARS checkpoint. "
-                "The configuration is loaded to `model.gears_config`. "
-                "Please call `model.prepare_graphs(dataset)` followed by "
-                "`model.init_perturbation_head(**model.gears_config)` to fully restore the head structure, "
-                "then the weights will be loaded automatically if you call load_weights."
-            )
-            # 实际上，为了方便，我们可以尝试部分初始化，但最安全的是让用户提供数据
-            model.gears_config = gears_config
-            
-            # 我们可以保存权重路径供后续使用
-            model._pending_gears_weights = gears_weight_path
-            
+        # 2. 检查是否存在 GearsModel Head
+        # 如果 model_name_or_path 是本地路径，检查 gears_head 子目录
+        if os.path.exists(model_name_or_path) and os.path.isdir(model_name_or_path):
+            gears_head_dir = os.path.join(model_name_or_path, 'gears_head')
         else:
-            logger.info(f"No GEARS head found in {model_name_or_path}. Initialized as base model only.")
+            # 如果是模型名称，尝试在可能的路径中查找
+            gears_head_dir = None
+        
+        if gears_head_dir and os.path.exists(gears_head_dir) and os.path.isdir(gears_head_dir):
+            logger.info(f"Found GearsModel head at {gears_head_dir}. Loading...")
+            
+            try:
+                # 使用 GearsModel 的 from_pretrained 方法加载
+                model.gears_model = GearsModel.from_pretrained(
+                    gears_head_dir,
+                    device=device
+                )
+                
+                # 重新注入 scFoundation 编码器（如果 GEARS 支持）
+                if hasattr(model.gears_model.gears_model, 'singlecell_model'):
+                    model.gears_model.gears_model.singlecell_model = model.model
+                    model.gears_model.gears_model.pretrained = True
+                
+                logger.info("✓ GearsModel head loaded successfully.")
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load GearsModel head: {e}. "
+                    "The model will be initialized without the perturbation head. "
+                    "You can build graphs using GeneGraph.from_go() and GeneGraph.from_coexpression(), then call `init_perturbation_head()` or `init_perturbation_head_from_dataset()` to initialize it."
+                )
+                model.gears_model = None
+        else:
+            logger.info(f"No GearsModel head found in {model_name_or_path}. Initialized as base model only.")
             
         return model
-
-    def load_head_weights(self):
-        """
-        在 prepare_graphs 和 init_perturbation_head 之后调用，
-        用于从 _pending_gears_weights 加载实际权重。
-        """
-        if hasattr(self, '_pending_gears_weights') and self._pending_gears_weights:
-            logger.info(f"Loading GEARS weights from {self._pending_gears_weights}...")
-            state_dict = torch.load(self._pending_gears_weights, map_location=self.device)
-            self.gears_model.model.load_state_dict(state_dict)
-            del self._pending_gears_weights
-            logger.info("✓ GEARS weights restored.")
-        else:
-            logger.warning("No pending weights to load.")
 
