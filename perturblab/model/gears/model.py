@@ -1,8 +1,7 @@
 import json
 import logging
 import os
-from copy import deepcopy
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -23,11 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 class GearsModel(PerturbationModel):
-    """
-    GEARS Model wrapper for single-cell perturbation prediction.
+    """GEARS Model wrapper for single-cell perturbation prediction.
 
     Integrates Gene Ontology (GO) and co-expression graphs with the core
-    GEARS architecture.
+    GEARS architecture for graph-based perturbation response modeling.
     """
 
     def __init__(
@@ -39,27 +37,21 @@ class GearsModel(PerturbationModel):
         co_graph: GeneGraph,
         pert_embeddings: Optional[torch.Tensor] = None,
         gene_embeddings: Optional[torch.Tensor] = None,
-        device: str = "cuda",
+        device: str = 'cpu',
     ):
-        """
-        Initializes the GearsModel.
+        """Initializes the GearsModel.
 
         Args:
-            config: Configuration object for GEARS.
+            config: GEARS configuration object.
             gene_list: List of gene names.
             pert_list: List of perturbation names.
             go_graph: Gene Ontology graph object.
             co_graph: Co-expression graph object.
-            pert_embeddings: Pre-trained perturbation embeddings.
-            gene_embeddings: Pre-trained gene embeddings.
-            device: Computation device ('cuda' or 'cpu').
+            pert_embeddings: Optional pre-trained perturbation embeddings.
+            gene_embeddings: Optional pre-trained gene embeddings.
+            device: Device to run the model on.
         """
         super().__init__(config)
-        
-        if device == "cuda":
-            self.device = "cuda" if torch.cuda.is_available() and torch.cuda.device_count() > 0 else "cpu"
-        else:
-            self.device = "cpu"
 
         self.gene_list = gene_list
         self.pert_list = pert_list
@@ -87,25 +79,23 @@ class GearsModel(PerturbationModel):
         else:
             num_edges = G_go.shape[1] if G_go.shape[1] > 0 else 0
             G_go_weight = torch.ones(num_edges, dtype=torch.float32)
-
+            
         # Initialize core GEARS model
-        self.gears_model = GEARS_Model(
-            dict(
-                num_genes=len(self.gene_list),
-                num_perts=len(self.pert_list),
+        self.gears_model = GEARS_Model(dict(
+            num_genes=len(self.gene_list),
+            num_perts=len(self.pert_list),
             hidden_size=config.hidden_size,
-                uncertainty=config.uncertainty,
-                num_go_gnn_layers=config.num_go_gnn_layers,
-                decoder_hidden_size=config.decoder_hidden_size,
-                num_gene_gnn_layers=config.num_gene_gnn_layers,
-                no_perturb=config.no_perturb,
-                G_coexpress=G_coexpress,
-                G_coexpress_weight=G_coexpress_weight,
-                G_go=G_go,
-                G_go_weight=G_go_weight,
-                device=self.device,
-            )
-        ).to(self.device)
+            uncertainty=config.uncertainty,
+            num_go_gnn_layers=config.num_go_gnn_layers,
+            decoder_hidden_size=config.decoder_hidden_size,
+            num_gene_gnn_layers=config.num_gene_gnn_layers,
+            no_perturb=config.no_perturb,
+            G_coexpress=G_coexpress,
+            G_coexpress_weight=G_coexpress_weight,
+            G_go=G_go,
+            G_go_weight=G_go_weight,
+            device=device,
+        ))
 
         # Track embedding layer types
         self.pert_embedding_layer_type = "default"
@@ -116,13 +106,27 @@ class GearsModel(PerturbationModel):
             self.set_pert_embeddings(pert_embeddings, trainable=True)
         if gene_embeddings is not None:
             self.set_gene_embeddings(gene_embeddings, trainable=True)
+            
+    def to(self, device: str):
+        """Moves the model to a device."""
+        self.gears_model.to(device)
+        return self
+
+    def train(self, mode: bool = True):
+        """Sets the model to training mode."""
+        self.gears_model.train(mode)
+        return self
+    
+    def eval(self):
+        """Sets the model to evaluation mode."""
+        self.gears_model.eval()
+        return self
 
     @classmethod
     def init_from_dataset(
         cls,
         dataset: PerturbationData,
         config: GearsConfig,
-        device: str = "cuda",
         gene_list: Optional[List[str]] = None,
         pert_list: Optional[List[str]] = None,
     ):
@@ -195,147 +199,219 @@ class GearsModel(PerturbationModel):
             pert_list=pert_list,
             go_graph=go_graph,
             co_graph=co_graph,
-            device=device,
         )
-
+        
     @staticmethod
     def get_dataloader(
         dataset: PerturbationData,
         batch_size: int,
-        split: str = "train",
+        split: Optional[str] = 'train', # None or 'all' to return all splits
         shuffle: bool = True,
         drop_last: bool = False,
-    ) -> DataLoader:
+        num_workers: int = 0,
+    ) -> Dict[str, DataLoader]:
         """
-        Creates a PyG DataLoader for specific data split.
+        Creates a Dictionary of optimized PyG DataLoaders.
+        
+        Args:
+            dataset: Input perturbation dataset.
+            batch_size: Batch size.
+            split: 
+                - None: Returns loaders for ALL splits found in dataset.obs['split'].
+                - 'all': Returns a single loader containing the ENTIRE dataset.
+                - 'train'/'val'/'test': Returns a loader for the specific split.
+            shuffle: Whether to shuffle the data.
+            drop_last: Whether to drop the last incomplete batch.
+            num_workers: Number of worker processes.
+            
+        Returns:
+            Dict[str, DataLoader]: A dictionary mapping split names to DataLoaders.
+                                   e.g., {'train': loader, 'val': loader}
+                                   Keys for empty/invalid splits are omitted.
         """
-        # 1. Basic Validation
+        from torch.utils.data import Dataset as TorchDataset
+        # Ensure we use the PyG DataLoader for proper collation of Data objects
+        from torch_geometric.loader import DataLoader
+        
+        # --- 1. Data Validation and Preprocessing ---
         if not dataset.gears_format:
             dataset.set_gears_format(fallback_cell_type="unknown")
-
+        
         if "rank_genes_groups_cov_all" not in dataset.adata.uns:
             logger.warning("DE genes not found. Computing DE genes...")
             dataset.compute_de_genes()
-
+        
         if "ctrl_indices" not in dataset.adata.obsm:
             raise ValueError("Control cell pairing not found. Please call dataset.pair_cells() first.")
-
-        # 2. Metadata Preparation
+        
+        # --- 2. Prepare Shared Metadata (Once for all splits) ---
         gene_list = dataset.adata.var["gene_name"].tolist()
         gene_name_to_idx = {name: i for i, name in enumerate(gene_list)}
-
+        
         if "pert_list" not in dataset.adata.uns:
-            all_conditions = dataset.adata.obs["condition"].unique()
-            pert_set = set()
-            for cond in all_conditions:
-                if cond != "ctrl":
-                    pert_set.update([p for p in cond.split("+") if p != "ctrl"])
-            dataset.adata.uns["pert_list"] = sorted(list(pert_set))
-
-        # 3. Prepare DE Genes Map
+            dataset.adata.uns["pert_list"] = sorted(list({
+                p for c in dataset.adata.obs["condition"].unique() if c != "ctrl"
+                for p in c.split("+") if p != "ctrl"
+            }))
+        
+        # Build DE Gene Map
         de_gene_map = {}
         if "rank_genes_groups_cov_all" in dataset.adata.uns:
             rank_data = dataset.adata.uns["rank_genes_groups_cov_all"]
             top_n = dataset.adata.uns.get("top_de_n", 20)
-
-            # Handle different rank_data formats (dict or structured array)
+            
+            # Handle dict or structured array
             if isinstance(rank_data, dict):
-                for cond, top_genes in rank_data.items():
-                    if cond not in ["names", "scores", "pvals", "pvals_adj", "logfoldchanges"]:
-                        # Ensure compatibility with lists or iterables
-                        if isinstance(top_genes, list):
-                            genes_iter = top_genes
-                        elif hasattr(top_genes, "__iter__"):
-                            genes_iter = list(top_genes)
-                        else:
-                            genes_iter = [top_genes]
-                        de_gene_map[cond] = [
-                            gene_name_to_idx.get(g, -1)
-                            for g in genes_iter[:top_n]
-                            if g in gene_name_to_idx
-                        ]
+                iterator = rank_data.items()
             else:
-                if hasattr(rank_data, "dtype") and hasattr(rank_data.dtype, "names"):
-                    for cond in rank_data["names"].dtype.names:
-                        top_genes = rank_data["names"][cond][:top_n]
-                        de_gene_map[cond] = [
-                            gene_name_to_idx.get(g, -1)
-                            for g in top_genes
-                            if g in gene_name_to_idx
-                        ]
+                iterator = ((n, rank_data["names"][n]) for n in rank_data["names"].dtype.names)
+            
+            for cond, genes in iterator:
+                if cond in ["names", "scores", "pvals", "pvals_adj", "logfoldchanges"]:
+                    continue
+                genes_flat = genes if isinstance(genes, (list, np.ndarray)) else [genes]
+                de_gene_map[cond] = [
+                    gene_name_to_idx.get(g, -1) 
+                    for g in genes_flat[:top_n] 
+                    if g in gene_name_to_idx
+                ]
 
-        # 4. Optimization: Filter by split early to reduce memory usage and loop time
-        obs_df = dataset.adata.obs[["condition", "index_col", "split"]].copy()
-        if split != "all":
-            obs_df = obs_df[obs_df["split"] == split]
-            if obs_df.empty:
-                available_splits = dataset.adata.obs["split"].unique()
-                raise ValueError(f"Split '{split}' not found. Available: {available_splits}")
-
-        logger.info(f"Generating PyG Data objects for split '{split}' ({len(obs_df)} samples)...")
-
-        data_list = []
-        X = dataset.adata.X
-        ctrl_indices = dataset.adata.obsm["ctrl_indices"]
-        num_samples = ctrl_indices.shape[1]
-
-        # Optimization: Check sparsity once before the loop
-        is_sparse = hasattr(X, "toarray") or hasattr(X, "A")
-
-        for condition, group_df in tqdm(obs_df.groupby("condition"), desc="Processing conditions"):
-            # Prepare perturbation indices
-            if condition == "ctrl":
-                pert_idx = [-1]
-            else:
-                genes = [p for p in condition.split("+") if p != "ctrl"]
-                pert_idx = [gene_name_to_idx.get(g, -1) for g in genes]
-                if not pert_idx or all(i == -1 for i in pert_idx):
-                    pert_idx = [-1]
-
-            de_idx = de_gene_map.get(condition, [-1] * 20)
-            current_idx = group_df["index_col"].values
-
-            # Optimization: Batch extract X to reduce indexing overhead
-            if is_sparse:
-                y_batch_all = X[current_idx].toarray() if hasattr(X, "toarray") else X[current_idx].A
-            else:
-                y_batch_all = X[current_idx]
-
-            # Construct Data objects
-            for i, cell_idx in enumerate(current_idx):
-                paired_idx = ctrl_indices[cell_idx, :]
-
-                # Get paired control expression
-                if is_sparse:
-                    x_batch = X[paired_idx].toarray() if hasattr(X, "toarray") else X[paired_idx].A
+        # --- 3. Define Internal Dataset Class ---
+        # Modified to accept specific indices for flexibility
+        class _LazyGearsDataset(TorchDataset):
+            def __init__(self, cell_indices, conditions):
+                # References to large shared data (Closure)
+                self.X = dataset.adata.X
+                self.ctrl_indices = dataset.adata.obsm["ctrl_indices"]
+                self.num_samples = self.ctrl_indices.shape[1]
+                
+                # Split-specific data
+                self.cell_indices = cell_indices
+                self.conditions = conditions
+                
+                # Metadata
+                self.gene_name_to_idx = gene_name_to_idx
+                self.de_gene_map = de_gene_map
+                self.is_sparse = hasattr(self.X, "toarray") or hasattr(self.X, "A")
+                self.n_cells = len(self.cell_indices)
+            
+            def __len__(self):
+                return self.n_cells * self.num_samples
+            
+            def __getitem__(self, idx):
+                # Math Indexing: idx = i * num_samples + j
+                cell_ptr = idx // self.num_samples
+                sample_ptr = idx % self.num_samples
+                
+                abs_cell_idx = self.cell_indices[cell_ptr]
+                condition = self.conditions[cell_ptr]
+                
+                # 1. Y (Perturbed)
+                if self.is_sparse:
+                    y = self.X[abs_cell_idx].toarray().flatten()
                 else:
-                    x_batch = X[paired_idx]
+                    y = self.X[abs_cell_idx]
+                
+                # 2. X (Control)
+                abs_ctrl_idx = self.ctrl_indices[abs_cell_idx, sample_ptr]
+                if self.is_sparse:
+                    x = self.X[abs_ctrl_idx].toarray().flatten()
+                else:
+                    x = self.X[abs_ctrl_idx]
+                
+                # 3. Pert Index
+                if condition == "ctrl":
+                    pert_idx = [-1]
+                else:
+                    pert_idx = [
+                        self.gene_name_to_idx.get(g, -1) 
+                        for g in condition.split("+") 
+                        if g != "ctrl"
+                    ]
+                    if not pert_idx or all(i == -1 for i in pert_idx):
+                        pert_idx = [-1]
+                
+                # 4. DE Index
+                de_idx = self.de_gene_map.get(condition, [-1] * 20)
+                
+                return Data(
+                    x=torch.tensor(x, dtype=torch.float).unsqueeze(1),
+                    y=torch.tensor(y, dtype=torch.float).unsqueeze(1),
+                    pert_idx=torch.tensor(pert_idx, dtype=torch.long),
+                    pert=condition,
+                    de_idx=torch.tensor(de_idx, dtype=torch.long)
+                )
 
-                y_tensor = torch.tensor(y_batch_all[i], dtype=torch.float).unsqueeze(1)
+        # --- 4. Determine Target Splits ---
+        loaders = {}
+        target_splits = []
 
-                for j in range(num_samples):
-                    data_obj = Data(
-                        x=torch.tensor(x_batch[j], dtype=torch.float).unsqueeze(1),
-                        y=y_tensor,  # Reuse y_tensor
-                        pert_idx=pert_idx,
-                        pert=condition,
-                        de_idx=de_idx,
-                    )
-                    data_obj.split = split
-                    data_list.append(data_obj)
+        if split is None:
+            # Auto-detect all splits
+            if "split" in dataset.adata.obs:
+                target_splits = dataset.adata.obs["split"].unique().tolist()
+            else:
+                logger.warning("No 'split' column found in adata.obs. Returning empty dict.")
+                return {}
+        else:
+            # User requested specific split (or 'all')
+            target_splits = [split]
 
-        logger.info(f"Created {len(data_list)} Data objects.")
+        # --- 5. Iterate and Create Loaders ---
+        for target_split in target_splits:
+            # A. Filter Indices
+            if target_split == "all":
+                # Special case: use everything
+                indices = dataset.adata.obs["index_col"].values
+                conds = dataset.adata.obs["condition"].values
+                split_name = "all"
+            else:
+                # Standard split filtering
+                if "split" not in dataset.adata.obs:
+                    logger.warning(f"Skipping '{target_split}': 'split' column missing.")
+                    continue
+                
+                mask = dataset.adata.obs["split"] == target_split
+                
+                # Check for empty split
+                if not np.any(mask):
+                    logger.warning(f"Split '{target_split}' contains no data. Skipping.")
+                    continue
+                
+                indices = dataset.adata.obs.loc[mask, "index_col"].values
+                conds = dataset.adata.obs.loc[mask, "condition"].values
+                split_name = str(target_split)
 
-        return DataLoader(
-            data_list,
-            batch_size=batch_size,
-            shuffle=shuffle,
-            drop_last=drop_last,
-        )
+            # Double check length
+            if len(indices) == 0:
+                continue
+
+            # B. Create Dataset & Loader
+            logger.info(f"Creating loader for '{split_name}' with {len(indices)} cells...")
+            ds = _LazyGearsDataset(indices, conds)
+            
+            loaders[split_name] = DataLoader(
+                ds,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                drop_last=drop_last,
+                num_workers=num_workers,
+                pin_memory=True if torch.cuda.is_available() else False,
+            )
+
+        if not loaders:
+            logger.warning("No valid data loaders were created (check split names or data availability).")
+
+        return loaders
 
     def forward(self, batch) -> Dict[str, torch.Tensor]:
-        """
-        Forward pass of the model.
+        """Forward pass of the model.
+        
+        Args:
+            batch: Input batch data.
+            
+        Returns:
+            Dictionary with 'pred' key and optionally 'logvar' key.
         """
         if self.config.uncertainty:
             pred, logvar = self.gears_model(batch)
@@ -356,14 +432,16 @@ class GearsModel(PerturbationModel):
         dict_filter: Optional[Dict] = None,
         output_dict: Optional[Dict] = None,
     ) -> Dict[str, Any]:
-        """
-        Computes the loss for the given batch.
+        """Computes the loss for the given batch.
 
         Args:
-            batch: The input batch of data.
+            batch: Input batch of data.
             ctrl_expression: Baseline control expression vector.
             dict_filter: Dictionary for filtering (e.g., DE genes).
-            output_dict: Optional pre-computed model outputs.
+            output_dict: Pre-computed model outputs.
+            
+        Returns:
+            Dictionary with 'loss' key containing the computed loss.
         """
         if output_dict is None:
             output_dict = self.forward(batch)
@@ -458,15 +536,57 @@ class GearsModel(PerturbationModel):
         self,
         dataset: PerturbationData,
         batch_size: int = 32,
-        split: str = "test",
+        split: Optional[str] = None,
         return_numpy: bool = True,
-    ) -> Union[Dict[str, np.ndarray], Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray]]]:
+    ) -> Dict[str, np.ndarray]:
+        """Predicts perturbation effects on the dataset.
+        
+        Args:
+            dataset: Input perturbation dataset.
+            batch_size: Batch size for inference.
+            split: Specific split to predict on ('train', 'val', 'test'), or None for all splits.
+            return_numpy: Whether to return numpy arrays.
+            
+        Returns:
+            Dictionary with 'pred' key containing predictions.
+            If split is None and dataset has splits, returns nested dict.
         """
-        Runs inference on the dataset.
-        """
+        # Determine split behavior
+        has_split = "split" in dataset.adata.obs
+        
+        if split is not None:
+            # Process specific split
+            return self._predict_perturbation_single(
+                dataset, batch_size, split, return_numpy
+            )
+        elif has_split:
+            # Process all splits separately
+            split_names = dataset.adata.obs["split"].unique()
+            result = {}
+            for split_name in split_names:
+                pred_result = self._predict_perturbation_single(
+                    dataset, batch_size, str(split_name), return_numpy
+                )
+                result[str(split_name)] = pred_result
+            return result
+        else:
+            # No split info, treat as train
+            return {'train': self._predict_perturbation_single(
+                dataset, batch_size, 'train', return_numpy
+            )}
+    
+    def _predict_perturbation_single(
+        self,
+        dataset: PerturbationData,
+        batch_size: int,
+        split: str,
+        return_numpy: bool,
+        device: str = 'cuda' if torch.cuda.is_available() and torch.cuda.device_count() > 0 else 'cpu',
+    ) -> Dict[str, np.ndarray]:
+        """Predicts perturbation for a single split."""
         loader = self.get_dataloader(dataset, batch_size, split=split, shuffle=False)
 
-        self.gears_model = self.gears_model.to(self.device)
+        self.gears_model = self.gears_model.to(device)
         self.gears_model.eval()
 
         pert_cat = []
@@ -478,7 +598,7 @@ class GearsModel(PerturbationModel):
 
         with torch.no_grad():
             for batch in loader:
-                batch = batch.to(self.device)
+                batch = batch.to(device)
                 pert_cat.extend(batch.pert)
 
                 if uncertainty_mode:
@@ -491,11 +611,10 @@ class GearsModel(PerturbationModel):
                 if hasattr(batch, "y") and batch.y is not None:
                     truth.append(batch.y.cpu())
 
-        # Use torch.cat instead of stack to handle variable batch sizes
-        if len(pred) > 0:
-            pred = torch.cat(pred, dim=0)  # [total_samples, n_genes]
-        else:
+        if len(pred) == 0:
             return {}
+
+        pred = torch.cat(pred, dim=0)
 
         results = {
             "pred": pred.detach().cpu().numpy() if return_numpy else pred.detach().cpu(),
@@ -508,10 +627,7 @@ class GearsModel(PerturbationModel):
 
         if uncertainty_mode and logvar:
             logvar = torch.cat(logvar, dim=0)
-            uncertainty_dict = {
-                "logvar": logvar.detach().cpu().numpy() if return_numpy else logvar.detach().cpu(),
-            }
-            return results, uncertainty_dict
+            results["logvar"] = logvar.detach().cpu().numpy() if return_numpy else logvar.detach().cpu()
 
         return results
 
@@ -519,20 +635,57 @@ class GearsModel(PerturbationModel):
         self,
         dataset: PerturbationData,
         batch_size: int = 32,
-        split: str = "test",
+        split: Optional[str] = None,
         return_numpy: bool = True,
     ) -> Dict[str, Any]:
+        """Extracts latent embeddings from the model.
+        
+        Args:
+            dataset: Input perturbation dataset.
+            batch_size: Batch size for inference.
+            split: Specific split to predict on ('train', 'val', 'test'), or None for all splits.
+            return_numpy: Whether to return numpy arrays.
+            
+        Returns:
+            Dictionary with 'cell' key containing cell embeddings.
+            If split is None and dataset has splits, returns nested dict.
         """
-        Extracts latent embeddings from the model.
-        """
+        has_split = "split" in dataset.adata.obs
+        
+        if split is not None:
+            return self._predict_embeddings_single(
+                dataset, batch_size, split, return_numpy
+            )
+        elif has_split:
+            split_names = dataset.adata.obs["split"].unique()
+            result = {}
+            for split_name in split_names:
+                emb_result = self._predict_embeddings_single(
+                    dataset, batch_size, str(split_name), return_numpy
+                )
+                result[str(split_name)] = emb_result
+            return result
+        else:
+            return {'train': self._predict_embeddings_single(
+                dataset, batch_size, 'train', return_numpy
+            )}
+    
+    def _predict_embeddings_single(
+        self,
+        dataset: PerturbationData,
+        batch_size: int,
+        split: str,
+        return_numpy: bool,
+        device: str = 'cuda' if torch.cuda.is_available() and torch.cuda.device_count() > 0 else 'cpu',
+    ) -> Dict[str, Any]:
+        """Extracts embeddings for a single split."""
         loader = self.get_dataloader(dataset, batch_size, split=split, shuffle=False)
 
-        self.gears_model = self.gears_model.to(self.device)
+        self.gears_model = self.gears_model.to(device)
         self.gears_model.eval()
 
         embeddings_list = []
         pert_cat = []
-        batch_sizes = []
 
         def get_embedding_hook(module, input, output):
             embeddings_list.append(output.detach().cpu())
@@ -542,39 +695,25 @@ class GearsModel(PerturbationModel):
         try:
             with torch.no_grad():
                 for batch in loader:
-                    batch = batch.to(self.device)
+                    batch = batch.to(device)
                     pert_cat.extend(batch.pert)
-
-                    # Track batch size
-                    num_graphs_in_batch = (
-                        batch.ptr.shape[0] - 1
-                        if hasattr(batch, "ptr")
-                        else len(batch.batch.unique())
-                    )
-                    batch_sizes.append(num_graphs_in_batch)
-
                     _ = self.gears_model(batch)
         finally:
             hook_handle.remove()
 
-        if embeddings_list:
-            # Use torch.cat for proper concatenation
-            embeddings = torch.cat(embeddings_list, dim=0)
-
-            num_samples = len(pert_cat)
-            num_genes = len(self.gene_list)
-            hidden_size = embeddings.shape[-1]
-
-            embeddings = embeddings.reshape(num_samples, num_genes, hidden_size)
-
-            results = {
-                "embeddings": embeddings.numpy() if return_numpy else embeddings,
-                "pert_cat": np.array(pert_cat),
-            }
-
-            return results
-        else:
+        if not embeddings_list:
             raise RuntimeError("No embeddings were captured.")
+
+        embeddings = torch.cat(embeddings_list, dim=0)
+        num_samples = len(pert_cat)
+        num_genes = len(self.gene_list)
+        hidden_size = embeddings.shape[-1]
+        embeddings = embeddings.reshape(num_samples, num_genes, hidden_size)
+
+        return {
+            "cell": embeddings.numpy() if return_numpy else embeddings,
+            "pert_cat": np.array(pert_cat),
+        }
 
     def get_gene_embedding_layer(self):
         if not self.gene_embedding_layer_type == "custom":
@@ -602,7 +741,7 @@ class GearsModel(PerturbationModel):
 
     def set_pert_embeddings(self, pert_embeddings: torch.Tensor, trainable: bool = True):
         """Sets weights for perturbation embeddings."""
-        pert_embeddings = pert_embeddings.to(self.device)
+        pert_embeddings = pert_embeddings.to(self.gears_model.device)
 
         if pert_embeddings.shape[0] != self.gears_model.num_perts:
             raise ValueError(f"pert_embeddings must have {self.gears_model.num_perts} rows")
@@ -613,7 +752,7 @@ class GearsModel(PerturbationModel):
 
     def set_gene_embeddings(self, gene_embeddings: torch.Tensor, trainable: bool = True):
         """Sets weights for gene embeddings."""
-        gene_embeddings = gene_embeddings.to(self.device)
+        gene_embeddings = gene_embeddings.to(self.gears_model.device)
 
         if gene_embeddings.shape[0] != self.gears_model.num_genes:
             raise ValueError(f"gene_embeddings must have {self.gears_model.num_genes} rows")
@@ -627,296 +766,14 @@ class GearsModel(PerturbationModel):
             embedding_layer
             if embedding_layer is not None
             else nn.Embedding(self.gears_model.num_genes, self.gears_model.hidden_size)
-        )
+        ).to(self.gears_model.device)
 
     def set_pert_embedding_layer(self, embedding_layer: Optional[nn.Module] = None):
         self.gears_model.pert_emb = (
             embedding_layer
             if embedding_layer is not None
             else nn.Embedding(self.gears_model.num_perts, self.gears_model.hidden_size)
-        )
-
-    @classmethod
-    def from_pretrained(
-        cls,
-        model_name_or_path: str,
-        device: str = "cuda",
-        **kwargs,
-    ):
-        """
-        Loads a GEARS model from a saved directory.
-
-        Args:
-            model_name_or_path: Path to the saved model directory.
-            device: Computation device.
-
-        Returns:
-            Loaded GearsModel instance.
-        """
-        if not os.path.exists(model_name_or_path):
-            raise ValueError(f"Path '{model_name_or_path}' does not exist.")
-
-        # Load config
-        config_path = os.path.join(model_name_or_path, "config.json")
-        if not os.path.exists(config_path):
-            raise FileNotFoundError(f"Config file not found at {config_path}")
-        config = GearsConfig.load(config_path)
-
-        # Load gene and perturbation lists
-        gene_list_path = os.path.join(model_name_or_path, "gene_list.json")
-        if not os.path.exists(gene_list_path):
-            raise FileNotFoundError(f"Gene list file not found at {gene_list_path}")
-        with open(gene_list_path, "r") as f:
-            gene_list = json.load(f)
-
-        pert_list_path = os.path.join(model_name_or_path, "pert_list.json")
-        if not os.path.exists(pert_list_path):
-            raise FileNotFoundError(f"Perturbation list file not found at {pert_list_path}")
-        with open(pert_list_path, "r") as f:
-            pert_list = json.load(f)
-
-        # Load metadata
-        metadata_path = os.path.join(model_name_or_path, "metadata.json")
-        if os.path.exists(metadata_path):
-            with open(metadata_path, "r") as f:
-                metadata = json.load(f)
-            gene_embedding_layer_type = metadata.get("gene_embedding_layer_type", "default")
-            pert_embedding_layer_type = metadata.get("pert_embedding_layer_type", "default")
-        else:
-            gene_embedding_layer_type = "default"
-            pert_embedding_layer_type = "default"
-
-        # Load graphs
-        go_graph_path = os.path.join(model_name_or_path, "go_graph.pkl")
-        if not os.path.exists(go_graph_path):
-            raise FileNotFoundError(f"GO graph file not found at {go_graph_path}")
-        go_graph = GeneGraph.load(go_graph_path)
-
-        co_graph_path = os.path.join(model_name_or_path, "co_graph.pkl")
-        if not os.path.exists(co_graph_path):
-            raise FileNotFoundError(f"Co-expression graph file not found at {co_graph_path}")
-        co_graph = GeneGraph.load(co_graph_path)
-
-        # Create model instance
-        model = cls(
-            config=config,
-            gene_list=gene_list,
-            pert_list=pert_list,
-            go_graph=go_graph,
-            co_graph=co_graph,
-            device=device,
-        )
-
-        # Load weights
-        model_path = os.path.join(model_name_or_path, "model.pt")
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found at {model_path}")
-
-        state_dict = torch.load(model_path, map_location=device)
-        model.gears_model.load_state_dict(state_dict)
-
-        # Restore embedding metadata
-        model.gene_embedding_layer_type = gene_embedding_layer_type
-        model.pert_embedding_layer_type = pert_embedding_layer_type
-
-        return model
-
-    def save(self, path: str):
-        """
-        Saves the GEARS model, including weights, config, and graphs.
-
-        Args:
-            path: Target directory path.
-        """
-        os.makedirs(path, exist_ok=True)
-
-        # Save configuration
-        config_path = os.path.join(path, "config.json")
-        self.config.save(config_path)
-
-        # Save model weights
-        model_path = os.path.join(path, "model.pt")
-        torch.save(self.gears_model.state_dict(), model_path)
-
-        # Save graphs
-        go_graph_path = os.path.join(path, "go_graph.pkl")
-        self.go_graph.save(go_graph_path)
-
-        co_graph_path = os.path.join(path, "co_graph.pkl")
-        self.co_graph.save(co_graph_path)
-
-        # Save lists
-        gene_list_path = os.path.join(path, "gene_list.json")
-        with open(gene_list_path, "w") as f:
-            json.dump(self.gene_list, f, indent=2)
-
-        pert_list_path = os.path.join(path, "pert_list.json")
-        with open(pert_list_path, "w") as f:
-            json.dump(self.pert_list, f, indent=2)
-
-        # Save metadata
-        metadata = {
-            "gene_embedding_layer_type": getattr(self, "gene_embedding_layer_type", "default"),
-            "pert_embedding_layer_type": getattr(self, "pert_embedding_layer_type", "default"),
-        }
-        metadata_path = os.path.join(path, "metadata.json")
-        with open(metadata_path, "w") as f:
-            json.dump(metadata, f, indent=2)
-
-        logger.info(f"Model saved to {path}")
-
-    def train(self):
-        """Sets the model to training mode."""
-        self.gears_model.train()
-        return self
-
-    def eval(self):
-        """Sets the model to evaluation mode."""
-        self.gears_model.eval()
-        return self
-
-    def evaluate(
-        self,
-        dataset: PerturbationData,
-        batch_size: int = 32,
-        split: str = "val",
-    ) -> Dict[str, np.ndarray]:
-        """
-        Evaluates the model on a specific data split.
-        """
-        loader = self.get_dataloader(dataset, batch_size, split=split, shuffle=False)
-
-        self.gears_model = self.gears_model.to(self.device)
-        self.gears_model.eval()
-
-        pert_cat = []
-        pred = []
-        truth = []
-        pred_de = []
-        truth_de = []
-        logvar = []
-
-        uncertainty_mode = self.config.uncertainty
-
-        with torch.no_grad():
-            for batch in loader:
-                batch = batch.to(self.device)
-                pert_cat.extend(batch.pert)
-
-                if uncertainty_mode:
-                    p, unc = self.gears_model(batch)
-                    logvar.append(unc.cpu())
-                else:
-                    p = self.gears_model(batch)
-
-                t = batch.y
-                # Reshape ground truth if necessary
-                if t.dim() == 2 and t.shape[1] == 1:
-                    num_samples = len(batch.batch.unique())
-                    t = t.reshape(num_samples, -1)
-
-                pred.append(p.cpu())
-                truth.append(t.cpu())
-
-                # Collect differentially expressed genes
-                if hasattr(batch, "de_idx") and batch.de_idx is not None:
-                    for idx, de_idx in enumerate(batch.de_idx):
-                        if isinstance(de_idx, torch.Tensor):
-                            de_idx = de_idx.tolist()
-                        valid_de_idx = [i for i in de_idx if i >= 0]
-                        if valid_de_idx:
-                            pred_de.append(p[idx, valid_de_idx].cpu())
-                            truth_de.append(t[idx, valid_de_idx].cpu())
-
-        # Consolidate results
-        results = {
-            "pert_cat": np.array(pert_cat),
-            "pred": torch.cat(pred, dim=0).detach().cpu().numpy(),
-            "truth": torch.cat(truth, dim=0).detach().cpu().numpy(),
-        }
-
-        if pred_de:
-            results["pred_de"] = torch.stack(pred_de).detach().cpu().numpy()
-            results["truth_de"] = torch.stack(truth_de).detach().cpu().numpy()
-
-        if uncertainty_mode and logvar:
-            results["logvar"] = torch.cat(logvar, dim=0).detach().cpu().numpy()
-
-        return results
-
-    def compute_metrics(self, results: Dict[str, np.ndarray]) -> Dict[str, Any]:
-        """
-        Computes MSE and Pearson correlation metrics.
-
-        Args:
-            results: Dictionary containing prediction results.
-
-        Returns:
-            Dictionary with aggregated metrics.
-        """
-        def mse(pred, truth):
-            return np.mean((pred - truth) ** 2)
-
-        metrics = {}
-        metrics_pert = {}
-
-        metric2fct = {"mse": mse, "pearson": pearsonr}
-
-        for m in metric2fct.keys():
-            metrics[m] = []
-            metrics[m + "_de"] = []
-
-        for pert in np.unique(results["pert_cat"]):
-            metrics_pert[pert] = {}
-            p_idx = np.where(results["pert_cat"] == pert)[0]
-
-            for m, fct in metric2fct.items():
-                if m == "pearson":
-                    val = fct(
-                        results["pred"][p_idx].mean(0), results["truth"][p_idx].mean(0)
-                    )[0]
-                    if np.isnan(val):
-                        val = 0
-                else:
-                    val = fct(
-                        results["pred"][p_idx].mean(0), results["truth"][p_idx].mean(0)
-                    )
-
-                metrics_pert[pert][m] = val
-                metrics[m].append(metrics_pert[pert][m])
-
-            if pert != "ctrl" and "pred_de" in results:
-                for m, fct in metric2fct.items():
-                    if m == "pearson":
-                        val = fct(
-                            results["pred_de"][p_idx].mean(0),
-                            results["truth_de"][p_idx].mean(0),
-                        )[0]
-                        if np.isnan(val):
-                            val = 0
-                    else:
-                        val = fct(
-                            results["pred_de"][p_idx].mean(0),
-                            results["truth_de"][p_idx].mean(0),
-                        )
-
-                    metrics_pert[pert][m + "_de"] = val
-                    metrics[m + "_de"].append(metrics_pert[pert][m + "_de"])
-            else:
-                for m in metric2fct.keys():
-                    metrics_pert[pert][m + "_de"] = 0
-
-        for m in metric2fct.keys():
-            metrics[m] = np.mean(metrics[m])
-            metrics[m + "_de"] = np.mean(metrics[m + "_de"])
-
-        return {
-            "mse": metrics["mse"],
-            "mse_de": metrics["mse_de"],
-            "pearson": metrics["pearson"],
-            "pearson_de": metrics["pearson_de"],
-            "per_perturbation": metrics_pert,
-        }
+        ).to(self.gears_model.device)
 
     def train_model(
         self,
@@ -930,9 +787,27 @@ class GearsModel(PerturbationModel):
         log_interval: int = 50,
         save_best: bool = True,
         save_path: Optional[str] = None,
+        scheduler_step_size: int = 5,
+        scheduler_gamma: float = 0.5,
     ) -> Dict[str, List[float]]:
-        """
-        Main training loop.
+        """Trains the GEARS model.
+        
+        Args:
+            dataset: Input perturbation dataset.
+            epochs: Number of training epochs.
+            lr: Learning rate.
+            weight_decay: Weight decay for optimizer.
+            batch_size: Training batch size.
+            train_split: Name of training split.
+            val_split: Name of validation split.
+            log_interval: Logging interval in steps.
+            save_best: Whether to save the best model.
+            save_path: Path to save the best model.
+            scheduler_step_size: Step size for learning rate scheduler.
+            scheduler_gamma: Gamma for learning rate scheduler.
+            
+        Returns:
+            Dictionary with training history.
         """
         # Data Preparation
         if not dataset.gears_format:
@@ -951,7 +826,7 @@ class GearsModel(PerturbationModel):
         ctrl_expression = torch.tensor(
             np.array(ctrl_cells.X.mean(axis=0)).flatten(),
             dtype=torch.float32,
-            device=self.device,
+            device=self.gears_model.device,
         )
 
         # Build DE gene filter dictionary
@@ -990,13 +865,12 @@ class GearsModel(PerturbationModel):
         train_loader = self.get_dataloader(dataset, batch_size, split=train_split, shuffle=True)
         val_loader = self.get_dataloader(dataset, batch_size, split=val_split, shuffle=False)
 
-        # Optimizer & Scheduler
-        self.gears_model = self.gears_model.to(self.device)
-        best_model = deepcopy(self.gears_model)
+        # Use state_dict instead of deepcopy to save GPU memory
+        best_model_state = {k: v.cpu().clone() for k, v in self.gears_model.state_dict().items()}
         optimizer = optim.Adam(
             self.gears_model.parameters(), lr=lr, weight_decay=weight_decay
         )
-        scheduler = StepLR(optimizer, step_size=1, gamma=0.5)
+        scheduler = StepLR(optimizer, step_size=scheduler_step_size, gamma=scheduler_gamma)
 
         min_val = np.inf
         history = {
@@ -1015,7 +889,7 @@ class GearsModel(PerturbationModel):
             num_batches = 0
 
             for step, batch in enumerate(train_loader):
-                batch = batch.to(self.device)
+                batch = batch.to(self.gears_model.device)
                 optimizer.zero_grad()
 
                 loss_dict = self.compute_loss(
@@ -1064,13 +938,144 @@ class GearsModel(PerturbationModel):
             # Save best model
             if val_metrics_full["mse_de"] < min_val:
                 min_val = val_metrics_full["mse_de"]
-                best_model = deepcopy(self.gears_model)
+                # Save state dict to CPU to save GPU memory
+                best_model_state = {k: v.cpu().clone() for k, v in self.gears_model.state_dict().items()}
                 logger.info(f"New best model found! Val DE MSE: {min_val:.4f}")
 
         logger.info("Training Done!")
-        self.gears_model = best_model
+        # Restore best model weights
+        self.gears_model.load_state_dict(best_model_state)
 
         if save_best and save_path is not None:
             self.save(save_path)
 
         return history
+
+    def save(self, model_path: str):
+        """
+        Saves the GEARS model, including weights, config, graphs, and metadata.
+
+        Args:
+            path: Target directory path.
+        """
+        # 1. Ensure directory exists
+        os.makedirs(model_path, exist_ok=True)
+
+        # 2. Save Configuration
+        config_path = os.path.join(model_path, "config.json")
+        self.config.save(config_path)
+
+        # 3. Save Vocabularies (Gene & Perturbation Lists)
+        gene_list_path = os.path.join(model_path, "gene_list.json")
+        with open(gene_list_path, "w") as f:
+            json.dump(self.gene_list, f, indent=2)
+
+        pert_list_path = os.path.join(model_path, "pert_list.json")
+        with open(pert_list_path, "w") as f:
+            json.dump(self.pert_list, f, indent=2)
+
+        # 4. Save Graphs
+        go_graph_path = os.path.join(model_path, "go_graph.pkl")
+        self.go_graph.save(go_graph_path)
+
+        co_graph_path = os.path.join(model_path, "co_graph.pkl")
+        self.co_graph.save(co_graph_path)
+
+        # 5. Save Metadata (e.g. embedding types)
+        metadata = {
+            "gene_embedding_layer_type": getattr(self, "gene_embedding_layer_type", "default"),
+            "pert_embedding_layer_type": getattr(self, "pert_embedding_layer_type", "default"),
+        }
+        metadata_path = os.path.join(model_path, "metadata.json")
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f, indent=2)
+
+        # 6. Save Model Weights
+        # Save weights last to ensure structure files are written successfully first
+        model_path = os.path.join(model_path, "model.pt")
+        torch.save(self.gears_model.state_dict(), model_path)
+
+        logger.info(f"Model content successfully saved to {model_path}")
+
+    @classmethod
+    def load(cls, model_path: str, device: str = 'cpu') -> "GearsModel":
+        """
+        Loads the GEARS model from a saved directory.
+
+        Args:
+            model_path: Path to the saved model directory.
+            device: Target device ('cpu', 'cuda', etc.).
+            **kwargs: Additional arguments for model initialization.
+
+        Returns:
+            Loaded GearsModel instance.
+        """
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model directory not found: {model_path}")
+
+        # 1. Load Configuration
+        config_path = os.path.join(model_path, "config.json")
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f"Config file not found at {config_path}")
+        config = GearsConfig.load(config_path)
+
+        # 2. Load Vocabularies
+        gene_list_path = os.path.join(model_path, "gene_list.json")
+        with open(gene_list_path, "r") as f:
+            gene_list = json.load(f)
+
+        pert_list_path = os.path.join(model_path, "pert_list.json")
+        with open(pert_list_path, "r") as f:
+            pert_list = json.load(f)
+
+        # 3. Load Graphs
+        go_graph_path = os.path.join(model_path, "go_graph.pkl")
+        co_graph_path = os.path.join(model_path, "co_graph.pkl")
+        
+        if not os.path.exists(go_graph_path) or not os.path.exists(co_graph_path):
+             raise FileNotFoundError(f"Graph files missing in {model_path}")
+
+        go_graph = GeneGraph.load(go_graph_path)
+        co_graph = GeneGraph.load(co_graph_path)
+
+        # 4. Initialize Model Structure
+        model = cls(
+            config=config,
+            gene_list=gene_list,
+            pert_list=pert_list,
+            go_graph=go_graph,
+            co_graph=co_graph,
+            # Note: Embeddings are initialized to default/random here.
+            # They will be overwritten by state_dict later.
+        )
+
+        # 5. Load Metadata and Apply to Model State
+        metadata_path = os.path.join(model_path, "metadata.json")
+        if os.path.exists(metadata_path):
+            with open(metadata_path, "r") as f:
+                metadata = json.load(f)
+            model.gene_embedding_layer_type = metadata.get("gene_embedding_layer_type", "default")
+            model.pert_embedding_layer_type = metadata.get("pert_embedding_layer_type", "default")
+
+        # 6. Load Weights
+        weights_path = os.path.join(model_path, "model.pt")
+        if not os.path.exists(weights_path):
+             raise FileNotFoundError(f"Weights file not found at {weights_path}")
+        
+        # Load to CPU first to avoid CUDA OOM or device mismatch errors
+        state_dict = torch.load(weights_path, map_location='cpu')
+        
+        # Load state dict
+        # strict=False is used to allow flexibility, but we warn on missing keys
+        keys_missing, keys_unexpected = model.gears_model.load_state_dict(state_dict, strict=False)
+        
+        if keys_missing:
+            logger.warning(f"Missing keys in state_dict: {keys_missing}")
+        if keys_unexpected:
+            logger.warning(f"Unexpected keys in state_dict: {keys_unexpected}")
+
+        # 7. Move to Target Device
+        model.to(device)
+        
+        logger.info(f"✓ Model loaded successfully from {model_path} (Device: {device})")
+        return model

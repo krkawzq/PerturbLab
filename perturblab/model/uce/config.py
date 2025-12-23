@@ -11,6 +11,12 @@ class UCEConfig(ModelConfig):
     from single-cell RNA-seq data. It uses protein embeddings (ESM2) as gene tokens.
     
     Source: https://github.com/snap-stanford/UCE
+    
+    Note on Model Variants:
+        - Current implementation is based on ESM2-650M (vocab size: 143574)
+        - Standard configurations: 4-layer and 33-layer variants
+        - To support other ESM2 versions (e.g., ESM2-3B), the chrom_token_offset
+          must match the base model's vocabulary size
     """
     
     def __init__(
@@ -55,7 +61,9 @@ class UCEConfig(ModelConfig):
             chrom_token_left_idx: Index for left chromosome token.
             chrom_token_right_idx: Index for right chromosome token.
             cls_token_idx: Index for CLS token.
-            chrom_token_offset: Offset for chromosome tokens.
+            chrom_token_offset: Offset for chromosome tokens (143574 in original UCE, 
+                matching ESM2-650M vocab size). This is where chromosome tokens start 
+                in the extended vocabulary.
             species: Default species name.
             embedding_model: Protein embedding model used (e.g., 'ESM2').
         """

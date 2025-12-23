@@ -33,20 +33,23 @@ logger = logging.getLogger(__name__)
 
 
 class CellFMModel(PerturbationModel):
-    """
-    CellFM (Cell Foundation Model) wrapper.
-
-    
+    """CellFM (Cell Foundation Model) wrapper.
 
     CellFM is a retention-based foundation model for single-cell transcriptomics
     that can generate cell embeddings and perform various downstream tasks.
     Unlike standard Transformers, it uses a retention mechanism for O(N) inference cost.
 
     Features:
-    - Pre-trained on 100M cells.
-    - Retention-based architecture (efficient scaling).
-    - Supports cell annotation, batch correction, and perturbation prediction.
+    - Pre-trained on 100M cells
+    - Retention-based architecture (efficient scaling)
+    - Supports cell annotation, batch correction, and perturbation prediction
     """
+    
+    # List of available pretrained models on HuggingFace
+    _pretrained_models = [
+        "cellfm-80m",
+        "cellfm-400m",
+    ]
 
     def __init__(
         self,
@@ -55,13 +58,12 @@ class CellFMModel(PerturbationModel):
         device: str = "cuda",
         for_finetuning: bool = False,
     ):
-        """
-        Initializes the CellFM model.
+        """Initializes the CellFM model.
 
         Args:
-            config: CellFMConfig configuration object.
-            n_genes: Number of genes. If None, uses config.n_genes.
-            device: Device to run the model on ('cuda' or 'cpu').
+            config: CellFM configuration object.
+            n_genes: Number of genes.
+            device: Device to run the model on.
             for_finetuning: Whether to initialize with a classification head.
         """
         super().__init__(config)
@@ -97,18 +99,17 @@ class CellFMModel(PerturbationModel):
 
     @staticmethod
     def _extract_adata(data: Union[AnnData, PerturbationData]) -> AnnData:
-        """Helper to extract AnnData from input data."""
+        """Extracts AnnData from input data."""
         if isinstance(data, PerturbationData):
             return data.adata
         return data
 
-    def load_weights(self, checkpoint_path: str, strict: bool = False):
-        """
-        Loads model weights from a PyTorch checkpoint.
+    def load_weights(self, checkpoint_path: str, strict: bool = True):
+        """Loads model weights from a PyTorch checkpoint.
 
         Args:
-            checkpoint_path: Path to PyTorch checkpoint file (.pt or .pth).
-            strict: Whether to strictly enforce key matching.
+            checkpoint_path: Path to PyTorch checkpoint file.
+            strict: Whether to strictly enforce key matching. Default True for safety.
         """
         if not os.path.exists(checkpoint_path):
             raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
@@ -146,10 +147,23 @@ class CellFMModel(PerturbationModel):
             # Direct state dict
             missing, unexpected = self.model.load_state_dict(checkpoint, strict=strict)
 
+        # Enhanced validation: warn if too many keys are missing
         if missing:
-            logger.warning(f"Missing keys: {missing}")
+            total_keys = len(self.model.state_dict())
+            missing_ratio = len(missing) / max(1, total_keys)
+            if missing_ratio > 0.1:  # More than 10% missing
+                logger.error(
+                    f"⚠️ Critical: {len(missing)}/{total_keys} keys missing "
+                    f"({missing_ratio:.1%}). This may indicate version mismatch!"
+                )
+                logger.error(f"Missing keys: {missing}")
+                if strict:
+                    raise RuntimeError("Too many missing keys in checkpoint!")
+            else:
+                logger.warning(f"Missing keys ({len(missing)}): {missing}")
+        
         if unexpected:
-            logger.warning(f"Unexpected keys: {unexpected}")
+            logger.warning(f"Unexpected keys ({len(unexpected)}): {unexpected}")
 
         self.model_loaded = True
         logger.info("✓ Weights loaded successfully")
@@ -332,10 +346,10 @@ class CellFMModel(PerturbationModel):
         return_gene_embeddings: bool = False,
         preprocess: bool = True,
         split: Optional[str] = None,
+        show_progress: bool = True,
         **kwargs,
     ) -> Dict[str, np.ndarray]:
-        """
-        Generates cell embeddings from expression data.
+        """Generates cell embeddings from expression data.
 
         Args:
             data: Input data.
@@ -343,14 +357,16 @@ class CellFMModel(PerturbationModel):
             return_cls_token: Return CLS token (cell) embeddings.
             return_gene_embeddings: Return gene-level embeddings.
             preprocess: Run preprocessing pipeline.
-            split: Specific split to predict on ('train', 'val', 'test', or None for all).
+            split: Specific split to predict on, or None for all splits.
+            show_progress: Whether to show progress bar.
             **kwargs: Args for preprocessing.
 
         Returns:
-            Dictionary with 'cell_embeddings' and optional 'gene_embeddings'.
+            Dictionary with 'cell' key containing cell embeddings.
+            If split is None and dataset has splits, returns nested dict.
         """
         if not self.model_loaded:
-            logger.warning("Model weights not loaded. Using random initialization.")
+            logger.warning("⚠️ Model weights not loaded. Using random initialization.")
 
         adata = self._extract_adata(data)
         logger.info(f"Generating embeddings for {adata.n_obs} cells...")
@@ -368,25 +384,103 @@ class CellFMModel(PerturbationModel):
             **kwargs,
         )
 
-        # Select dataloader
-        dataloader = dataloaders[split] if split else list(dataloaders.values())[0]
-
+        # Handle split logic
+        if split is not None:
+            return self._predict_embeddings_single(
+                dataloaders[split], return_cls_token, return_gene_embeddings,
+                show_progress=show_progress
+            )
+        else:
+            # Process all splits
+            result = {}
+            for split_name, dataloader in dataloaders.items():
+                desc = f"Split: {split_name}" if show_progress else None
+                if desc:
+                    logger.info(desc)
+                emb_result = self._predict_embeddings_single(
+                    dataloader, return_cls_token, return_gene_embeddings,
+                    show_progress=show_progress, desc=desc
+                )
+                result[split_name] = emb_result
+            return result
+    
+    def _predict_embeddings_single(
+        self,
+        dataloader: DataLoader,
+        return_cls_token: bool,
+        return_gene_embeddings: bool,
+        show_progress: bool = True,
+        desc: Optional[str] = None,
+    ) -> Dict[str, np.ndarray]:
+        """Generates embeddings for a single dataloader.
+        
+        Args:
+            dataloader: DataLoader to generate embeddings from.
+            return_cls_token: Whether to return CLS token embeddings.
+            return_gene_embeddings: Whether to return gene embeddings.
+            show_progress: Whether to show progress bar.
+            desc: Description for progress bar.
+        
+        Returns:
+            Dictionary with embeddings.
+        """
         self.eval()
         all_cls_tokens = []
+        
+        # Memory optimization: pre-allocate if dataset size is known
+        try:
+            total_samples = len(dataloader.dataset)
+            if return_cls_token and total_samples > 0:
+                # Get embedding dimension from first batch
+                first_batch = next(iter(dataloader))
+                with torch.no_grad():
+                    output = self.forward(first_batch)
+                    emb_dim = output["cls_token"].shape[1]
+                    
+                # Pre-allocate array
+                cell_embeddings = np.zeros((total_samples, emb_dim), dtype=np.float32)
+                use_preallocated = True
+                current_idx = 0
+                
+                # Store first batch
+                batch_size = output["cls_token"].shape[0]
+                cell_embeddings[:batch_size] = output["cls_token"].cpu().numpy()
+                current_idx = batch_size
+        except (StopIteration, AttributeError):
+            # Fallback to list accumulation
+            use_preallocated = False
+            logger.debug("Using list accumulation for embeddings")
 
+        # Configure progress bar
+        pbar_kwargs = {"desc": desc or "Generating embeddings", "disable": not show_progress}
+        
         with torch.no_grad():
-            for batch in tqdm(dataloader, desc="Generating embeddings"):
+            # Start from second batch if we used first batch for pre-allocation
+            data_iter = iter(dataloader)
+            if use_preallocated:
+                next(data_iter)  # Skip first batch
+            
+            for batch in tqdm(data_iter, **pbar_kwargs):
                 output = self.forward(batch)
 
                 if return_cls_token:
                     cls_token = output["cls_token"].cpu().numpy()
-                    all_cls_tokens.append(cls_token)
+                    if use_preallocated:
+                        batch_size = cls_token.shape[0]
+                        cell_embeddings[current_idx:current_idx + batch_size] = cls_token
+                        current_idx += batch_size
+                    else:
+                        all_cls_tokens.append(cls_token)
 
         result = {}
-        if return_cls_token and all_cls_tokens:
-            cell_embeddings = np.concatenate(all_cls_tokens, axis=0)
-            result["cell_embeddings"] = cell_embeddings
-            logger.info(f"Generated cell embeddings: {cell_embeddings.shape}")
+        if return_cls_token:
+            if use_preallocated:
+                result["cell"] = cell_embeddings
+            elif all_cls_tokens:
+                result["cell"] = np.concatenate(all_cls_tokens, axis=0)
+            
+            if "cell" in result:
+                logger.info(f"✓ Generated cell embeddings: {result['cell'].shape}")
 
         if return_gene_embeddings:
             logger.warning(
@@ -396,14 +490,13 @@ class CellFMModel(PerturbationModel):
         return result
 
     def forward(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-        """
-        Forward pass of the CellFM model.
+        """Forward pass of the CellFM model.
 
         Args:
-            batch: Dictionary from DataLoader containing raw_nzdata, dw_nzdata, etc.
+            batch: Dictionary from DataLoader.
 
         Returns:
-            Dictionary containing 'mask_loss', 'cls_token', and optional 'logits'.
+            Dictionary with 'mask_loss', 'cls_token', and optional 'logits' keys.
         """
         raw_nzdata = batch["raw_nzdata"].to(self.device)
         dw_nzdata = batch["dw_nzdata"].to(self.device)
@@ -443,8 +536,7 @@ class CellFMModel(PerturbationModel):
         labels: Optional[torch.Tensor] = None,
         output_dict: Optional[Dict[str, torch.Tensor]] = None,
     ) -> Dict[str, torch.Tensor]:
-        """
-        Computes reconstruction and classification losses.
+        """Computes reconstruction and classification losses.
 
         Args:
             batch: Input batch.
@@ -452,7 +544,7 @@ class CellFMModel(PerturbationModel):
             output_dict: Optional pre-computed output.
 
         Returns:
-            Dictionary with 'loss', 'mask_loss', and optionally 'cls_loss'.
+            Dictionary with 'loss' key containing the total loss.
         """
         if output_dict is None:
             output_dict = self.forward(batch)
@@ -491,8 +583,7 @@ class CellFMModel(PerturbationModel):
         use_amp: bool = True,
         **kwargs,
     ):
-        """
-        Trains the CellFM model.
+        """Trains the CellFM model.
 
         Args:
             train_dataloader: Training DataLoader.
@@ -503,10 +594,10 @@ class CellFMModel(PerturbationModel):
             warmup_steps: Learning rate warmup steps.
             max_grad_norm: Gradient clipping norm.
             save_dir: Directory to save checkpoints.
-            save_every: Checkpoint saving frequency (epochs).
-            log_every: Logging frequency (steps).
+            save_every: Checkpoint saving frequency.
+            log_every: Logging frequency.
             device: Device override.
-            use_amp: Automatic Mixed Precision flag.
+            use_amp: Whether to use automatic mixed precision.
         """
         if device is not None:
             self.device = device
@@ -622,7 +713,7 @@ class CellFMModel(PerturbationModel):
         logger.info("✓ Training complete!")
 
     def _validate(self, val_dataloader: DataLoader) -> float:
-        """Run validation loop."""
+        """Runs validation loop."""
         self.eval()
         total_loss = 0.0
         with torch.no_grad():
@@ -631,15 +722,15 @@ class CellFMModel(PerturbationModel):
                 total_loss += loss_dict["loss"].item()
         return total_loss / len(val_dataloader)
 
-    def save(self, save_directory: str):
+    def save(self, path: str):
         """Saves model weights and config."""
-        os.makedirs(save_directory, exist_ok=True)
+        os.makedirs(path, exist_ok=True)
 
-        config_path = os.path.join(save_directory, "config.json")
+        config_path = os.path.join(path, "config.json")
         self.config.save(config_path)
         logger.info(f"✓ Saved config to {config_path}")
 
-        model_path = os.path.join(save_directory, "model.pt")
+        model_path = os.path.join(path, "model.pt")
         state_dict = {"base_model": self.model.state_dict()}
         if self.cls_head is not None:
             state_dict["cls_head"] = self.cls_head.state_dict()
@@ -648,22 +739,19 @@ class CellFMModel(PerturbationModel):
         logger.info(f"✓ Saved model weights to {model_path}")
 
     @classmethod
-    def from_pretrained(
+    def load(
         cls,
-        model_name_or_path: str,
+        model_path: str,
         config: Optional[CellFMConfig] = None,
         device: str = "cuda",
         load_weights: bool = True,
         **kwargs,
     ) -> "CellFMModel":
         """
-        Loads CellFM model from pretrained weights.
+        Loads CellFM model from a local directory.
 
         Args:
-            model_name_or_path: Model identifier. Can be:
-                - Local directory path (e.g., './weights/cellfm-80m')
-                - Model name (e.g., 'cellfm-80m', '80m')
-                - HuggingFace repo ID (e.g., 'perturblab/cellfm-80m')
+            model_path: Path to model directory.
             config: Optional config override.
             device: Computation device ('cuda' or 'cpu').
             load_weights: Whether to load pretrained weights.
@@ -671,68 +759,7 @@ class CellFMModel(PerturbationModel):
 
         Returns:
             Loaded CellFMModel instance.
-
-        Examples:
-            >>> # Load from HuggingFace Hub
-            >>> model = CellFMModel.from_pretrained('cellfm-80m')
-            >>> 
-            >>> # Load from local path
-            >>> model = CellFMModel.from_pretrained('./weights/cellfm-80m')
-            >>> 
-            >>> # Load with short name
-            >>> model = CellFMModel.from_pretrained('80m')
         """
-        model_path = None
-
-        # 1. Check if it's a local directory path
-        if os.path.exists(model_name_or_path) and os.path.isdir(model_name_or_path):
-            model_path = model_name_or_path
-            logger.info(f"Loading model from local path: {model_path}")
-
-        # 2. Check weights directory with various name patterns
-        if model_path is None:
-            weights_dir = os.path.join(
-                os.path.dirname(__file__), "..", "..", "..", "weights"
-            )
-            weights_dir = os.path.abspath(weights_dir)
-            
-            # Try different name patterns
-            candidates = [
-                model_name_or_path,  # Exact name
-                f"cellfm-{model_name_or_path}",  # Add cellfm- prefix
-            ]
-            
-            for candidate_name in candidates:
-                candidate_path = os.path.join(weights_dir, candidate_name)
-                if os.path.isdir(candidate_path):
-                    model_path = candidate_path
-                    logger.info(f"Found model in weights directory: {model_path}")
-                    break
-
-        # 3. Download from HuggingFace Hub
-        if model_path is None:
-            # Construct HuggingFace repo ID
-            if "/" in model_name_or_path:
-                # Already a full repo ID
-                hf_repo_id = model_name_or_path
-            elif model_name_or_path.startswith("cellfm-"):
-                # Already has cellfm- prefix
-                hf_repo_id = f"perturblab/{model_name_or_path}"
-            else:
-                # Add cellfm- prefix
-                hf_repo_id = f"perturblab/cellfm-{model_name_or_path}"
-            
-            try:
-                logger.info(f"Downloading model from HuggingFace: {hf_repo_id}")
-                model_path = download_from_huggingface(hf_repo_id, organization=None)
-                logger.info(f"✓ Model downloaded and cached at: {model_path}")
-            except Exception as e:
-                raise ValueError(
-                    f"Could not find model '{model_name_or_path}'. "
-                    f"Tried local paths and HuggingFace repo '{hf_repo_id}'. "
-                    f"Error: {e}"
-                )
-
         # Load configuration
         config_path = os.path.join(model_path, "config.json")
         if os.path.exists(config_path):
@@ -855,6 +882,16 @@ class CellFMPerturbationModel(CellFMModel):
             gene_embeddings: Optional gene embeddings.
         """
         logger.info("Initializing GEARS perturbation head...")
+        
+        # Critical: Check dimension compatibility between CellFM and GEARS
+        if gears_config.hidden_size != self.config.enc_dims:
+            logger.warning(
+                f"⚠️ Dimension Mismatch Detected: "
+                f"GEARS hidden_size={gears_config.hidden_size}, "
+                f"CellFM enc_dims={self.config.enc_dims}. "
+                f"Overriding GEARS hidden_size to match CellFM."
+            )
+            gears_config.hidden_size = self.config.enc_dims
 
         self.gears_model = GearsModel(
             config=gears_config,
@@ -874,7 +911,7 @@ class CellFMPerturbationModel(CellFMModel):
             logger.info("✓ Injected CellFM encoder into GEARS model")
         else:
             logger.warning(
-                "GEARS model lacks 'singlecell_model' attribute. Injection failed."
+                "⚠️ GEARS model lacks 'singlecell_model' attribute. Injection failed."
             )
 
         self.gears_config = gears_config
@@ -979,7 +1016,11 @@ class CellFMPerturbationModel(CellFMModel):
         return wrapper
 
     def _extract_de_genes(self, adata: AnnData):
-        """Extracts DE gene indices from AnnData for metric calculation."""
+        """Extracts DE gene indices from AnnData for metric calculation.
+        
+        Note: If a condition has fewer than top_n DE genes, the list is padded
+        with None values. Evaluation code should filter out None values.
+        """
         rank_data = adata.uns["rank_genes_groups_cov_all"]
         top_n = adata.uns.get("top_de_n", 20)
         gene_name_to_idx = {name: i for i, name in enumerate(adata.var_names)}
@@ -1013,9 +1054,16 @@ class CellFMPerturbationModel(CellFMModel):
             de_indices = [
                 gene_name_to_idx[g] for g in top_genes if g in gene_name_to_idx
             ]
-            self.de_gene_map[cond] = (
-                de_indices[:top_n] if de_indices else [-1] * top_n
-            )
+            
+            # Pad with None instead of -1 to avoid indexing issues
+            # Evaluation code should filter out None values before computation
+            if len(de_indices) < top_n:
+                de_indices.extend([None] * (top_n - len(de_indices)))
+                logger.debug(
+                    f"Condition {cond}: Found {len([i for i in de_indices if i is not None])}/{top_n} DE genes"
+                )
+            
+            self.de_gene_map[cond] = de_indices[:top_n]
 
     @_requires_perturbation_head
     def train_model(
@@ -1090,7 +1138,7 @@ class CellFMPerturbationModel(CellFMModel):
             **kwargs,
         )
 
-    def save_pretrained(self, save_directory: str):
+    def save(self, save_directory: str):
         """Saves CellFM base model and GEARS head."""
         os.makedirs(save_directory, exist_ok=True)
 
@@ -1112,19 +1160,19 @@ class CellFMPerturbationModel(CellFMModel):
         logger.info(f"✓ Model saved to {save_directory}")
 
     @classmethod
-    def from_pretrained(
+    def load(
         cls,
-        model_name_or_path: str,
+        model_path: str,
         config: Optional[CellFMConfig] = None,
         device: str = "cuda",
         load_gears_head: bool = True,
         **kwargs,
     ) -> "CellFMPerturbationModel":
         """
-        Loads CellFM perturbation model from pretrained weights.
+        Loads CellFM perturbation model from a saved directory.
 
         Args:
-            model_name_or_path: Model identifier (same as CellFMModel.from_pretrained).
+            model_path: Path to the saved model directory.
             config: Optional config override.
             device: Computation device.
             load_gears_head: Whether to load GEARS perturbation head if available.
@@ -1132,23 +1180,16 @@ class CellFMPerturbationModel(CellFMModel):
 
         Returns:
             Loaded CellFMPerturbationModel instance.
-
-        Examples:
-            >>> # Load base model only
-            >>> model = CellFMPerturbationModel.from_pretrained('cellfm-80m')
-            >>> 
-            >>> # Load with fine-tuned GEARS head
-            >>> model = CellFMPerturbationModel.from_pretrained('./saved_model')
         """
-        # Load base CellFM model
-        base_model = CellFMModel.from_pretrained(
-            model_name_or_path=model_name_or_path,
+        # Step 1: Load base CellFM model
+        base_model = CellFMModel.load(
+            model_path=model_path,
             config=config,
             device=device,
             **kwargs,
         )
 
-        # Create perturbation model instance
+        # Step 2: Create perturbation model instance
         model = cls(
             config=base_model.config,
             n_genes=base_model.n_genes,
@@ -1159,66 +1200,34 @@ class CellFMPerturbationModel(CellFMModel):
         model.model = base_model.model
         model.model_loaded = base_model.model_loaded
 
-        # Determine model directory for loading additional components
-        # This handles both local paths and HuggingFace downloads
-        if os.path.exists(model_name_or_path) and os.path.isdir(model_name_or_path):
-            model_dir = model_name_or_path
-        else:
-            # Try to find in weights directory
-            weights_dir = os.path.join(
-                os.path.dirname(__file__), "..", "..", "..", "weights"
-            )
-            weights_dir = os.path.abspath(weights_dir)
-            
-            candidates = [
-                model_name_or_path,
-                f"cellfm-{model_name_or_path}",
-            ]
-            
-            model_dir = None
-            for candidate_name in candidates:
-                candidate_path = os.path.join(weights_dir, candidate_name)
-                if os.path.isdir(candidate_path):
-                    model_dir = candidate_path
-                    break
-            
-            # If not found locally, it was downloaded from HF
-            # We need to get the cache path (already handled by base_model loading)
-            if model_dir is None:
-                logger.info(
-                    "Model loaded from HuggingFace cache. "
-                    "GEARS head and graphs will not be loaded unless saved locally."
-                )
-
-        # Load GEARS head if requested and available
-        if load_gears_head and model_dir:
-            gears_dir = os.path.join(model_dir, "gears_head")
+        # Step 3: Load GEARS head if requested and available
+        if load_gears_head:
+            gears_dir = os.path.join(model_path, "gears_head")
             if os.path.exists(gears_dir):
                 try:
-                    model.gears_model = GearsModel.from_pretrained(gears_dir)
+                    model.gears_model = GearsModel.load(gears_dir)
                     logger.info(f"✓ Loaded GEARS head from {gears_dir}")
                 except Exception as e:
-                    logger.warning(f"Failed to load GEARS head: {e}")
+                    logger.warning(f"⚠️ Failed to load GEARS head: {e}")
             else:
-                logger.info("No GEARS head found (this is normal for base models)")
+                logger.debug("No GEARS head found (this is normal for base models)")
 
-        # Load graphs if available
-        if model_dir:
-            go_path = os.path.join(model_dir, "go_graph.pkl")
-            if os.path.exists(go_path):
-                try:
-                    model.go_graph = GeneGraph.load(go_path)
-                    logger.info("✓ Loaded GO graph")
-                except Exception as e:
-                    logger.warning(f"Failed to load GO graph: {e}")
+        # Step 4: Load graphs if available
+        go_path = os.path.join(model_path, "go_graph.pkl")
+        if os.path.exists(go_path):
+            try:
+                model.go_graph = GeneGraph.load(go_path)
+                logger.info("✓ Loaded GO graph")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to load GO graph: {e}")
 
-            gene_path = os.path.join(model_dir, "gene_graph.pkl")
-            if os.path.exists(gene_path):
-                try:
-                    model.gene_graph = GeneGraph.load(gene_path)
-                    logger.info("✓ Loaded gene co-expression graph")
-                except Exception as e:
-                    logger.warning(f"Failed to load gene graph: {e}")
+        gene_path = os.path.join(model_path, "gene_graph.pkl")
+        if os.path.exists(gene_path):
+            try:
+                model.gene_graph = GeneGraph.load(gene_path)
+                logger.info("✓ Loaded gene co-expression graph")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to load gene graph: {e}")
 
         logger.info("✓ CellFM perturbation model loaded successfully")
         return model

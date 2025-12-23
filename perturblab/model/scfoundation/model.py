@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 from anndata import AnnData
 from scipy.sparse import issparse
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from ...data import GeneGraph, PerturbationData
@@ -26,29 +27,27 @@ logger = logging.getLogger(__name__)
 
 
 class scFoundationModel(PerturbationModel):
-    """
-    scFoundation model wrapper for single-cell foundation embeddings.
+    """scFoundation model wrapper for single-cell foundation embeddings.
 
     scFoundation is a large-scale foundation model trained on diverse single-cell datasets.
     It supports:
-    - Cell embedding extraction (with various pooling strategies).
-    - Gene embedding extraction.
-    - Inference on both single-cell and bulk RNA-seq data.
+    - Cell embedding extraction (with various pooling strategies)
+    - Gene embedding extraction
+    - Inference on both single-cell and bulk RNA-seq data
     """
 
     def __init__(
         self,
         config: scFoundationConfig,
-        device: str = "cuda",
+        device: str = 'cpu',
         gene_list: Optional[List[str]] = None,
     ):
-        """
-        Initializes the scFoundation model.
+        """Initializes the scFoundation model.
 
         Args:
-            config: Model configuration object.
-            device: Computation device ('cuda' or 'cpu').
-            gene_list: List of gene names for vocabulary alignment. If None, loads from default index.
+            config: scFoundation configuration object.
+            device: Computation device.
+            gene_list: List of gene names for vocabulary alignment.
         """
         self.config = config
         self.device = device
@@ -87,40 +86,51 @@ class scFoundationModel(PerturbationModel):
         """Sets the model to evaluation mode."""
         self.model.eval()
         return self
+    
+    def to(self, device: str):
+        self.model.to(device)
+        return self
+    
+    @staticmethod
+    def _get_adata_from_data(data: Union[AnnData, PerturbationData]) -> AnnData:
+        """Extracts AnnData from input data."""
+        if isinstance(data, PerturbationData):
+            return data.adata
+        elif isinstance(data, AnnData):
+            return data
+        else:
+            raise TypeError(
+                f"Expected AnnData or PerturbationData, got {type(data)}"
+            )
 
     def forward(
         self,
-        x: torch.Tensor,
-        padding_label: torch.Tensor,
-        encoder_position_gene_ids: torch.Tensor,
-        encoder_labels: torch.Tensor,
-        decoder_data: torch.Tensor,
-        decoder_position_gene_ids: torch.Tensor,
-        decoder_data_padding_labels: torch.Tensor,
-        mask_gene_name: bool = False,
-        mask_labels: Optional[torch.Tensor] = None,
-        output_attentions: bool = False,
+        batch: Dict[str, torch.Tensor],
         **kwargs,
-    ) -> torch.Tensor:
-        """
-        Forward pass through the scFoundation model.
+    ) -> Dict[str, torch.Tensor]:
+        """Forward pass through the scFoundation model.
 
         Args:
-            x: Input gene expression data [B, N].
-            padding_label: Padding mask for encoder [B, N].
-            encoder_position_gene_ids: Position IDs for encoder [B, N].
-            encoder_labels: Labels for encoder [B, N].
-            decoder_data: Input data for decoder [B, N].
-            decoder_position_gene_ids: Position IDs for decoder [B, N].
-            decoder_data_padding_labels: Padding mask for decoder [B, N].
-            mask_gene_name: Whether to mask gene names.
-            mask_labels: Mask labels if applicable.
-            output_attentions: Whether to output attention maps.
+            batch: Dictionary containing model inputs.
+            **kwargs: Additional arguments passed to model.
 
         Returns:
-            Model output tensor.
+            Dictionary with 'output' key containing model output tensor.
         """
-        return self.model(
+        # Extract batch components
+        x = batch['x']
+        padding_label = batch['padding_label']
+        encoder_position_gene_ids = batch['encoder_position_gene_ids']
+        encoder_labels = batch['encoder_labels']
+        decoder_data = batch['decoder_data']
+        decoder_position_gene_ids = batch['decoder_position_gene_ids']
+        decoder_data_padding_labels = batch['decoder_data_padding_labels']
+        
+        mask_gene_name = batch.get('mask_gene_name', False)
+        mask_labels = batch.get('mask_labels', None)
+        output_attentions = batch.get('output_attentions', False)
+        
+        output = self.model(
             x=x,
             padding_label=padding_label,
             encoder_position_gene_ids=encoder_position_gene_ids,
@@ -133,17 +143,11 @@ class scFoundationModel(PerturbationModel):
             output_attentions=output_attentions,
             **kwargs,
         )
+        
+        return {'output': output}
 
     def _align_genes(self, adata: AnnData) -> pd.DataFrame:
-        """
-        Aligns genes in adata to the model's vocabulary.
-
-        Args:
-            adata: Input AnnData object.
-
-        Returns:
-            DataFrame containing gene-aligned expression matrix.
-        """
+        """Aligns genes in adata to the model's vocabulary."""
         if self.gene_list is None:
             raise ValueError(
                 "Gene list is not available. Cannot perform alignment. "
@@ -174,10 +178,241 @@ class scFoundationModel(PerturbationModel):
         expr = expr[self.gene_list]
 
         return expr
+    
+    def get_dataloader(
+        self,
+        dataset: Union[AnnData, PerturbationData],
+        batch_size: int = 32,
+        shuffle: bool = True,
+        split: Optional[str] = None,
+        input_type: Literal["singlecell", "bulk"] = "singlecell",
+        tgthighres: str = "t4",
+        pre_normalized: Literal["F", "T", "A"] = "F",
+        mask_ratio: float = 0.3,
+        num_workers: int = 0,
+        drop_last: bool = False,
+    ) -> Union[DataLoader, Dict[str, DataLoader]]:
+        """Creates DataLoader for scFoundation model.
+        
+        Args:
+            dataset: Input dataset.
+            batch_size: Batch size.
+            shuffle: Whether to shuffle data.
+            split: Specific split to return, or None for all splits.
+            input_type: Data source type ('singlecell' or 'bulk').
+            tgthighres: Target high-resolution parameter.
+            pre_normalized: Normalization status.
+            mask_ratio: Masking ratio for training.
+            num_workers: Number of worker threads.
+            drop_last: Whether to drop incomplete batches.
+            
+        Returns:
+            DataLoader or dictionary of DataLoaders.
+        """
+        adata = self._get_adata_from_data(dataset)
+        has_split = "split" in adata.obs
+        
+        # Handle splits
+        adata_map = {}
+        if split is not None:
+            if has_split:
+                if split not in adata.obs["split"].values:
+                    raise ValueError(f"Split '{split}' not found in dataset")
+                adata_map[split] = adata[adata.obs["split"] == split]
+            else:
+                adata_map[split] = adata
+        else:
+            if has_split:
+                split_names = adata.obs["split"].unique()
+                for split_name in split_names:
+                    adata_map[str(split_name)] = adata[adata.obs["split"] == split_name]
+            else:
+                adata_map["train"] = adata
+        
+        # Create dataset class
+        class scFoundationDataset(Dataset):
+            def __init__(
+                self,
+                adata_subset: AnnData,
+                gene_list: List[str],
+                input_type: str,
+                tgthighres: str,
+                pre_normalized: str,
+                mask_ratio: float,
+                device: str,
+            ):
+                self.adata = adata_subset
+                self.gene_list = gene_list
+                self.input_type = input_type
+                self.tgthighres = tgthighres
+                self.pre_normalized = pre_normalized
+                self.mask_ratio = mask_ratio
+                self.device = device
+                
+                # Align genes
+                if issparse(adata_subset.X):
+                    expr = pd.DataFrame(
+                        adata_subset.X.toarray(),
+                        index=adata_subset.obs_names,
+                        columns=adata_subset.var_names
+                    )
+                else:
+                    expr = pd.DataFrame(
+                        adata_subset.X,
+                        index=adata_subset.obs_names,
+                        columns=adata_subset.var_names
+                    )
+                
+                # Pad missing genes with zeros
+                to_fill_columns = list(set(gene_list) - set(expr.columns))
+                if to_fill_columns:
+                    padding_df = pd.DataFrame(
+                        np.zeros((expr.shape[0], len(to_fill_columns))),
+                        columns=to_fill_columns,
+                        index=expr.index,
+                    )
+                    expr = pd.concat([expr, padding_df], axis=1)
+                
+                # Reorder to match model's gene list
+                self.expr = expr[gene_list].values
+            
+            def __len__(self):
+                return len(self.expr)
+            
+            def __getitem__(self, idx):
+                expr_row = self.expr[idx]
+                
+                # Prepare input tensor based on input_type
+                if self.input_type == "bulk":
+                    if self.pre_normalized == "T":
+                        totalcount = expr_row.sum()
+                    elif self.pre_normalized == "F":
+                        totalcount = np.log10(expr_row.sum())
+                    else:
+                        raise ValueError("For bulk data, pre_normalized must be T or F")
+                    
+                    tmpdata = expr_row.tolist()
+                    gene_x = torch.tensor(
+                        tmpdata + [totalcount, totalcount], dtype=torch.float32
+                    )
+                
+                elif self.input_type == "singlecell":
+                    # Pre-normalization logic
+                    if self.pre_normalized == "F":
+                        totalcount = expr_row.sum()
+                        tmpdata = np.log1p(expr_row / totalcount * 1e4).tolist()
+                    elif self.pre_normalized == "T":
+                        tmpdata = expr_row.tolist()
+                        totalcount = expr_row.sum()
+                    elif self.pre_normalized == "A":
+                        tmpdata = expr_row[:-1].tolist()
+                        totalcount = expr_row[-1]
+                    else:
+                        raise ValueError("pre_normalized must be T, F, or A")
+                    
+                    # Parse target resolution parameter
+                    if self.tgthighres[0] == "f":
+                        high_res = np.log10(totalcount * float(self.tgthighres[1:]))
+                    elif self.tgthighres[0] == "a":
+                        high_res = np.log10(totalcount) + float(self.tgthighres[1:])
+                    elif self.tgthighres[0] == "t":
+                        high_res = float(self.tgthighres[1:])
+                    else:
+                        raise ValueError("tgthighres must start with f, a, or t")
+                    
+                    gene_x = torch.tensor(
+                        tmpdata + [high_res, np.log10(totalcount)], dtype=torch.float32
+                    )
+                else:
+                    raise ValueError("input_type must be 'singlecell' or 'bulk'")
+                
+                return gene_x
+        
+        # Create DataLoaders
+        dataloaders = {}
+        model_config = self.config.to_model_config_dict()
+        
+        for split_name, adata_subset in adata_map.items():
+            dataset_obj = scFoundationDataset(
+                adata_subset=adata_subset,
+                gene_list=self.gene_list if self.gene_list else adata_subset.var_names.tolist(),
+                input_type=input_type,
+                tgthighres=tgthighres,
+                pre_normalized=pre_normalized,
+                mask_ratio=mask_ratio,
+                device=self.device,
+            )
+            
+            def collate_fn(batch):
+                """Collate function to prepare batch for forward pass."""
+                batch_gene_x = torch.stack(batch)
+                
+                # Prepare encoder-decoder data
+                if mask_ratio > 0:
+                    # For training: use masked version
+                    batch_gene_x_raw = batch_gene_x.clone()
+                    (
+                        encoder_data,
+                        encoder_position_gene_ids,
+                        encoder_data_padding,
+                        encoder_labels,
+                        decoder_data,
+                        decoder_data_padding,
+                        new_data_raw,
+                        data_mask_labels,
+                        decoder_position_gene_ids,
+                    ) = getEncoerDecoderData(batch_gene_x, batch_gene_x_raw, model_config)
+                else:
+                    # For inference: no masking
+                    (
+                        encoder_data,
+                        encoder_position_gene_ids,
+                        encoder_data_padding,
+                        encoder_labels,
+                        decoder_data,
+                        decoder_data_padding,
+                        new_data_raw,
+                        data_mask_labels,
+                        decoder_position_gene_ids,
+                    ) = getEncoerDecoderData(batch_gene_x, batch_gene_x, model_config)
+                
+                return {
+                    'x': encoder_data,
+                    'padding_label': encoder_data_padding,
+                    'encoder_position_gene_ids': encoder_position_gene_ids,
+                    'encoder_labels': encoder_labels,
+                    'decoder_data': decoder_data,
+                    'decoder_position_gene_ids': decoder_position_gene_ids,
+                    'decoder_data_padding_labels': decoder_data_padding,
+                    'mask_gene_name': False,
+                    'mask_labels': data_mask_labels,
+                    'output_attentions': False,
+                    # Additional fields for loss computation
+                    'new_data_raw': new_data_raw,
+                    'data_mask_labels': data_mask_labels,
+                    # Store original gene_x for embedding extraction
+                    'gene_x': batch_gene_x,
+                }
+            
+            loader = DataLoader(
+                dataset_obj,
+                batch_size=batch_size,
+                shuffle=shuffle and split_name == "train",
+                num_workers=num_workers,
+                drop_last=drop_last,
+                collate_fn=collate_fn,
+            )
+            
+            dataloaders[split_name] = loader
+        
+        # Return single DataLoader if split is specified, otherwise return dict
+        if split is not None:
+            return dataloaders[split]
+        return dataloaders
 
     def predict_embedding(
         self,
-        dataset: PerturbationData,
+        dataset: Union[AnnData, PerturbationData],
         output_type: Literal["cell", "gene", "gene_batch"] = "cell",
         input_type: Literal["singlecell", "bulk"] = "singlecell",
         pool_type: Literal["all", "max"] = "all",
@@ -186,138 +421,142 @@ class scFoundationModel(PerturbationModel):
         batch_size: int = 32,
         return_adata: bool = False,
         use_batch: bool = True,
-    ) -> Union[np.ndarray, AnnData]:
-        """
-        Generates embeddings from input data.
+        split: Optional[str] = None,
+    ) -> Union[Dict[str, np.ndarray], Dict[str, Dict[str, np.ndarray]], np.ndarray, AnnData]:
+        """Generates embeddings from input data.
 
         Args:
-            dataset: Input data using the unified PerturbationData interface.
+            dataset: Input dataset.
             output_type: Type of embedding ('cell', 'gene', or 'gene_batch').
             input_type: Data source type ('singlecell' or 'bulk').
-            pool_type: Pooling strategy for cell embeddings ('all' or 'max').
-            tgthighres: Target high-resolution parameter (e.g., 't4', 'a5', 'f2').
-            pre_normalized: Normalization status ('F': None, 'T': Norm+Log1p, 'A': Norm+Log1p+Total).
+            pool_type: Pooling strategy for cell embeddings.
+            tgthighres: Target high-resolution parameter.
+            pre_normalized: Normalization status.
             batch_size: Processing batch size.
-            return_adata: If True, returns AnnData with embeddings in obsm/varm.
+            return_adata: If True, returns AnnData with embeddings.
             use_batch: Whether to process in batches.
+            split: Specific split to return, or None for all splits.
 
         Returns:
-            Numpy array of embeddings or AnnData object.
+            Dictionary with 'cell' or 'gene' key containing embeddings.
+            If split is None and dataset has splits, returns nested dict.
         """
-        # Lossless access to underlying AnnData
-        adata = dataset.adata
-
-        # Gene alignment
-        gexpr_feature = self._align_genes(adata)
-
-        # Normalization for bulk data if needed
-        if pre_normalized == "F" and input_type == "bulk":
-            tmp_adata = sc.AnnData(gexpr_feature.values)
-            sc.pp.normalize_total(tmp_adata)
-            sc.pp.log1p(tmp_adata)
-            gexpr_feature = pd.DataFrame(
-                tmp_adata.X, index=gexpr_feature.index, columns=gexpr_feature.columns
+        # Extract AnnData from input
+        adata = self._get_adata_from_data(dataset)
+        
+        # Handle splits
+        has_split = "split" in adata.obs
+        if split is not None:
+            if has_split:
+                if split not in adata.obs["split"].values:
+                    raise ValueError(f"Split '{split}' not found in dataset")
+                adata = adata[adata.obs["split"] == split]
+            # If no split in data, use all data for requested split
+        elif has_split:
+            # Process all splits separately
+            split_names = adata.obs["split"].unique()
+            result = {}
+            for split_name in split_names:
+                subset = adata[adata.obs["split"] == split_name]
+                emb_result = self._predict_embedding_single(
+                    subset, output_type, input_type, pool_type, tgthighres,
+                    pre_normalized, batch_size, return_adata, use_batch
+                )
+                if return_adata:
+                    result[str(split_name)] = emb_result
+                else:
+                    # Convert to dict format
+                    key = 'cell' if output_type == 'cell' else 'gene'
+                    result[str(split_name)] = {key: emb_result}
+            return result
+        else:
+            # No split, process all as 'train'
+            return self._predict_embedding_single(
+                adata, output_type, input_type, pool_type, tgthighres,
+                pre_normalized, batch_size, return_adata, use_batch, split_key='train'
             )
-
-        embeddings = []
-
-        # Disable batching for individual gene embedding processing
+        
+        # Process single split
+        return self._predict_embedding_single(
+            adata, output_type, input_type, pool_type, tgthighres,
+            pre_normalized, batch_size, return_adata, use_batch, split_key=split
+        )
+    
+    def _predict_embedding_single(
+        self,
+        adata: AnnData,
+        output_type: Literal["cell", "gene", "gene_batch"],
+        input_type: Literal["singlecell", "bulk"],
+        pool_type: Literal["all", "max"],
+        tgthighres: str,
+        pre_normalized: Literal["F", "T", "A"],
+        batch_size: int,
+        return_adata: bool,
+        use_batch: bool,
+    ) -> Union[Dict[str, np.ndarray], np.ndarray, AnnData]:
+        """Internal method to process a single AnnData subset."""
+        
+        # Use get_dataloader for batch processing
         if not use_batch or output_type == "gene":
             batch_size = 1
-
-        n_samples = gexpr_feature.shape[0]
-
+        
+        # Create temporary AnnData wrapper (no split column to ensure single loader)
+        temp_adata = AnnData(adata.X, obs=adata.obs.copy(), var=adata.var)
+        if "split" in temp_adata.obs:
+            temp_adata.obs = temp_adata.obs.drop(columns=["split"])
+        
+        loader = self.get_dataloader(
+            dataset=temp_adata,
+            batch_size=batch_size,
+            shuffle=False,
+            split=None,  # Will return 'train' key since no split column
+            input_type=input_type,
+            tgthighres=tgthighres,
+            pre_normalized=pre_normalized,
+            mask_ratio=0.0,  # No masking for inference
+            num_workers=0,
+            drop_last=False,
+        )
+        
+        # Handle single DataLoader (should be dict with 'train' key)
+        if isinstance(loader, DataLoader):
+            dataloader = loader
+        else:
+            # Get first (and only) loader
+            dataloader = list(loader.values())[0]
+        
+        embeddings = []
+        
         with torch.no_grad():
-            for start_idx in tqdm(
-                range(0, n_samples, batch_size), desc="Generating embeddings"
-            ):
-                end_idx = min(start_idx + batch_size, n_samples)
-                batch_data = gexpr_feature.iloc[start_idx:end_idx]
-
-                batch_tensors = []
-
-                for i in range(len(batch_data)):
-                    # Prepare input tensor based on input_type
-                    if input_type == "bulk":
-                        if pre_normalized == "T":
-                            totalcount = batch_data.iloc[i, :].sum()
-                        elif pre_normalized == "F":
-                            totalcount = np.log10(batch_data.iloc[i, :].sum())
-                        else:
-                            raise ValueError(
-                                "For bulk data, pre_normalized must be T or F"
-                            )
-
-                        tmpdata = batch_data.iloc[i, :].tolist()
-                        gene_x = torch.tensor(
-                            tmpdata + [totalcount, totalcount], device=self.device
-                        )
-                        batch_tensors.append(gene_x)
-
-                    elif input_type == "singlecell":
-                        # Pre-normalization logic
-                        if pre_normalized == "F":
-                            # Normalize to 10k and log1p
-                            tmpdata = np.log1p(
-                                batch_data.iloc[i, :]
-                                / batch_data.iloc[i, :].sum()
-                                * 1e4
-                            ).tolist()
-                        elif pre_normalized == "T":
-                            tmpdata = batch_data.iloc[i, :].tolist()
-                        elif pre_normalized == "A":
-                            # 'A' implies total count is appended at the end
-                            tmpdata = batch_data.iloc[i, :-1].tolist()
-                        else:
-                            raise ValueError("pre_normalized must be T, F, or A")
-
-                        # Calculate total count
-                        if pre_normalized == "A":
-                            totalcount = batch_data.iloc[i, -1]
-                        else:
-                            totalcount = batch_data.iloc[i, :].sum()
-
-                        # Parse target resolution parameter
-                        if tgthighres[0] == "f":
-                            high_res = np.log10(totalcount * float(tgthighres[1:]))
-                        elif tgthighres[0] == "a":
-                            high_res = np.log10(totalcount) + float(tgthighres[1:])
-                        elif tgthighres[0] == "t":
-                            high_res = float(tgthighres[1:])
-                        else:
-                            raise ValueError("tgthighres must start with f, a, or t")
-
-                        gene_x = torch.tensor(
-                            tmpdata + [high_res, np.log10(totalcount)],
-                            device=self.device,
-                        )
-                        batch_tensors.append(gene_x)
-                    else:
-                        raise ValueError("input_type must be 'singlecell' or 'bulk'")
-
-                # Stack tensors
-                if batch_tensors:
-                    batch_gene_x = torch.stack(batch_tensors, dim=0)
-
-                    # Generate embeddings
-                    if output_type == "cell":
-                        cell_emb = self._get_cell_embedding(batch_gene_x, pool_type)
-                        embeddings.append(cell_emb.detach().cpu().numpy())
-
-                    elif output_type == "gene":
-                        for j in range(batch_gene_x.shape[0]):
-                            gene_emb = self._get_gene_embedding(
-                                batch_gene_x[j : j + 1], single=True
-                            )
-                            embeddings.append(gene_emb.detach().cpu().numpy())
-
-                    elif output_type == "gene_batch":
-                        gene_emb = self._get_gene_embedding(batch_gene_x, single=False)
-                        embeddings.append(gene_emb.detach().cpu().numpy())
-                    else:
-                        raise ValueError(
-                            "output_type must be 'cell', 'gene', or 'gene_batch'"
-                        )
+            for batch in tqdm(dataloader, desc="Generating embeddings"):
+                # Move batch to device
+                batch = {k: v.to(self.device) if isinstance(v, torch.Tensor) else v 
+                        for k, v in batch.items()}
+                
+                # Forward pass
+                output_dict = self.forward(batch)
+                output = output_dict['output']
+                
+                # Extract embeddings based on output_type
+                if output_type == "cell":
+                    # Use stored gene_x from batch
+                    batch_gene_x = batch['gene_x']
+                    cell_emb = self._get_cell_embedding(batch_gene_x, pool_type)
+                    embeddings.append(cell_emb.detach().cpu().numpy())
+                
+                elif output_type == "gene":
+                    # Extract gene embeddings from output
+                    gene_emb = output[:, :self.config.num_tokens, :].contiguous()
+                    for j in range(gene_emb.shape[0]):
+                        embeddings.append(gene_emb[j:j+1].detach().cpu().numpy())
+                
+                elif output_type == "gene_batch":
+                    gene_emb = output[:, :self.config.num_tokens, :].contiguous()
+                    embeddings.append(gene_emb.detach().cpu().numpy())
+                else:
+                    raise ValueError(
+                        "output_type must be 'cell', 'gene', or 'gene_batch'"
+                    )
 
         # Concatenate results
         if embeddings:
@@ -338,7 +577,7 @@ class scFoundationModel(PerturbationModel):
         else:
             raise ValueError("No embeddings were generated")
 
-        # Return as AnnData if requested
+        # Return as AnnData if requested (legacy behavior)
         if return_adata:
             result_adata = adata.copy()
             if output_type == "cell":
@@ -350,12 +589,49 @@ class scFoundationModel(PerturbationModel):
                 result_adata.layers["scfoundation_gene_emb"] = embeddings
             return result_adata
 
-        return embeddings
+        # Return unified dictionary format
+        if output_type == "cell":
+            return {'cell': embeddings}
+        elif output_type in ["gene", "gene_batch"]:
+            return {'gene': embeddings}
+        else:
+            return {'embeddings': embeddings}
+    
+    def predict_embeddings(
+        self,
+        dataset: Union[AnnData, PerturbationData],
+        batch_size: int = 32,
+        embedding_type: Literal["cell", "gene"] = "cell",
+        split: Optional[str] = None,
+        **kwargs,
+    ) -> Union[Dict[str, np.ndarray], Dict[str, Dict[str, np.ndarray]]]:
+        """Unified embedding prediction method (alias for predict_embedding).
+        
+        Args:
+            dataset: Input dataset.
+            batch_size: Batch size.
+            embedding_type: Type of embedding ('cell' or 'gene').
+            split: Specific split to return, or None for all splits.
+            **kwargs: Additional arguments passed to predict_embedding.
+            
+        Returns:
+            Dictionary with 'cell' or 'gene' key containing embeddings.
+            If split is None and dataset has splits, returns nested dict.
+        """
+        output_type = embedding_type
+        return self.predict_embedding(
+            dataset=dataset,
+            output_type=output_type,
+            batch_size=batch_size,
+            split=split,
+            return_adata=False,
+            **kwargs
+        )
 
     def _get_cell_embedding(
         self, gene_x: torch.Tensor, pool_type: str
     ) -> torch.Tensor:
-        """Helper to compute cell embeddings from expression tensors."""
+        """Computes cell embeddings from expression tensors."""
         model_config = self.config.to_model_config_dict()
 
         # Prepare input data
@@ -394,7 +670,7 @@ class scFoundationModel(PerturbationModel):
     def _get_gene_embedding(
         self, gene_x: torch.Tensor, single: bool = True
     ) -> torch.Tensor:
-        """Helper to compute gene embeddings."""
+        """Computes gene embeddings."""
         model_config = self.config.to_model_config_dict()
 
         # Prepare encoder-decoder data
@@ -414,17 +690,21 @@ class scFoundationModel(PerturbationModel):
         original_to_final = self.model.to_final
         self.model.to_final = None
 
-        out = self.model.forward(
-            x=encoder_data,
-            padding_label=encoder_data_padding,
-            encoder_position_gene_ids=encoder_position_gene_ids,
-            encoder_labels=encoder_labels,
-            decoder_data=decoder_data,
-            mask_gene_name=False,
-            mask_labels=None,
-            decoder_position_gene_ids=decoder_position_gene_ids,
-            decoder_data_padding_labels=decoder_data_padding,
-        )
+        batch = {
+            'x': encoder_data,
+            'padding_label': encoder_data_padding,
+            'encoder_position_gene_ids': encoder_position_gene_ids,
+            'encoder_labels': encoder_labels,
+            'decoder_data': decoder_data,
+            'decoder_position_gene_ids': decoder_position_gene_ids,
+            'decoder_data_padding_labels': decoder_data_padding,
+            'mask_gene_name': False,
+            'mask_labels': None,
+            'output_attentions': False,
+        }
+        
+        output_dict = self.forward(batch)
+        out = output_dict['output']
 
         # Restore final layer
         self.model.to_final = original_to_final
@@ -436,7 +716,7 @@ class scFoundationModel(PerturbationModel):
 
     def train_model(
         self,
-        dataset: PerturbationData,
+        dataset: Union[AnnData, PerturbationData],
         output_dir: str,
         epochs: int = 10,
         batch_size: int = 32,
@@ -448,28 +728,62 @@ class scFoundationModel(PerturbationModel):
         save_interval: int = 1,
         eval_interval: int = 1,
         device: Optional[str] = None,
+        split: Optional[str] = None,
     ):
-        """
-        Trains the scFoundation model using masked autoencoding (MAE).
+        """Trains the scFoundation model using masked autoencoding.
 
-        Note: Basic implementation. For advanced distributed training,
-        refer to the original scFoundation repository.
+        Args:
+            dataset: Input dataset.
+            output_dir: Directory to save checkpoints.
+            epochs: Number of training epochs.
+            batch_size: Batch size.
+            learning_rate: Learning rate.
+            weight_decay: Weight decay for optimizer.
+            mask_ratio: Masking ratio for MAE.
+            warmup_steps: Number of warmup steps.
+            gradient_clip_val: Gradient clipping value.
+            save_interval: Interval for saving checkpoints.
+            eval_interval: Interval for evaluation.
+            device: Device to use.
+            split: Specific split to use for training.
         """
         if device is None:
             device = self.device
 
         os.makedirs(output_dir, exist_ok=True)
 
-        adata = dataset.adata
-        if "split" in adata.obs:
-            train_adata = adata[adata.obs["split"] == "train"]
-        else:
-            train_adata = adata
-
-        # Align genes
-        gexpr_feature = self._align_genes(train_adata)
-        n_samples = gexpr_feature.shape[0]
-        steps_per_epoch = (n_samples + batch_size - 1) // batch_size
+        # Use get_dataloader for training
+        train_loader = self.get_dataloader(
+            dataset=dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            split=split if split is not None else "train",
+            input_type="singlecell",
+            tgthighres="t4",
+            pre_normalized="F",
+            mask_ratio=mask_ratio,
+            num_workers=0,
+            drop_last=False,
+        )
+        
+        # Get validation loader if available
+        val_loader = None
+        adata = self._get_adata_from_data(dataset)
+        if "split" in adata.obs and "val" in adata.obs["split"].values:
+            val_loader = self.get_dataloader(
+                dataset=dataset,
+                batch_size=batch_size,
+                shuffle=False,
+                split="val",
+                input_type="singlecell",
+                tgthighres="t4",
+                pre_normalized="F",
+                mask_ratio=0.0,  # No masking for validation
+                num_workers=0,
+                drop_last=False,
+            )
+        
+        steps_per_epoch = len(train_loader)
         total_steps = epochs * steps_per_epoch
 
         # Optimizer
@@ -498,77 +812,30 @@ class scFoundationModel(PerturbationModel):
         for epoch in range(epochs):
             epoch_loss = 0.0
             num_batches = 0
-            indices = np.random.permutation(n_samples)
 
-            progress_bar = tqdm(
-                range(0, n_samples, batch_size), desc=f"Epoch {epoch + 1}/{epochs}"
-            )
+            progress_bar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
 
-            for start_idx in progress_bar:
-                end_idx = min(start_idx + batch_size, n_samples)
-                batch_indices = indices[start_idx:end_idx]
-                batch_data = gexpr_feature.iloc[batch_indices]
-
-                # Prepare batch
-                batch_gene_x = []
-                batch_gene_x_raw = []
-                for i in range(len(batch_data)):
-                    tmpdata = batch_data.iloc[i, :].values
-                    totalcount = tmpdata.sum()
-
-                    normalized = np.log1p(tmpdata / totalcount * 1e4)
-                    totalcount_log = (
-                        np.log10(totalcount) if totalcount > 0 else 0.0
-                    )
-                    high_res_token = 4.0  # Default high-res token
-
-                    gene_x = torch.tensor(
-                        normalized.tolist() + [high_res_token, totalcount_log],
-                        device=device,
-                        dtype=torch.float32,
-                    )
-                    batch_gene_x.append(gene_x)
-                    batch_gene_x_raw.append(gene_x.clone())
-
-                batch_gene_x = torch.stack(batch_gene_x, dim=0)
-                batch_gene_x_raw = torch.stack(batch_gene_x_raw, dim=0)
-
-                # Prepare encoder/decoder inputs
-                model_config = self.config.to_model_config_dict()
-                (
-                    encoder_data,
-                    encoder_position_gene_ids,
-                    encoder_data_padding,
-                    encoder_labels,
-                    decoder_data,
-                    decoder_data_padding,
-                    new_data_raw,
-                    data_mask_labels,
-                    decoder_position_gene_ids,
-                ) = getEncoerDecoderData(
-                    batch_gene_x, batch_gene_x_raw, model_config
-                )
+            for batch in progress_bar:
+                # Move batch to device
+                batch = {k: v.to(device) if isinstance(v, torch.Tensor) else v 
+                        for k, v in batch.items()}
 
                 optimizer.zero_grad()
 
-                output = self.forward(
-                    x=encoder_data,
-                    padding_label=encoder_data_padding,
-                    encoder_position_gene_ids=encoder_position_gene_ids,
-                    encoder_labels=encoder_labels,
-                    decoder_data=decoder_data,
-                    decoder_position_gene_ids=decoder_position_gene_ids,
-                    decoder_data_padding_labels=decoder_data_padding,
-                    mask_gene_name=False,
-                    mask_labels=None,
-                )
+                # Forward pass
+                output_dict = self.forward(batch)
+                output = output_dict['output']
 
                 # Compute loss (MSE)
+                new_data_raw = batch['new_data_raw']
+                data_mask_labels = batch.get('data_mask_labels', None)
+                
                 if data_mask_labels is not None:
                     loss = criterion(
                         output[data_mask_labels], new_data_raw[data_mask_labels]
                     )
                 else:
+                    decoder_data_padding = batch['decoder_data_padding_labels']
                     valid_mask = ~decoder_data_padding
                     loss = criterion(
                         output[valid_mask], new_data_raw[valid_mask]
@@ -611,162 +878,103 @@ class scFoundationModel(PerturbationModel):
                 )
                 self.save(checkpoint_dir)
 
-            if (epoch + 1) % eval_interval == 0 and "split" in adata.obs:
-                if "val" in adata.obs["split"].values:
-                    self.eval()
-                    val_loss = self._evaluate(dataset, batch_size, device)
-                    logger.info(f"Validation Loss: {val_loss:.4f}")
-                    self.train()
+            if (epoch + 1) % eval_interval == 0 and val_loader is not None:
+                self.eval()
+                val_loss = self._evaluate_from_loader(val_loader, criterion, device)
+                logger.info(f"Validation Loss: {val_loss:.4f}")
+                self.train()
 
         final_dir = os.path.join(output_dir, "final_model")
         self.save(final_dir)
         logger.info(f"Training complete. Model saved to {final_dir}")
 
-    def _evaluate(
-        self, dataset: PerturbationData, batch_size: int, device: str
+    def _evaluate_from_loader(
+        self, val_loader: DataLoader, criterion: nn.Module, device: str
     ) -> float:
         """Evaluates model on validation set."""
-        adata = dataset.adata
-        val_adata = adata[adata.obs["split"] == "val"]
-
-        if len(val_adata) == 0:
-            return 0.0
-
-        gexpr_feature = self._align_genes(val_adata)
-        n_samples = gexpr_feature.shape[0]
-
-        criterion = nn.MSELoss()
         total_loss = 0.0
         num_batches = 0
 
         with torch.no_grad():
-            for start_idx in range(0, n_samples, batch_size):
-                end_idx = min(start_idx + batch_size, n_samples)
-                batch_data = gexpr_feature.iloc[start_idx:end_idx]
+            for batch in val_loader:
+                # Move batch to device
+                batch = {k: v.to(device) if isinstance(v, torch.Tensor) else v 
+                        for k, v in batch.items()}
 
-                batch_gene_x = []
-                for i in range(len(batch_data)):
-                    tmpdata = np.log1p(
-                        batch_data.iloc[i, :]
-                        / batch_data.iloc[i, :].sum()
-                        * 1e4
-                    ).tolist()
-                    totalcount = batch_data.iloc[i, :].sum()
-                    gene_x = torch.tensor(
-                        tmpdata + [4.0, np.log10(totalcount)], device=device
+                # Forward pass
+                output_dict = self.forward(batch)
+                output = output_dict['output']
+
+                # Compute loss
+                new_data_raw = batch['new_data_raw']
+                data_mask_labels = batch.get('data_mask_labels', None)
+                
+                if data_mask_labels is not None:
+                    loss = criterion(
+                        output[data_mask_labels], new_data_raw[data_mask_labels]
                     )
-                    batch_gene_x.append(gene_x)
-
-                batch_gene_x = torch.stack(batch_gene_x, dim=0)
-
-                (
-                    encoder_data,
-                    encoder_position_gene_ids,
-                    encoder_data_padding,
-                    encoder_labels,
-                    decoder_data,
-                    decoder_data_padding,
-                    new_data_raw,
-                    data_mask_labels,
-                    decoder_position_gene_ids,
-                ) = getEncoerDecoderData(
-                    batch_gene_x,
-                    batch_gene_x,
-                    self.config.to_model_config_dict(),
-                )
-
-                output = self.forward(
-                    x=encoder_data,
-                    padding_label=encoder_data_padding,
-                    encoder_position_gene_ids=encoder_position_gene_ids,
-                    encoder_labels=encoder_labels,
-                    decoder_data=decoder_data,
-                    decoder_position_gene_ids=decoder_position_gene_ids,
-                    decoder_data_padding_labels=decoder_data_padding,
-                    mask_gene_name=False,
-                    mask_labels=None,
-                )
-
-                loss = criterion(
-                    output[data_mask_labels], new_data_raw[data_mask_labels]
-                )
+                else:
+                    decoder_data_padding = batch['decoder_data_padding_labels']
+                    valid_mask = ~decoder_data_padding
+                    loss = criterion(
+                        output[valid_mask], new_data_raw[valid_mask]
+                    )
+                
                 total_loss += loss.item()
                 num_batches += 1
 
         return total_loss / num_batches if num_batches > 0 else 0.0
 
-    def save(self, save_directory: str):
-        """Saves model weights and configuration."""
-        os.makedirs(save_directory, exist_ok=True)
+    def _evaluate(
+        self, dataset: Union[AnnData, PerturbationData], batch_size: int, device: str
+    ) -> float:
+        """Evaluates model on validation set."""
+        val_loader = self.get_dataloader(
+            dataset=dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            split="val",
+            input_type="singlecell",
+            tgthighres="t4",
+            pre_normalized="F",
+            mask_ratio=0.0,
+            num_workers=0,
+            drop_last=False,
+        )
+        
+        criterion = nn.MSELoss()
+        return self._evaluate_from_loader(val_loader, criterion, device)
 
-        config_path = os.path.join(save_directory, "config.json")
+    def save(self, model_path: str):
+        """Saves model weights and configuration."""
+        os.makedirs(model_path, exist_ok=True)
+
+        config_path = os.path.join(model_path, "config.json")
         self.config.save(config_path)
 
-        model_path = os.path.join(save_directory, "model.pt")
+        model_path = os.path.join(model_path, "model.pt")
         torch.save(self.model.state_dict(), model_path)
 
-        logger.info(f"Model saved to {save_directory}")
+        logger.info(f"Model saved to {model_path}")
 
     @classmethod
-    def from_pretrained(
+    def load(
         cls,
-        model_name_or_path: str,
-        device: str = "cuda",
+        model_path: str,
+        device: str = 'cpu',
         **kwargs,
     ) -> "scFoundationModel":
         """
-        Loads a pretrained scFoundation model.
+        Loads a scFoundation model from a saved directory.
 
         Args:
-            model_name_or_path: Path to local directory, built-in model name, or HuggingFace repo ID.
+            model_path: Path to the saved model directory.
             device: Device to load the model on.
-            **kwargs: Additional args for initialization or HuggingFace download.
+            **kwargs: Additional args for model initialization.
 
         Returns:
             Loaded scFoundationModel instance.
         """
-        hf_kwargs = {}
-        model_init_kwargs = {}
-        hf_keys = {
-            "revision",
-            "token",
-            "cache_dir",
-            "force_download",
-            "resume_download",
-        }
-
-        for key, value in kwargs.items():
-            if key in hf_keys:
-                hf_kwargs[key] = value
-            else:
-                model_init_kwargs[key] = value
-
-        # Resolve model path
-        if os.path.exists(model_name_or_path):
-            model_path = model_name_or_path
-            logger.info(f"Loading model from local path: {model_path}")
-        else:
-            weights_dir = os.path.join(
-                os.path.dirname(__file__), "..", "..", "..", "weights"
-            )
-            model_path = os.path.join(weights_dir, model_name_or_path)
-
-            if not os.path.isdir(model_path):
-                try:
-                    logger.info(
-                        f"Downloading '{model_name_or_path}' from HuggingFace..."
-                    )
-                    model_path = download_from_huggingface(
-                        model_name_or_path,
-                        organization="perturblab",
-                        **hf_kwargs,
-                    )
-                    logger.info(f"Model cached at: {model_path}")
-                except Exception as e:
-                    raise ValueError(
-                        f"Model not found: {model_name_or_path}. Error: {str(e)}"
-                    )
-
         # Load config and weights
         config_path = os.path.join(model_path, "config.json")
         if not os.path.exists(config_path):
@@ -774,7 +982,7 @@ class scFoundationModel(PerturbationModel):
 
         config = scFoundationConfig.load(config_path)
         
-        model = cls(config, device=device, **model_init_kwargs)
+        model = cls(config, device=device, **kwargs)
 
         model_file = os.path.join(model_path, "model.pt")
         if not os.path.exists(model_file):
@@ -785,13 +993,9 @@ class scFoundationModel(PerturbationModel):
 
         model.eval()
         return model
-
-
-
-
+\
 class scFoundationPerturbationModel(scFoundationModel):
-    """
-    scFoundation model for perturbation prediction using the GEARS framework.
+    """scFoundation model for perturbation prediction using GEARS framework.
 
     Extends scFoundationModel by using it as a backbone encoder for GEARS.
     Architecture: scFoundation (Encoder) -> GEARS (GNN + Decoder).
@@ -800,7 +1004,7 @@ class scFoundationPerturbationModel(scFoundationModel):
     def __init__(
         self,
         config: scFoundationConfig,
-        device: str = "cuda",
+        device: str = 'cpu',
         gene_list: Optional[List[str]] = None,
         go_graph: Optional[GeneGraph] = None,
         gene_graph: Optional[GeneGraph] = None,
@@ -810,11 +1014,7 @@ class scFoundationPerturbationModel(scFoundationModel):
         gene_embeddings: Optional[torch.Tensor] = None,
         **kwargs,
     ):
-        """
-        Initializes the scFoundation Perturbation Model.
-
-        If graphs and lists are provided, the GEARS head is initialized immediately.
-        Otherwise, `init_perturbation_head` must be called later.
+        """Initializes the scFoundation Perturbation Model.
 
         Args:
             config: scFoundation configuration.
@@ -824,8 +1024,8 @@ class scFoundationPerturbationModel(scFoundationModel):
             gene_graph: Pre-built co-expression graph.
             gears_config: Configuration for the GEARS head.
             pert_list: List of perturbations.
-            pert_embeddings: Pre-trained perturbation embeddings.
-            gene_embeddings: Pre-trained gene embeddings.
+            pert_embeddings: Optional pre-trained perturbation embeddings.
+            gene_embeddings: Optional pre-trained gene embeddings.
         """
         super().__init__(config, device, gene_list, **kwargs)
 
@@ -865,7 +1065,7 @@ class scFoundationPerturbationModel(scFoundationModel):
             )
 
     def _requires_perturbation_head(func):
-        """Decorator to enforce initialization of the GEARS head."""
+        """Enforces initialization of the GEARS head."""
 
         def wrapper(self, *args, **kwargs):
             if self.gears_model is None:
@@ -887,11 +1087,10 @@ class scFoundationPerturbationModel(scFoundationModel):
         pert_embeddings: torch.Tensor = None,
         gene_embeddings: torch.Tensor = None,
     ):
-        """
-        Initializes the GEARS downstream head with provided graphs.
+        """Initializes the GEARS downstream head with provided graphs.
 
         Args:
-            gears_config: Configuration for GEARS.
+            gears_config: GEARS configuration.
             gene_list: List of genes.
             pert_list: List of perturbations.
             go_graph: Gene Ontology graph.
@@ -935,13 +1134,12 @@ class scFoundationPerturbationModel(scFoundationModel):
         gears_config: Optional[GearsConfig] = None,
         **kwargs,
     ):
-        """
-        Initializes the GEARS head by extracting metadata from a dataset.
+        """Initializes the GEARS head by extracting metadata from a dataset.
 
         Args:
             dataset: PerturbationData object.
-            gears_config: GEARS configuration. Defaults to model config if None.
-            **kwargs: Overrides for GearsConfig if gears_config is None.
+            gears_config: GEARS configuration.
+            **kwargs: Overrides for GearsConfig.
         """
         # Validate dataset format
         if not dataset.gears_format:
@@ -1009,7 +1207,7 @@ class scFoundationPerturbationModel(scFoundationModel):
             self._extract_de_genes(adata)
 
     def _extract_de_genes(self, adata: AnnData):
-        """Helper to extract DE gene indices from AnnData."""
+        """Extracts DE gene indices from AnnData."""
         rank_data = adata.uns["rank_genes_groups_cov_all"]
         top_n = adata.uns.get("top_de_n", 20)
         
@@ -1072,10 +1270,22 @@ class scFoundationPerturbationModel(scFoundationModel):
         save_best: bool = True,
         **kwargs,
     ):
-        """
-        Trains the perturbation model.
-
-        Delegates to GearsModel.train_model.
+        """Trains the perturbation model.
+        
+        Args:
+            dataset: Training perturbation dataset.
+            epochs: Number of training epochs.
+            lr: Learning rate.
+            weight_decay: Weight decay for optimizer.
+            batch_size: Batch size.
+            train_split: Name of training split.
+            val_split: Name of validation split.
+            result_dir: Directory to save results.
+            log_interval: Logging interval.
+            save_best: Whether to save the best model.
+            
+        Returns:
+            Dictionary with training history.
         """
         if not dataset.gears_format:
             dataset.set_gears_format(fallback_cell_type="unknown")
@@ -1115,17 +1325,16 @@ class scFoundationPerturbationModel(scFoundationModel):
         return_numpy: bool = True,
         **kwargs,
     ):
-        """
-        Predicts gene expression changes under perturbation.
+        """Predicts gene expression changes under perturbation.
 
         Args:
-            dataset: Input dataset.
+            dataset: Input perturbation dataset.
             batch_size: Batch size.
-            split: Data split to predict on ('train', 'val', 'test', 'all').
+            split: Data split to predict on.
             return_numpy: Whether to return numpy arrays.
 
         Returns:
-            Dictionary containing predictions, ground truth, and metadata.
+            Dictionary containing predictions and metadata.
         """
         if not dataset.gears_format:
             dataset.set_gears_format(fallback_cell_type="unknown")
@@ -1150,49 +1359,52 @@ class scFoundationPerturbationModel(scFoundationModel):
 
         return results
 
-    def save_pretrained(self, save_directory: str):
-        """Saves the base model and the GEARS head (if initialized)."""
-        os.makedirs(save_directory, exist_ok=True)
+    def save(self, model_path: str):
+        """Saves the base model and the GEARS head."""
+        os.makedirs(model_path, exist_ok=True)
 
         # Save base model
-        super().save(save_directory)
+        super().save(model_path)
 
         # Save GEARS head
         if self.gears_model is not None:
-            gears_save_dir = os.path.join(save_directory, "gears_head")
+            gears_save_dir = os.path.join(model_path, "gears_head")
             self.gears_model.save(gears_save_dir)
             logger.info(f"Saved GEARS head to {gears_save_dir}")
         else:
             logger.info("Saved base model only (no head initialized).")
 
     @classmethod
-    def from_pretrained(
+    def load(
         cls,
-        model_name_or_path: str,
-        device: str = "cuda",
+        model_path: str,
+        device: str = 'cpu',
         **kwargs,
     ) -> "scFoundationPerturbationModel":
-        """
-        Loads the model. Automatically loads GEARS head if found in subdirectory.
+        """Loads the model with optional GEARS head.
+        
+        Args:
+            model_path: Path to the saved model directory.
+            device: Computation device.
+            **kwargs: Additional arguments.
+            
+        Returns:
+            Loaded scFoundationPerturbationModel instance.
         """
         # Load base model
-        base_model = super().from_pretrained(model_name_or_path, device, **kwargs)
+        base_model = super().load(model_path, device=device, **kwargs)
 
         # Create instance sharing weights
         model = cls(base_model.config, device=device, gene_list=base_model.gene_list)
         model.model = base_model.model
 
         # Check for GEARS head
-        gears_head_dir = None
-        if os.path.exists(model_name_or_path) and os.path.isdir(model_name_or_path):
-            gears_head_dir = os.path.join(model_name_or_path, "gears_head")
+        gears_head_dir = os.path.join(model_path, "gears_head")
 
-        if gears_head_dir and os.path.exists(gears_head_dir):
+        if os.path.exists(gears_head_dir):
             logger.info(f"Found GEARS head at {gears_head_dir}. Loading...")
             try:
-                model.gears_model = GearsModel.from_pretrained(
-                    gears_head_dir, device=device
-                )
+                model.gears_model = GearsModel.load(gears_head_dir)
                 
                 # Re-inject encoder
                 if hasattr(model.gears_model.gears_model, "singlecell_model"):

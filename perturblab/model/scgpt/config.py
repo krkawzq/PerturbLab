@@ -49,6 +49,8 @@ class scGPTConfig(ModelConfig):
         max_seq_len: int | None = None,
         batch_label_key: str = 'batch',
         dab_weight: float = 1.0,
+        ecs_loss_weight: float = 10.0,
+        perturbation_delimiter: str = "+",
         **kwargs,
     ):
         """Initialize scGPTConfig with model hyperparameters."""

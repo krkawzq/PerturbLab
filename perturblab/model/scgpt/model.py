@@ -9,6 +9,7 @@ import numpy as np
 import scipy.sparse
 import torch
 import torch.nn as nn
+from anndata import AnnData
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 
@@ -27,15 +28,12 @@ logger = logging.getLogger(__name__)
 
 
 class scGPTModel(PerturbationModel):
-    """
-    scGPT model for single-cell gene expression analysis.
-
-    
+    """scGPT model for single-cell gene expression analysis.
 
     Supports pretraining, fine-tuning, and various downstream tasks using a
     Transformer-based architecture specialized for single-cell data.
 
-    Available pretrained models on HuggingFace (perturblab organization):
+    Available pretrained models on HuggingFace:
     - scgpt-human: General human single-cell model
     - scgpt-blood: Blood cell specialized model
     - scgpt-brain: Brain cell specialized model
@@ -47,42 +45,32 @@ class scGPTModel(PerturbationModel):
     """
 
     # Available pretrained models on HuggingFace
-    PRETRAINED_MODELS = {
-        "scgpt-human": "perturblab/scgpt-human",
-        "scgpt-blood": "perturblab/scgpt-blood",
-        "scgpt-brain": "perturblab/scgpt-brain",
-        "scgpt-heart": "perturblab/scgpt-heart",
-        "scgpt-kidney": "perturblab/scgpt-kidney",
-        "scgpt-lung": "perturblab/scgpt-lung",
-        "scgpt-pan-cancer": "perturblab/scgpt-pan-cancer",
-        "scgpt-continual-pretrained": "perturblab/scgpt-continual-pretrained",
-    }
+    _pretrained_models = [
+        "scgpt-human",
+        "scgpt-blood",
+        "scgpt-brain",
+        "scgpt-heart",
+        "scgpt-kidney",
+        "scgpt-lung",
+        "scgpt-pan-cancer",
+        "scgpt-continual-pretrained",
+    ]
 
     def __init__(
         self,
         config: scGPTConfig,
         gene_list: Optional[List[str]] = None,
-        device: str = "cuda",
+        device: str = 'cpu',
         **kwargs,
     ):
-        """
-        Initializes the scGPT model.
+        """Initializes the scGPT model.
 
         Args:
-            config: Model configuration.
-            gene_list: List of gene names (required if not using default vocab).
-            device: Computation device ('cuda' or 'cpu').
+            config: scGPT configuration object.
+            gene_list: List of gene names.
+            device: Computation device.
         """
         super().__init__(config)
-
-        if device == "cuda":
-            self.device = (
-                "cuda"
-                if torch.cuda.is_available() and torch.cuda.device_count() > 0
-                else "cpu"
-            )
-        else:
-            self.device = "cpu"
 
         # Initialize Vocabulary
         if config.use_default_gene_vocab:
@@ -131,7 +119,11 @@ class scGPTModel(PerturbationModel):
             use_fast_transformer=config.use_fast_transformer,
             fast_transformer_backend=config.fast_transformer_backend,
             pre_norm=config.pre_norm,
-        ).to(self.device)
+        ).to(device)
+    
+    def to(self, device: str):
+        self.model.to(device)
+        return self
 
     def train(self, mode: bool = True):
         """Set the model to training mode."""
@@ -141,6 +133,18 @@ class scGPTModel(PerturbationModel):
     def eval(self):
         """Set the model to evaluation mode."""
         return self.train(False)
+    
+    @staticmethod
+    def _get_adata_from_data(data: Union[AnnData, PerturbationData]) -> AnnData:
+        """Extracts AnnData from input data."""
+        if isinstance(data, PerturbationData):
+            return data.adata
+        elif isinstance(data, AnnData):
+            return data
+        else:
+            raise TypeError(
+                f"Expected AnnData or PerturbationData, got {type(data)}"
+            )
 
     @classmethod
     def mask_values(
@@ -150,11 +154,7 @@ class scGPTModel(PerturbationModel):
         mask_value: int = -1,
         pad_value: int = 0,
     ) -> torch.Tensor:
-        """
-        Performs random masking on values for Masked Language Modeling (MLM).
-
-        
-        """
+        """Performs random masking on values for Masked Language Modeling."""
         return random_mask_value(
             values,
             mask_ratio=mask_ratio,
@@ -162,34 +162,36 @@ class scGPTModel(PerturbationModel):
             pad_value=pad_value,
         )
 
-    def prepare_dataloader(
+    def get_dataloader(
         self,
-        dataset: PerturbationData,
+        dataset: Union[AnnData, PerturbationData],
         batch_size: int = 32,
         shuffle: bool = True,
         drop_last: bool = False,
         num_workers: int = 0,
         mask_ratio: float = 0.0,
         mask_value: int = -1,
-        return_split: Optional[str] = None,
+        split: Optional[str] = None,
     ) -> Union[DataLoader, Dict[str, DataLoader]]:
         """
         Prepares DataLoaders for the dataset.
 
         Args:
-            dataset: Input dataset.
+            dataset: Input dataset (AnnData or PerturbationData).
             batch_size: Batch size.
             shuffle: Whether to shuffle data.
             drop_last: Whether to drop incomplete batches.
             num_workers: Number of worker threads.
             mask_ratio: Ratio of values to mask (0.0 = no masking).
             mask_value: Value to use for masking.
-            return_split: Specific split to return ('train', 'test', 'all'), or None for all.
+            split: Specific split to return ('train', 'val', 'test'), or None for all splits.
+                   If dataset has no splits, returns 'train' key.
 
         Returns:
-            DataLoader or Dictionary of DataLoaders.
+            DataLoader (if split is specified) or Dictionary of DataLoaders.
         """
-        gene_names = dataset.adata.var_names.tolist()
+        adata = self._get_adata_from_data(dataset)
+        gene_names = adata.var_names.tolist()
         gene_ids = [
             self.vocab[g] if g in self.vocab else self.vocab[self.config.pad_token]
             for g in gene_names
@@ -253,26 +255,29 @@ class scGPTModel(PerturbationModel):
 
         # Handle Splits
         adata_map = {}
-        if return_split == "all" or ("split" not in dataset.adata.obs):
-            adata_map["all"] = dataset.adata
-        elif return_split is not None:
-            if (
-                "split" in dataset.adata.obs
-                and return_split in dataset.adata.obs["split"].values
-            ):
-                subset = dataset.adata[dataset.adata.obs["split"] == return_split]
-                adata_map[return_split] = subset
+        has_split = "split" in adata.obs
+        
+        if split is not None:
+            # Return specific split
+            if has_split:
+                if split in adata.obs["split"].values:
+                    subset = adata[adata.obs["split"] == split]
+                    adata_map[split] = subset
+                else:
+                    raise ValueError(f"Split '{split}' not found in dataset")
             else:
-                raise ValueError(f"Split '{return_split}' not found in dataset")
+                # No split in data, return all as requested split
+                adata_map[split] = adata
         else:
             # Return all splits
-            if "split" in dataset.adata.obs:
-                split_names = dataset.adata.obs["split"].unique()
+            if has_split:
+                split_names = adata.obs["split"].unique()
                 for split_name in split_names:
-                    subset = dataset.adata[dataset.adata.obs["split"] == split_name]
+                    subset = adata[adata.obs["split"] == split_name]
                     adata_map[str(split_name)] = subset
             else:
-                adata_map["all"] = dataset.adata
+                # No split in data, return as 'train'
+                adata_map["train"] = adata
 
         dataloaders = {}
 
@@ -321,8 +326,9 @@ class scGPTModel(PerturbationModel):
 
             dataloaders[split_name] = loader
 
-        if return_split is not None:
-            return dataloaders[list(dataloaders.keys())[0]]
+        # Return single DataLoader if split is specified, otherwise return dict
+        if split is not None:
+            return dataloaders[split]
         return dataloaders
 
     def forward(
@@ -334,10 +340,20 @@ class scGPTModel(PerturbationModel):
         ECS: bool = False,
         do_sample: bool = False,
     ) -> Dict[str, torch.Tensor]:
+        """Forward pass retrieves embeddings and model outputs.
+        
+        Args:
+            batch_data: Input batch dictionary.
+            CLS: Whether to compute CLS loss.
+            CCE: Whether to compute CCE loss.
+            MVC: Whether to compute MVC loss.
+            ECS: Whether to compute ECS loss.
+            do_sample: Whether to sample during generation.
+            
+        Returns:
+            Dictionary containing model outputs.
         """
-        Forward pass. Retrieves embeddings and model outputs without loss calculation.
-        """
-        batch_data = {k: v.to(self.device) for k, v in batch_data.items()}
+        batch_data = {k: v.to(self.model.device) for k, v in batch_data.items()}
 
         src = batch_data["src"]
         # Use masked values if available, otherwise raw values
@@ -370,8 +386,20 @@ class scGPTModel(PerturbationModel):
         do_sample: bool = False,
         mask_value: int = -1,
     ) -> Dict[str, torch.Tensor]:
-        """
-        Computes model losses (MSE, GEPC, ECS, DAB, Zero-prob).
+        """Computes model losses (MSE, GEPC, ECS, DAB, Zero-prob).
+        
+        Args:
+            batch_data: Input batch dictionary.
+            output_dict: Optional pre-computed outputs.
+            CLS: Whether to compute CLS loss.
+            CCE: Whether to compute CCE loss.
+            MVC: Whether to compute MVC loss.
+            ECS: Whether to compute ECS loss.
+            do_sample: Whether to sample during generation.
+            mask_value: Value used for masking.
+            
+        Returns:
+            Dictionary with 'loss' key containing the total loss.
         """
         if output_dict is None:
             output_dict = self.forward(
@@ -387,7 +415,7 @@ class scGPTModel(PerturbationModel):
         total_loss = 0.0
 
         if "target_values" in batch_data:
-            batch_data = {k: v.to(self.device) for k, v in batch_data.items()}
+            batch_data = {k: v.to(self.model.device) for k, v in batch_data.items()}
             target_values = batch_data["target_values"]
             values = batch_data.get("masked_values", batch_data["values"])
 
@@ -418,8 +446,8 @@ class scGPTModel(PerturbationModel):
 
             # 4. ECS Loss
             if ECS and "loss_ecs" in output_dict:
-                # Scaling factor 10 is standard in scGPT
-                loss_ecs = output_dict["loss_ecs"] * 10
+                # Use configurable ECS loss weight
+                loss_ecs = output_dict["loss_ecs"] * self.config.ecs_loss_weight
                 total_loss += loss_ecs
                 losses["loss_ecs"] = loss_ecs
 
@@ -440,48 +468,66 @@ class scGPTModel(PerturbationModel):
 
     def predict_embeddings(
         self,
-        dataset: PerturbationData,
+        dataset: Union[AnnData, PerturbationData],
         batch_size: int = 32,
         embedding_type: Literal["cell", "gene"] = "cell",
+        split: Optional[str] = None,
         **kwargs,
-    ) -> np.ndarray:
-        """
-        Unified embedding prediction method.
+    ) -> Union[Dict[str, np.ndarray], np.ndarray]:
+        """Unified embedding prediction method.
 
         Args:
             dataset: Input dataset.
             batch_size: Batch size.
-            embedding_type: 'cell' or 'gene'.
+            embedding_type: Type of embedding ('cell' or 'gene').
+            split: Specific split to return, or None for all splits.
 
         Returns:
-            Numpy array of embeddings.
+            Dictionary with 'cell' or 'gene' key containing embeddings.
+            If split is None and dataset has splits, returns nested dict.
         """
         self.eval()
-
+        
         if embedding_type == "gene":
             with torch.no_grad():
                 gene_embs = self.model.encoder.embedding.weight.cpu().numpy()
-            return gene_embs
+            return {'gene': gene_embs}
 
         elif embedding_type == "cell":
-            loader = self.prepare_dataloader(
+            loaders = self.get_dataloader(
                 dataset,
                 batch_size=batch_size,
                 shuffle=False,
                 mask_ratio=0.0,
-                return_split="all",
+                split=split,
             )
-
-            embeddings = []
-            with torch.no_grad():
-                for batch in tqdm(loader, desc="Encoding cells"):
-                    batch = {k: v.to(self.device) for k, v in batch.items()}
-
-                    out = self.forward(batch)
-                    cell_emb = out["cell_emb"]  # (batch, embsize)
-                    embeddings.append(cell_emb.cpu().numpy())
-
-            return np.concatenate(embeddings, axis=0)
+            
+            # If split is specified, loaders is a single DataLoader
+            if split is not None:
+                embeddings = []
+                with torch.no_grad():
+                    for batch in tqdm(loaders, desc=f"Encoding cells ({split})"):
+                        batch = {k: v.to(self.model.device) for k, v in batch.items()}
+                        out = self.forward(batch)
+                        cell_emb = out["cell_emb"]  # (batch, embsize)
+                        embeddings.append(cell_emb.cpu().numpy())
+                
+                return {'cell': np.concatenate(embeddings, axis=0)}
+            else:
+                # Return dict with split names as keys
+                result = {}
+                for split_name, loader in loaders.items():
+                    embeddings = []
+                    with torch.no_grad():
+                        for batch in tqdm(loader, desc=f"Encoding cells ({split_name})"):
+                            batch = {k: v.to(self.model.device) for k, v in batch.items()}
+                            out = self.forward(batch)
+                            cell_emb = out["cell_emb"]  # (batch, embsize)
+                            embeddings.append(cell_emb.cpu().numpy())
+                    
+                    result[split_name] = {'cell': np.concatenate(embeddings, axis=0)}
+                
+                return result
         else:
             raise ValueError(
                 f"embedding_type must be 'cell' or 'gene', got {embedding_type}"
@@ -489,7 +535,7 @@ class scGPTModel(PerturbationModel):
 
     def train_model(
         self,
-        dataset: PerturbationData,
+        dataset: Union[AnnData, PerturbationData],
         epochs: int = 10,
         batch_size: int = 32,
         lr: float = 1e-4,
@@ -508,8 +554,7 @@ class scGPTModel(PerturbationModel):
         scheduler_gamma: float = 0.99,
         **kwargs,
     ):
-        """
-        Trains the scGPT model.
+        """Trains the scGPT model.
 
         Args:
             dataset: Training data.
@@ -518,29 +563,36 @@ class scGPTModel(PerturbationModel):
             lr: Learning rate.
             mask_ratio: Masking ratio for MLM.
             mask_value: Value used for masking.
-            use_amp: Whether to use Automatic Mixed Precision.
+            use_amp: Whether to use automatic mixed precision.
             grad_clip: Gradient clipping value.
             log_interval: Logging frequency.
             save_dir: Directory to save checkpoints.
             save_interval: Checkpoint saving frequency.
-            CLS, CCE, MVC, ECS: Loss flags.
+            CLS: Whether to use CLS loss.
+            CCE: Whether to use CCE loss.
+            MVC: Whether to use MVC loss.
+            ECS: Whether to use ECS loss.
             scheduler_step: Scheduler step size.
             scheduler_gamma: Scheduler gamma.
 
         Returns:
             Dictionary containing training history.
         """
-        dataloaders = self.prepare_dataloader(
+        dataloaders = self.get_dataloader(
             dataset,
             batch_size=batch_size,
             shuffle=True,
             mask_ratio=mask_ratio,
             mask_value=mask_value,
-            return_split=None,  # Get all splits
+            split=None,  # Get all splits
         )
 
-        train_loader = dataloaders.get("train", dataloaders.get("all"))
-        valid_loader = dataloaders.get("valid", dataloaders.get("test", None))
+        train_loader = dataloaders.get("train")
+        if train_loader is None:
+            raise ValueError("No 'train' split found in dataloaders")
+        
+        # Try multiple common validation split names
+        valid_loader = dataloaders.get("valid") or dataloaders.get("val") or dataloaders.get("test")
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, eps=1e-8)
         scheduler = torch.optim.lr_scheduler.StepLR(
@@ -681,145 +733,155 @@ class scGPTModel(PerturbationModel):
         logger.info("Training completed!")
         return history
 
-    def save(self, save_directory: str):
-        """Saves model weights and configuration."""
-        os.makedirs(save_directory, exist_ok=True)
+    def save(self, model_path: str):
+        """
+        Saves model weights, configuration, and vocabulary.
+        
+        Args:
+            save_directory: Directory to save the model.
+            is_best: If True, saves weights as 'best_model.pt', otherwise 'model.pt'.
+        """
+        os.makedirs(model_path, exist_ok=True)
 
-        model_file = os.path.join(save_directory, "model.pt")
+        # 1. Save Config
+        config_file = os.path.join(model_path, "args.json")
+        self.config.save(config_file)
+        
+        # 2. Save Vocabulary (Crucial for symmetry)
+        if hasattr(self, 'vocab') and self.vocab is not None:
+            vocab_file = os.path.join(model_path, "vocab.json")
+            # Handle both GeneVocab objects and dicts
+            if hasattr(self.vocab, 'save_json'):
+                self.vocab.save_json(vocab_file)
+            elif isinstance(self.vocab, dict):
+                with open(vocab_file, 'w') as f:
+                    json.dump(self.vocab, f, indent=2)
+            logger.info(f"Saved vocab to {vocab_file}")
+
+        # 3. Save Model Weights
+        filename = 'model.pt'
+        model_file = os.path.join(model_path, filename)
         torch.save(self.model.state_dict(), model_file)
 
-        config_file = os.path.join(save_directory, "args.json")
-        self.config.save(config_file)
-
-        logger.info(f"Model saved to {save_directory}")
+        logger.info(f"Model saved to {model_path} (weights: {filename})")
 
     @classmethod
-    def from_pretrained(
-        cls,
-        model_name_or_path: str,
-        device: str = "cuda",
-        **kwargs,
-    ) -> "scGPTModel":
+    def load(cls, model_path: str, device: str = 'cpu') -> 'scGPTModel':
         """
-        Loads a pretrained scGPT model from HuggingFace or a local path.
+        Loads a scGPT model from a saved directory.
+        Compatible with structure: [args.json, vocab.json, best_model.pt]
 
         Args:
-            model_name_or_path: HuggingFace ID or local directory.
+            model_path: Path to the saved model directory.
             device: Computation device.
-            **kwargs: Extra arguments for HF download or model init.
+            **kwargs: Extra arguments for model initialization.
 
         Returns:
             Loaded scGPTModel instance.
         """
-        hf_kwargs = {}
-        model_init_kwargs = {}
-        hf_keys = {
-            "revision",
-            "token",
-            "cache_dir",
-            "force_download",
-            "resume_download",
-        }
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model directory not found: {model_path}")
 
-        for key, value in kwargs.items():
-            if key in hf_keys:
-                hf_kwargs[key] = value
-            else:
-                model_init_kwargs[key] = value
-
-        # Resolve model path
-        if os.path.exists(model_name_or_path):
-            model_path = model_name_or_path
-            logger.info(f"Loading model from local path: {model_path}")
-        else:
-            try:
-                logger.info(
-                    f"Downloading model '{model_name_or_path}' from HuggingFace..."
-                )
-                model_path = download_from_huggingface(
-                    model_name_or_path, organization="perturblab", **hf_kwargs
-                )
-                logger.info(f"✓ Model cached at: {model_path}")
-            except Exception as e:
-                raise ValueError(
-                    f"Failed to load model '{model_name_or_path}'. "
-                    f"Ensure it is a valid local path or HuggingFace ID.\n"
-                    f"Error: {str(e)}"
-                )
-
-        # Load config
+        # 1. Load Config
         config_file = os.path.join(model_path, "args.json")
+        if not os.path.exists(config_file):
+            raise FileNotFoundError(f"Config file not found at {config_file}")
+        
         config = scGPTConfig.load(config_file)
+        logger.info(f"Loaded config from {config_file}")
 
-        # Load ntoken from vocab if needed
-        if config.ntoken is None:
-            vocab_file = os.path.join(model_path, "vocab.json")
-            if os.path.exists(vocab_file):
+        # 2. Load Vocab & Infer ntoken (Symmetry Step)
+        vocab = None
+        vocab_file = os.path.join(model_path, "vocab.json")
+        
+        if os.path.exists(vocab_file):
+            try:
+                # Try loading as GeneVocab (if available in context) or dict
                 try:
+                    from .source.tokenizer import GeneVocab 
+                    vocab = GeneVocab.from_file(vocab_file)
+                    logger.info(f"Loaded GeneVocab object from {vocab_file}")
+                except (ImportError, AttributeError):
+                    # Fallback to dict
                     with open(vocab_file, "r") as f:
-                        vocab_data = json.load(f)
-                        if isinstance(vocab_data, dict):
-                            config.ntoken = max(vocab_data.values()) + 1
-                        else:
-                            config.ntoken = len(vocab_data)
-                except Exception as e:
-                    logger.warning(f"Failed to load ntoken from vocab.json: {e}")
-                    config.ntoken = 60697
-            else:
-                config.ntoken = 60697
+                        vocab = json.load(f)
+                    logger.info(f"Loaded vocab dict from {vocab_file}")
 
-        # Find weights
-        model_file = os.path.join(model_path, "model.pt")
+                # Infer ntoken if missing in config
+                if config.ntoken is None:
+                    if hasattr(vocab, '__len__'):
+                        config.ntoken = len(vocab)
+                    logger.info(f"Inferred ntoken={config.ntoken} from vocab")
+                    
+            except Exception as e:
+                logger.warning(f"Failed to load vocab from {vocab_file}: {e}")
+        
+        # Fallback for ntoken: Infer from weights later if still None
+        if config.ntoken is None:
+             logger.warning("ntoken not in config and could not be inferred from vocab. Will attempt to infer from weights.")
+
+        # 3. Locate Weights File (Priority: best_model.pt -> model.pt)
+        weights_name = "best_model.pt"
+        if not os.path.exists(os.path.join(model_path, weights_name)):
+            weights_name = "model.pt"
+        
+        model_file = os.path.join(model_path, weights_name)
         if not os.path.exists(model_file):
-            model_file = os.path.join(model_path, "best_model.pt")
-            if not os.path.exists(model_file):
-                raise FileNotFoundError(
-                    f"Model weights not found at {model_path}. "
-                    f"Expected 'model.pt' or 'best_model.pt'."
-                )
+             raise FileNotFoundError(f"No model weights found in {model_path} (checked best_model.pt and model.pt)")
 
-        # Instantiate
-        model = cls(config, device=device, **model_init_kwargs)
+        # 4. Initialize Model
+        # If ntoken is still None, this might fail depending on model init logic.
+        # We assume config has reasonable defaults or ntoken was found.
+        model_wrapper = cls(config, device=device)
+        
+        # Restore vocab object to wrapper (Symmetry)
+        if vocab is not None:
+            model_wrapper.vocab = vocab
 
-        # Load weights
+        # 5. Load State Dict
+        logger.info(f"Loading weights from {model_file}...")
+        # map_location ensures safety on CPU-only machines or different GPU setups
         state_dict = torch.load(model_file, map_location=device)
-        load_pretrained(model.model, state_dict, verbose=False)
+        
+        # Late inference of ntoken if absolutely necessary
+        if config.ntoken is None and "encoder.embedding.weight" in state_dict:
+             inferred_ntoken = state_dict["encoder.embedding.weight"].shape[0]
+             logger.info(f"Late inference of ntoken={inferred_ntoken} from weights. Re-initializing model...")
+             config.ntoken = inferred_ntoken
+             model_wrapper = cls(config, device=device) # Re-init
+             if vocab is not None: model_wrapper.vocab = vocab
+
+        load_pretrained(model_wrapper.model, state_dict, verbose=False)
 
         logger.info("✓ Model loaded successfully")
-        return model
+        return model_wrapper
 
 
 class scGPTPerturbationModel(PerturbationModel):
-    """
-    scGPT model specialized for perturbation prediction tasks.
-
-    
+    """scGPT model specialized for perturbation prediction tasks.
 
     Uses the TransformerGenerator architecture to predict the gene expression
     state of a cell after perturbation, given a control state and perturbation tokens.
     """
 
-    # Registry of pretrained models for perturbation (placeholder)
-    PRETRAINED_MODELS = {}
+    # Registry of pretrained models for perturbation
+    _pretrained_models = []
 
     def __init__(
         self,
         config: scGPTConfig,
         gene_list: Optional[List[str]] = None,
-        device: str = "cuda",
+        device: str = 'cpu',
         **kwargs,
     ):
-        """Initializes the scGPT perturbation model."""
+        """Initializes the scGPT perturbation model.
+        
+        Args:
+            config: scGPT configuration object.
+            gene_list: List of gene names.
+            device: Computation device.
+        """
         super().__init__(config)
-
-        if device == "cuda":
-            self.device = (
-                "cuda"
-                if torch.cuda.is_available() and torch.cuda.device_count() > 0
-                else "cpu"
-            )
-        else:
-            self.device = "cpu"
 
         if config.use_default_gene_vocab:
             self.vocab = get_default_gene_vocab()
@@ -864,7 +926,11 @@ class scGPTPerturbationModel(PerturbationModel):
             use_fast_transformer=config.use_fast_transformer,
             fast_transformer_backend=config.fast_transformer_backend,
             pre_norm=config.pre_norm,
-        ).to(self.device)
+        ).to(device)
+
+    def to(self, device: str):
+        self.model.to(device)
+        return self
 
     def train(self, mode: bool = True):
         self.model.train(mode)
@@ -873,7 +939,7 @@ class scGPTPerturbationModel(PerturbationModel):
     def eval(self):
         return self.train(False)
 
-    def prepare_dataloader(
+    def get_dataloader(
         self,
         dataset: PerturbationData,
         batch_size: int = 32,
@@ -881,17 +947,37 @@ class scGPTPerturbationModel(PerturbationModel):
         drop_last: bool = False,
         num_workers: int = 0,
         mask_ratio: float = 0.0,
-        return_split: Optional[str] = None,
+        split: Optional[str] = None,
     ) -> Union[DataLoader, Dict[str, DataLoader]]:
-        """
-        Prepares DataLoaders for perturbation prediction.
-        Requires paired control-perturbation data.
+        """Prepares DataLoaders for perturbation prediction.
+        
+        Args:
+            dataset: PerturbationData object.
+            batch_size: Batch size.
+            shuffle: Whether to shuffle data.
+            drop_last: Whether to drop incomplete batches.
+            num_workers: Number of worker threads.
+            mask_ratio: Ratio of values to mask.
+            split: Specific split to return, or None for all splits.
+                   
+        Returns:
+            DataLoader or dictionary of DataLoaders.
         """
         if "ctrl_indices" not in dataset.adata.obsm:
             logger.info("Pairing cells for perturbation task...")
             dataset.pair_cells()
 
-        gene_names = dataset.adata.var_names.tolist()
+        adata = dataset.adata
+        
+        # Optimize sparse matrix format for efficient row slicing
+        if scipy.sparse.issparse(adata.X) and not scipy.sparse.isspmatrix_csr(adata.X):
+            logger.warning(
+                "Converting adata.X to CSR format for efficient row slicing. "
+                "This may take some time for large matrices."
+            )
+            adata.X = adata.X.tocsr()
+        
+        gene_names = adata.var_names.tolist()
         gene_ids = [
             self.vocab[g] if g in self.vocab else self.vocab[self.config.pad_token]
             for g in gene_names
@@ -914,24 +1000,28 @@ class scGPTPerturbationModel(PerturbationModel):
 
         # Handle Splits
         adata_map = {}
-        if return_split == "all" or ("split" not in dataset.adata.obs):
-            adata_map["all"] = np.arange(dataset.adata.n_obs)
-        elif return_split is not None:
-            if (
-                "split" in dataset.adata.obs
-                and return_split in dataset.adata.obs["split"].values
-            ):
-                indices = np.where(dataset.adata.obs["split"] == return_split)[0]
-                adata_map[return_split] = indices
+        has_split = "split" in adata.obs
+        
+        if split is not None:
+            # Return specific split
+            if has_split:
+                if split in adata.obs["split"].values:
+                    indices = np.where(adata.obs["split"] == split)[0]
+                    adata_map[split] = indices
+                else:
+                    raise ValueError(f"Split '{split}' not found in dataset")
             else:
-                raise ValueError(f"Split '{return_split}' not found in dataset")
+                # No split in data, return all as requested split
+                adata_map[split] = np.arange(adata.n_obs)
         else:
-            if "split" in dataset.adata.obs:
-                for split_name in dataset.adata.obs["split"].unique():
-                    indices = np.where(dataset.adata.obs["split"] == split_name)[0]
+            # Return all splits
+            if has_split:
+                for split_name in adata.obs["split"].unique():
+                    indices = np.where(adata.obs["split"] == split_name)[0]
                     adata_map[str(split_name)] = indices
             else:
-                adata_map["all"] = np.arange(dataset.adata.n_obs)
+                # No split in data, return as 'train'
+                adata_map["train"] = np.arange(adata.n_obs)
 
         dataloaders = {}
 
@@ -948,12 +1038,12 @@ class scGPTPerturbationModel(PerturbationModel):
                     batch_indices = torch.stack([item[0] for item in batch]).numpy()
 
                     # Fetch control indices (using first sample)
-                    ctrl_indices = dataset.adata.obsm["ctrl_indices"][
+                    ctrl_indices = adata.obsm["ctrl_indices"][
                         batch_indices, 0
                     ]
 
                     # Fetch expressions
-                    X = dataset.adata.X
+                    X = adata.X
                     if scipy.sparse.issparse(X):
                         x_val = X[ctrl_indices, slice_cols_local].toarray()
                         y_val = X[batch_indices, slice_cols_local].toarray()
@@ -962,15 +1052,16 @@ class scGPTPerturbationModel(PerturbationModel):
                         y_val = X[batch_indices, slice_cols_local]
 
                     # Identify perturbed genes
-                    conditions = dataset.adata.obs.iloc[batch_indices][
+                    conditions = adata.obs.iloc[batch_indices][
                         "condition"
                     ].values
                     pert_flags = np.zeros_like(x_val, dtype=np.int64)
 
                     for i, cond in enumerate(conditions):
                         if cond != "ctrl":
-                            perts = cond.split("+")
+                            perts = cond.split(self.config.perturbation_delimiter)
                             for p in perts:
+                                p = p.strip()  # Remove whitespace
                                 if p in gene_name_to_idx_local:
                                     pert_flags[i, gene_name_to_idx_local[p]] = 1
 
@@ -1005,8 +1096,9 @@ class scGPTPerturbationModel(PerturbationModel):
                 collate_fn=collate_fn,
             )
 
-        if return_split is not None:
-            return dataloaders[list(dataloaders.keys())[0]]
+        # Return single DataLoader if split is specified, otherwise return dict
+        if split is not None:
+            return dataloaders[split]
         return dataloaders
 
     def forward(
@@ -1018,7 +1110,7 @@ class scGPTPerturbationModel(PerturbationModel):
         ECS: bool = False,
         do_sample: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        batch_data = {k: v.to(self.device) for k, v in batch_data.items()}
+        batch_data = {k: v.to(self.model.device) for k, v in batch_data.items()}
 
         output_dict = self.model(
             src=batch_data["src"],
@@ -1057,7 +1149,7 @@ class scGPTPerturbationModel(PerturbationModel):
         total_loss = 0.0
 
         if "target_values" in batch_data:
-            target_values = batch_data["target_values"].to(self.device)
+            target_values = batch_data["target_values"].to(self.model.device)
             # Typically predict all values in perturbation tasks
             masked_positions = torch.ones_like(target_values, dtype=torch.bool)
 
@@ -1075,47 +1167,85 @@ class scGPTPerturbationModel(PerturbationModel):
         dataset: PerturbationData,
         batch_size: int = 32,
         embedding_type: Literal["cell", "gene"] = "cell",
+        split: Optional[str] = None,
         **kwargs,
-    ) -> np.ndarray:
-        """
-        Unified embedding prediction.
+    ) -> Union[Dict[str, np.ndarray], np.ndarray]:
+        """Unified embedding prediction.
+
+        Args:
+            dataset: PerturbationData object.
+            batch_size: Batch size.
+            embedding_type: Type of embedding ('cell' or 'gene').
+            split: Specific split to return, or None for all splits.
+
+        Returns:
+            Dictionary with 'cell' or 'gene' key containing embeddings.
+            If split is None and dataset has splits, returns nested dict.
         """
         self.eval()
 
         if embedding_type == "gene":
             with torch.no_grad():
                 gene_embs = self.model.encoder.embedding.weight.cpu().numpy()
-            return gene_embs
+            return {'gene': gene_embs}
 
         elif embedding_type == "cell":
-            loader = self.prepare_dataloader(
+            loaders = self.get_dataloader(
                 dataset,
                 batch_size=batch_size,
                 shuffle=False,
-                return_split="all",
+                split=split,
             )
+            
+            # If split is specified, loaders is a single DataLoader
+            if split is not None:
+                embeddings = []
+                with torch.no_grad():
+                    for batch in tqdm(loaders, desc=f"Encoding cells ({split})"):
+                        batch = {k: v.to(self.model.device) for k, v in batch.items()}
 
-            embeddings = []
-            with torch.no_grad():
-                for batch in tqdm(loader, desc="Encoding cells"):
-                    batch = {k: v.to(self.device) for k, v in batch.items()}
+                        # Use internal methods to retrieve cell embeddings from TransformerGenerator
+                        src = batch["src"]
+                        values = batch["values"]
+                        input_pert_flags = batch["input_pert_flags"]
+                        src_key_padding_mask = batch["src_key_padding_mask"]
 
-                    # Use internal methods to retrieve cell embeddings from TransformerGenerator
-                    src = batch["src"]
-                    values = batch["values"]
-                    input_pert_flags = batch["input_pert_flags"]
-                    src_key_padding_mask = batch["src_key_padding_mask"]
+                        transformer_output = self.model._encode(
+                            src, values, input_pert_flags, src_key_padding_mask
+                        )
+                        cell_emb = self.model._get_cell_emb_from_layer(
+                            transformer_output, values
+                        )
 
-                    transformer_output = self.model._encode(
-                        src, values, input_pert_flags, src_key_padding_mask
-                    )
-                    cell_emb = self.model._get_cell_emb_from_layer(
-                        transformer_output, values
-                    )
+                        embeddings.append(cell_emb.cpu().numpy())
 
-                    embeddings.append(cell_emb.cpu().numpy())
+                return {'cell': np.concatenate(embeddings, axis=0)}
+            else:
+                # Return dict with split names as keys
+                result = {}
+                for split_name, loader in loaders.items():
+                    embeddings = []
+                    with torch.no_grad():
+                        for batch in tqdm(loader, desc=f"Encoding cells ({split_name})"):
+                            batch = {k: v.to(self.model.device) for k, v in batch.items()}
 
-            return np.concatenate(embeddings, axis=0)
+                            src = batch["src"]
+                            values = batch["values"]
+                            input_pert_flags = batch["input_pert_flags"]
+                            src_key_padding_mask = batch["src_key_padding_mask"]
+
+                            transformer_output = self.model._encode(
+                                src, values, input_pert_flags, src_key_padding_mask
+                            )
+                            cell_emb = self.model._get_cell_emb_from_layer(
+                                transformer_output, values
+                            )
+
+                            embeddings.append(cell_emb.cpu().numpy())
+
+                    result[split_name] = {'cell': np.concatenate(embeddings, axis=0)}
+                
+                return result
         else:
             raise ValueError(
                 f"embedding_type must be 'cell' or 'gene', got {embedding_type}"
@@ -1125,44 +1255,70 @@ class scGPTPerturbationModel(PerturbationModel):
         self,
         dataset: PerturbationData,
         batch_size: int = 32,
+        split: Optional[str] = None,
         return_numpy: bool = True,
         **kwargs,
-    ) -> Union[np.ndarray, torch.Tensor]:
-        """
-        Predicts perturbation effects.
+    ) -> Union[Dict[str, np.ndarray], np.ndarray]:
+        """Predicts perturbation effects.
 
         Args:
-            dataset: Input data.
+            dataset: Input perturbation dataset.
             batch_size: Batch size.
+            split: Specific split to return, or None for all splits.
             return_numpy: Whether to return numpy array.
 
         Returns:
-            Predicted gene expressions.
+            Dictionary with 'pred' key containing predictions.
+            If split is None and dataset has splits, returns nested dict.
         """
         self.eval()
-        loader = self.prepare_dataloader(
+        loaders = self.get_dataloader(
             dataset,
             batch_size=batch_size,
             shuffle=False,
-            return_split="all",
+            split=split,
         )
 
-        predictions = []
-        with torch.no_grad():
-            for batch in tqdm(loader, desc="Predicting perturbations"):
-                batch = {k: v.to(self.device) for k, v in batch.items()}
-                output = self.forward(batch)
-                pred = output["mlm_output"]  # (batch, seq_len)
+        # If split is specified, loaders is a single DataLoader
+        if split is not None:
+            predictions = []
+            with torch.no_grad():
+                for batch in tqdm(loaders, desc=f"Predicting perturbations ({split})"):
+                    batch = {k: v.to(self.model.device) for k, v in batch.items()}
+                    output = self.forward(batch)
+                    pred = output["mlm_output"]  # (batch, seq_len)
+
+                    if return_numpy:
+                        predictions.append(pred.cpu().numpy())
+                    else:
+                        predictions.append(pred.cpu())
+
+            if return_numpy:
+                return {'pred': np.concatenate(predictions, axis=0)}
+            else:
+                return {'pred': torch.cat(predictions, dim=0)}
+        else:
+            # Return dict with split names as keys
+            result = {}
+            for split_name, loader in loaders.items():
+                predictions = []
+                with torch.no_grad():
+                    for batch in tqdm(loader, desc=f"Predicting perturbations ({split_name})"):
+                        batch = {k: v.to(self.model.device) for k, v in batch.items()}
+                        output = self.forward(batch)
+                        pred = output["mlm_output"]  # (batch, seq_len)
+
+                        if return_numpy:
+                            predictions.append(pred.cpu().numpy())
+                        else:
+                            predictions.append(pred.cpu())
 
                 if return_numpy:
-                    predictions.append(pred.cpu().numpy())
+                    result[split_name] = {'pred': np.concatenate(predictions, axis=0)}
                 else:
-                    predictions.append(pred.cpu())
-
-        if return_numpy:
-            return np.concatenate(predictions, axis=0)
-        else:
-            return torch.cat(predictions, dim=0)
+                    result[split_name] = {'pred': torch.cat(predictions, dim=0)}
+            
+            return result
 
     def train_model(
         self,
@@ -1183,18 +1339,41 @@ class scGPTPerturbationModel(PerturbationModel):
         scheduler_gamma: float = 0.99,
         **kwargs,
     ):
+        """Trains the scGPT perturbation model.
+        
+        Args:
+            dataset: Training perturbation dataset.
+            epochs: Number of epochs.
+            batch_size: Batch size.
+            lr: Learning rate.
+            use_amp: Whether to use automatic mixed precision.
+            grad_clip: Gradient clipping value.
+            log_interval: Logging frequency.
+            save_dir: Directory to save checkpoints.
+            save_interval: Checkpoint saving frequency.
+            CLS: Whether to use CLS loss.
+            CCE: Whether to use CCE loss.
+            MVC: Whether to use MVC loss.
+            ECS: Whether to use ECS loss.
+            scheduler_step: Scheduler step size.
+            scheduler_gamma: Scheduler gamma.
+            
+        Returns:
+            Dictionary containing training history.
         """
-        Trains the scGPT perturbation model.
-        """
-        dataloaders = self.prepare_dataloader(
+        dataloaders = self.get_dataloader(
             dataset,
             batch_size=batch_size,
             shuffle=True,
-            return_split=None,
+            split=None,
         )
 
-        train_loader = dataloaders.get("train", dataloaders.get("all"))
-        valid_loader = dataloaders.get("valid", dataloaders.get("test", None))
+        train_loader = dataloaders.get("train")
+        if train_loader is None:
+            raise ValueError("No 'train' split found in dataloaders")
+        
+        # Try multiple common validation split names
+        valid_loader = dataloaders.get("val")
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, eps=1e-8)
         scheduler = torch.optim.lr_scheduler.StepLR(
@@ -1326,103 +1505,129 @@ class scGPTPerturbationModel(PerturbationModel):
         logger.info("Perturbation model training completed!")
         return history
 
-    def save(self, save_directory: str):
-        """Saves model weights and configuration."""
-        os.makedirs(save_directory, exist_ok=True)
-
-        model_file = os.path.join(save_directory, "model.pt")
-        torch.save(self.model.state_dict(), model_file)
-
-        config_file = os.path.join(save_directory, "args.json")
-        self.config.save(config_file)
-
-        logger.info(f"Model saved to {save_directory}")
-
-    @classmethod
-    def from_pretrained(
-        cls,
-        model_name_or_path: str,
-        device: str = "cuda",
-        **kwargs,
-    ) -> "scGPTPerturbationModel":
+    def save(self, model_path: str):
         """
-        Loads a pretrained scGPT perturbation model.
+        Saves model weights, configuration, and vocabulary.
 
         Args:
-            model_name_or_path: Local path or HF ID.
+            save_directory: Directory to save the model.
+            is_best: If True, saves weights as 'best_model.pt', otherwise 'model.pt'.
+        """
+        os.makedirs(model_path, exist_ok=True)
+
+        # 1. Save Config
+        config_file = os.path.join(model_path, "args.json")
+        self.config.save(config_file)
+        
+        # 2. Save Vocabulary (Symmetry with load)
+        if hasattr(self, 'vocab') and self.vocab is not None:
+            vocab_file = os.path.join(model_path, "vocab.json")
+            # Handle both GeneVocab objects (with save_json method) and raw dicts
+            if hasattr(self.vocab, 'save_json'):
+                self.vocab.save_json(vocab_file)
+            elif isinstance(self.vocab, dict):
+                with open(vocab_file, 'w') as f:
+                    json.dump(self.vocab, f, indent=2)
+            logger.info(f"Saved vocab to {vocab_file}")
+
+        # 3. Save Model Weights
+        filename = 'model.pt'
+        model_file = os.path.join(model_path, filename)
+        torch.save(self.model.state_dict(), model_file)
+
+        logger.info(f"Model saved to {model_path} (weights: {filename})")
+
+    @classmethod
+    def load(cls, model_path: str, device: str = 'cpu') -> 'scGPTPerturbationModel':
+        """
+        Loads a scGPT perturbation model from a saved directory.
+        Compatible with structure: [args.json, vocab.json, best_model.pt/model.pt]
+
+        Args:
+            model_path: Path to the saved model directory.
             device: Computation device.
-            **kwargs: Extra arguments.
+            **kwargs: Extra arguments for model initialization.
 
         Returns:
             Loaded scGPTPerturbationModel instance.
         """
-        hf_kwargs = {}
-        model_init_kwargs = {}
-        hf_keys = {
-            "revision",
-            "token",
-            "cache_dir",
-            "force_download",
-            "resume_download",
-        }
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model directory not found: {model_path}")
 
-        for key, value in kwargs.items():
-            if key in hf_keys:
-                hf_kwargs[key] = value
-            else:
-                model_init_kwargs[key] = value
-
-        if os.path.exists(model_name_or_path):
-            model_path = model_name_or_path
-            logger.info(f"Loading model from local path: {model_path}")
-        else:
-            try:
-                logger.info(
-                    f"Downloading model '{model_name_or_path}' from HuggingFace..."
-                )
-                model_path = download_from_huggingface(
-                    model_name_or_path, organization="perturblab", **hf_kwargs
-                )
-                logger.info(f"✓ Model cached at: {model_path}")
-            except Exception as e:
-                raise ValueError(
-                    f"Failed to load model '{model_name_or_path}'. "
-                    f"Ensure path is valid or specify a valid HuggingFace ID.\n"
-                    f"Error: {str(e)}"
-                )
-
+        # 1. Load Config
         config_file = os.path.join(model_path, "args.json")
+        if not os.path.exists(config_file):
+            raise FileNotFoundError(f"Config file not found at {config_file}")
+        
         config = scGPTConfig.load(config_file)
+        logger.info(f"Loaded config from {config_file}")
 
-        if config.ntoken is None:
-            vocab_file = os.path.join(model_path, "vocab.json")
-            if os.path.exists(vocab_file):
+        # 2. Load Vocab & Infer ntoken (Symmetry Step)
+        vocab = None
+        vocab_file = os.path.join(model_path, "vocab.json")
+        
+        if os.path.exists(vocab_file):
+            try:
+                # Try loading as GeneVocab (if available in context) or dict
                 try:
+                    from .source.tokenizer import GeneVocab 
+                    vocab = GeneVocab.from_file(vocab_file)
+                    logger.info(f"Loaded GeneVocab object from {vocab_file}")
+                except (ImportError, AttributeError):
+                    # Fallback to dict if GeneVocab class isn't available
                     with open(vocab_file, "r") as f:
-                        vocab_data = json.load(f)
-                        if isinstance(vocab_data, dict):
-                            config.ntoken = max(vocab_data.values()) + 1
-                        else:
-                            config.ntoken = len(vocab_data)
-                except Exception as e:
-                    logger.warning(f"Failed to load ntoken from vocab.json: {e}")
-                    config.ntoken = 60697
-            else:
-                config.ntoken = 60697
+                        vocab = json.load(f)
+                    logger.info(f"Loaded vocab dict from {vocab_file}")
 
-        model_file = os.path.join(model_path, "model.pt")
+                # Infer ntoken if missing in config
+                if config.ntoken is None:
+                    if hasattr(vocab, '__len__'):
+                        config.ntoken = len(vocab)
+                    elif isinstance(vocab, dict):
+                         # If vocab is a dict (token->id), length is the count
+                        config.ntoken = len(vocab)
+                    logger.info(f"Inferred ntoken={config.ntoken} from vocab")
+                    
+            except Exception as e:
+                logger.warning(f"Failed to load vocab from {vocab_file}: {e}")
+        
+        # Fallback for ntoken: Warn if missing (will try to infer from weights later)
+        if config.ntoken is None:
+             logger.warning("ntoken not in config and could not be inferred from vocab. Will attempt to infer from weights.")
+
+        # 3. Locate Weights File (Priority: best_model.pt -> model.pt)
+        weights_name = "best_model.pt"
+        if not os.path.exists(os.path.join(model_path, weights_name)):
+            weights_name = "model.pt"
+        
+        model_file = os.path.join(model_path, weights_name)
         if not os.path.exists(model_file):
-            model_file = os.path.join(model_path, "best_model.pt")
-            if not os.path.exists(model_file):
-                raise FileNotFoundError(
-                    f"Model weights not found at {model_path}. "
-                    f"Expected 'model.pt' or 'best_model.pt'."
-                )
+             raise FileNotFoundError(f"No model weights found in {model_path} (checked best_model.pt and model.pt)")
 
-        model = cls(config, device=device, **model_init_kwargs)
+        # 4. Initialize Model
+        # Note: If ntoken is None here, initialization might fail depending on model logic.
+        # We assume config has defaults or ntoken was successfully inferred.
+        model_wrapper = cls(config, device=device)
+        
+        # Restore vocab object to wrapper (Symmetry)
+        if vocab is not None:
+            model_wrapper.vocab = vocab
 
+        # 5. Load State Dict
+        logger.info(f"Loading weights from {model_file}...")
+        # map_location ensures safety on CPU-only machines or different GPU setups
         state_dict = torch.load(model_file, map_location=device)
-        load_pretrained(model.model, state_dict, verbose=False)
+        
+        # Late inference of ntoken if absolutely necessary (Last Resort)
+        if config.ntoken is None and "encoder.embedding.weight" in state_dict:
+             inferred_ntoken = state_dict["encoder.embedding.weight"].shape[0]
+             logger.info(f"Late inference of ntoken={inferred_ntoken} from weights. Re-initializing model...")
+             config.ntoken = inferred_ntoken
+             # Re-init model with correct ntoken
+             model_wrapper = cls(config, device=device)
+             if vocab is not None: model_wrapper.vocab = vocab
+
+        load_pretrained(model_wrapper.model, state_dict, verbose=False)
 
         logger.info("✓ Model loaded successfully")
-        return model
+        return model_wrapper
