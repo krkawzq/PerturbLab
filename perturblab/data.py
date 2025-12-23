@@ -43,7 +43,7 @@ class PerturbationData:
 
     def set_gears_format(
         self,
-        fallback_cell_type: str,
+        fallback_cell_type: str = 'unknown',
         parse_fn: Optional[Callable[[str], List[str]]] = None,
         remove_ignore: bool = True
     ) -> None:
