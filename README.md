@@ -8,32 +8,35 @@ PerturbLab provides a standardized interface for working with state-of-the-art s
 
 ## Features
 
-- 🧬 **Unified Interface**: Consistent API across different foundation models
-- 🚀 **Pre-trained Models**: Easy access to models via HuggingFace Hub
-- 🔬 **Perturbation Prediction**: Built-in support for genetic perturbation analysis
+- 🧬 **Unified Interface**: Consistent API across different foundation models (scGPT, scFoundation, UCE, CellFM, scELMo)
+- 🚀 **Pre-trained Models**: 25+ pre-trained models available via HuggingFace Hub with automatic caching
+- 🔬 **Perturbation Prediction**: Hybrid foundation + GNN models for genetic perturbation analysis
 - 📊 **Rich Data Support**: Compatible with AnnData and custom PerturbationData formats
-- ⚡ **Efficient Processing**: Optimized data loading and batching
-- 🎯 **Flexible Fine-tuning**: Support for downstream task adaptation
+- ⚡ **Efficient Processing**: Optimized data loading, batching, and GPU acceleration
+- 🎯 **Flexible Fine-tuning**: Support for downstream tasks (classification, perturbation, etc.)
+- 🧪 **Gene Mapping**: Built-in HGNC gene name standardization for CellFM
+- 📦 **Easy Installation**: Simple installation with uv or pip
 
 ## Supported Models
 
-### Foundation Models
+### Foundation Models (Embedding Generation)
 
-| Model | Parameters | Description | Status |
-|-------|-----------|-------------|--------|
-| **scGPT** | 100M | Transformer-based model for single-cell analysis | ✅ Ready |
-| **scFoundation** | 100M | Foundation model with perturbation capabilities | ✅ Ready |
-| **UCE** | 4-layer, 33-layer | Universal Cell Embedding model | ✅ Ready |
-| **CellFM** | 80M, 800M | Retention-based foundation model | ✅ Ready |
-| **scELMo** | - | ELMo-inspired single-cell model | ✅ Ready |
+| Model | Parameters | Pre-trained Weights | Description |
+|-------|-----------|---------------------|-------------|
+| **scGPT** | ~100M | 9 variants (human, blood, brain, heart, kidney, lung, pan-cancer, continual-pretrained) | Transformer-based foundation model for single-cell analysis |
+| **scFoundation** | ~100M | 3 variants (cell, gene, rde) | Large-scale foundation model with multi-task capabilities |
+| **UCE** | 4-layer, 33-layer | 2 variants | Universal Cell Embedding with zero-shot capabilities |
+| **CellFM** | 80M, 800M | 2 variants | Retention-based foundation model for transcriptomics |
+| **scELMo** | - | 8 variants (gene, protein, perturbation, drugs, celltypes, celllines with different LLM backbones) | ELMo-inspired contextualized gene embeddings |
 
-### Perturbation Models
+### Perturbation Prediction Models
 
-| Model | Base | Description | Status |
-|-------|------|-------------|--------|
-| **GEARS** | GNN | Graph-based perturbation prediction | ✅ Ready |
-| **scFoundation + GEARS** | scFoundation | Hybrid foundation + GNN model | ✅ Ready |
-| **CellFM + GEARS** | CellFM | Retention-based + GNN model | ✅ Ready |
+| Model | Base Architecture | Description | Status |
+|-------|------------------|-------------|--------|
+| **GEARS** | GNN | Graph-based perturbation prediction using gene co-expression and GO networks | ✅ Ready |
+| **scGPT + GEARS** | scGPT + GNN | Combines scGPT embeddings with GEARS perturbation head | ✅ Ready |
+| **scFoundation + GEARS** | scFoundation + GNN | Hybrid foundation model + GNN for perturbation prediction | ✅ Ready |
+| **CellFM + GEARS** | CellFM + GNN | Retention-based encoder + GNN perturbation head | ✅ Ready |
 
 ## Installation
 
@@ -76,25 +79,29 @@ cell_embeddings = embeddings['cell_embeddings']
 ### Perturbation Prediction
 
 ```python
-from perturblab.model.gears import GearsModel
+from perturblab.model.scfoundation import scFoundationPerturbationModel
 from perturblab.data import PerturbationData
 
 # Load perturbation data
 data = PerturbationData.from_anndata(adata)
+data.set_gears_format(cell_type_key='cell_type')
 data.split_data(train=0.7, val=0.15, test=0.15)
 
-# Initialize model
-model = GearsModel.from_pretrained('gears')
+# Initialize model with pre-trained foundation model
+model = scFoundationPerturbationModel.from_pretrained('scfoundation-cell')
+
+# Initialize perturbation head from dataset
+model.init_perturbation_head_from_dataset(data)
 
 # Train on your data
-model.train_model(data, epochs=20)
+model.train_model(data, epochs=20, lr=1e-4)
 
 # Predict perturbation effects
 predictions = model.predict_perturbation(data, split='test')
 
 # Evaluate
 metrics = model.evaluate(data, split='test')
-print(f"Pearson correlation: {metrics['pearson']:.4f}")
+print(f"Pearson correlation: {metrics['test_pearson']:.4f}")
 ```
 
 ### Using CellFM with Gene Mapping
@@ -122,47 +129,78 @@ embeddings = model.predict_embeddings(adata, batch_size=16)
 
 ## Model Zoo
 
-All models are available on HuggingFace Hub under the `perturblab` organization:
+### Available Pre-trained Weights
 
-- [`perturblab/scgpt`](https://huggingface.co/perturblab/scgpt)
-- [`perturblab/scfoundation`](https://huggingface.co/perturblab/scfoundation)
-- [`perturblab/uce-4-layer`](https://huggingface.co/perturblab/uce-4-layer)
-- [`perturblab/uce-33-layer`](https://huggingface.co/perturblab/uce-33-layer)
-- [`perturblab/cellfm-80m`](https://huggingface.co/perturblab/cellfm-80m)
-- [`perturblab/cellfm-800m`](https://huggingface.co/perturblab/cellfm-800m)
-- [`perturblab/scelmo`](https://huggingface.co/perturblab/scelmo)
-- [`perturblab/gears`](https://huggingface.co/perturblab/gears)
+All models are available on HuggingFace Hub under the [`perturblab`](https://huggingface.co/perturblab) organization:
+
+#### scGPT Models
+- [`perturblab/scgpt-human`](https://huggingface.co/perturblab/scgpt-human) - General human tissues
+- [`perturblab/scgpt-blood`](https://huggingface.co/perturblab/scgpt-blood) - Blood cells
+- [`perturblab/scgpt-brain`](https://huggingface.co/perturblab/scgpt-brain) - Brain tissues
+- [`perturblab/scgpt-heart`](https://huggingface.co/perturblab/scgpt-heart) - Heart tissues
+- [`perturblab/scgpt-kidney`](https://huggingface.co/perturblab/scgpt-kidney) - Kidney tissues
+- [`perturblab/scgpt-lung`](https://huggingface.co/perturblab/scgpt-lung) - Lung tissues
+- [`perturblab/scgpt-pan-cancer`](https://huggingface.co/perturblab/scgpt-pan-cancer) - Pan-cancer
+- [`perturblab/scgpt-continual-pretrained`](https://huggingface.co/perturblab/scgpt-continual-pretrained) - Continual learning
+
+#### scFoundation Models
+- [`perturblab/scfoundation-cell`](https://huggingface.co/perturblab/scfoundation-cell) - Cell-level embeddings
+- [`perturblab/scfoundation-gene`](https://huggingface.co/perturblab/scfoundation-gene) - Gene-level embeddings
+- [`perturblab/scfoundation-rde`](https://huggingface.co/perturblab/scfoundation-rde) - RDE variant
+
+#### UCE Models
+- [`perturblab/uce-4-layer`](https://huggingface.co/perturblab/uce-4-layer) - 4-layer model
+- [`perturblab/uce-33-layer`](https://huggingface.co/perturblab/uce-33-layer) - 33-layer model
+
+#### CellFM Models
+- [`perturblab/cellfm-80m`](https://huggingface.co/perturblab/cellfm-80m) - 80M parameters
+- [`perturblab/cellfm-800m`](https://huggingface.co/perturblab/cellfm-800m) - 800M parameters
+
+#### scELMo Models
+- [`perturblab/scelmo-gene-gpt-4o`](https://huggingface.co/perturblab/scelmo-gene-gpt-4o) - Gene embeddings (GPT-4o)
+- [`perturblab/scelmo-gene-gpt-3.5`](https://huggingface.co/perturblab/scelmo-gene-gpt-3.5) - Gene embeddings (GPT-3.5)
+- [`perturblab/scelmo-gene-ncbi`](https://huggingface.co/perturblab/scelmo-gene-ncbi) - Gene embeddings (NCBI)
+- [`perturblab/scelmo-protein-gpt-3.5`](https://huggingface.co/perturblab/scelmo-protein-gpt-3.5) - Protein embeddings
+- [`perturblab/scelmo-perturbation-gpt-3.5`](https://huggingface.co/perturblab/scelmo-perturbation-gpt-3.5) - Perturbation embeddings
+- [`perturblab/scelmo-drugs-gpt-3.5`](https://huggingface.co/perturblab/scelmo-drugs-gpt-3.5) - Drug embeddings
+- [`perturblab/scelmo-celltypes-gpt-3.5`](https://huggingface.co/perturblab/scelmo-celltypes-gpt-3.5) - Cell type embeddings
+- [`perturblab/scelmo-celllines-gpt-3.5`](https://huggingface.co/perturblab/scelmo-celllines-gpt-3.5) - Cell line embeddings
 
 ## Advanced Usage
 
-### Fine-tuning for Cell Type Classification
+### Fine-tuning scGPT for Cell Type Classification
 
 ```python
-from perturblab.model.scgpt import scGPTModel, scGPTConfig
+from perturblab.model.scgpt import scGPTModel
+from perturblab.data import PerturbationData
 
-# Initialize model with classification head
-config = scGPTConfig(num_classes=10)  # 10 cell types
-model = scGPTModel(config, for_finetuning=True)
+# Load pre-trained model
+model = scGPTModel.from_pretrained('scgpt-human')
 
-# Load pre-trained weights
-model.load_weights('path/to/pretrained/weights.pt')
+# Prepare your labeled data
+data = PerturbationData.from_anndata(adata)
+data.split_data(train=0.7, val=0.15, test=0.15)
 
 # Fine-tune on labeled data
 model.train_model(
-    train_dataloader=train_loader,
-    val_dataloader=val_loader,
+    dataset=data,
     num_epochs=10,
+    batch_size=32,
     learning_rate=1e-4,
 )
+
+# Generate embeddings after fine-tuning
+embeddings = model.predict_embeddings(data.adata)
 ```
 
-### Custom Data Processing
+### Using GEARS for Perturbation Prediction
 
 ```python
+from perturblab.model.gears import GearsModel
 from perturblab.data import PerturbationData
 import scanpy as sc
 
-# Load and preprocess
+# Load perturbation data
 adata = sc.read_h5ad('perturbation_data.h5ad')
 
 # Create PerturbationData object
@@ -172,18 +210,29 @@ data = PerturbationData.from_anndata(
     control_key='ctrl',
 )
 
-# Set GEARS format for perturbation models
+# Set GEARS format (required for GEARS-based models)
 data.set_gears_format(cell_type_key='cell_type')
 
 # Split data
 data.split_data(train=0.7, val=0.15, test=0.15)
 
-# Use with any perturbation model
-from perturblab.model.scfoundation import scFoundationPerturbationModel
+# Initialize GEARS model
+model = GearsModel(
+    gene_list=data.gene_names,
+    pert_list=data.pert_names,
+    device='cuda',
+)
 
-model = scFoundationPerturbationModel.from_pretrained('scfoundation')
+# Initialize perturbation head from dataset
 model.init_perturbation_head_from_dataset(data)
-model.train_model(data, epochs=20)
+
+# Train model
+model.train_model(data, epochs=20, lr=1e-3)
+
+# Predict and evaluate
+predictions = model.predict_perturbation(data, split='test')
+metrics = model.evaluate(data, split='test')
+print(f"Pearson: {metrics['test_pearson']:.4f}")
 ```
 
 ### Batch Processing Large Datasets
