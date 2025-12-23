@@ -9,7 +9,7 @@ PerturbLab provides a standardized interface for working with state-of-the-art s
 ## Features
 
 - 🧬 **Unified Interface**: Consistent API across different foundation models (scGPT, scFoundation, UCE, CellFM, scELMo)
-- 🚀 **Pre-trained Models**: 25+ pre-trained models available via HuggingFace Hub with automatic caching
+- 🚀 **Pre-trained Models**: 25+ pre-trained models available via HuggingFace Hub with automatic loading
 - 🔬 **Perturbation Prediction**: Hybrid foundation + GNN models for genetic perturbation analysis
 - 📊 **Rich Data Support**: Compatible with AnnData and custom PerturbationData formats
 - ⚡ **Efficient Processing**: Optimized data loading, batching, and GPU acceleration
@@ -82,10 +82,14 @@ cell_embeddings = embeddings['cell_embeddings']
 from perturblab.model.scfoundation import scFoundationPerturbationModel
 from perturblab.data import PerturbationData
 
-# Load perturbation data
-data = PerturbationData.from_anndata(adata)
-data.set_gears_format(cell_type_key='cell_type')
-data.split_data(train=0.7, val=0.15, test=0.15)
+# Load perturbation data (adata should have perturbation info in obs)
+data = PerturbationData(
+    adata,
+    perturb_col='perturbation',  # Column name in adata.obs
+    control_tag='control',        # Tag for control cells
+)
+data.set_gears_format(fallback_cell_type='unknown')
+data.split_data(split_type='simple', split_ratio=(0.7, 0.15, 0.15))
 
 # Initialize model with pre-trained foundation model
 model = scFoundationPerturbationModel.from_pretrained('scfoundation-cell')
@@ -178,8 +182,12 @@ from perturblab.data import PerturbationData
 model = scGPTModel.from_pretrained('scgpt-human')
 
 # Prepare your labeled data
-data = PerturbationData.from_anndata(adata)
-data.split_data(train=0.7, val=0.15, test=0.15)
+data = PerturbationData(
+    adata,
+    perturb_col='cell_type',  # For classification, use cell type column
+    control_tag='control',
+)
+data.split_data(split_type='simple', split_ratio=(0.7, 0.15, 0.15))
 
 # Fine-tune on labeled data
 model.train_model(
@@ -204,27 +212,27 @@ import scanpy as sc
 adata = sc.read_h5ad('perturbation_data.h5ad')
 
 # Create PerturbationData object
-data = PerturbationData.from_anndata(
+data = PerturbationData(
     adata,
-    condition_key='perturbation',
-    control_key='ctrl',
+    perturb_col='perturbation',  # Column in adata.obs with perturbation info
+    control_tag='ctrl',           # Tag for control cells
 )
 
 # Set GEARS format (required for GEARS-based models)
-data.set_gears_format(cell_type_key='cell_type')
+data.set_gears_format(fallback_cell_type='unknown')
+
+# Compute DE genes (required for GEARS)
+data.compute_de_genes(n_top_genes=20)
 
 # Split data
-data.split_data(train=0.7, val=0.15, test=0.15)
+data.split_data(split_type='simple', split_ratio=(0.7, 0.15, 0.15))
 
 # Initialize GEARS model
-model = GearsModel(
-    gene_list=data.gene_names,
-    pert_list=data.pert_names,
-    device='cuda',
-)
+model = GearsModel.from_pretrained('gears', device='cuda')
 
-# Initialize perturbation head from dataset
-model.init_perturbation_head_from_dataset(data)
+# Or initialize from dataset
+# model = GearsModel(device='cuda')
+# model.init_perturbation_head_from_dataset(data)
 
 # Train model
 model.train_model(data, epochs=20, lr=1e-3)
@@ -294,13 +302,72 @@ adata.obs['cell_type']     # Cell type annotations (optional)
 
 ### PerturbationData Format
 
+The `PerturbationData` class wraps AnnData for perturbation experiments:
+
 ```python
-data.adata                 # Underlying AnnData object
-data.adata.obs['condition'] # Perturbation conditions
-data.adata.obs['split']    # Train/val/test splits
-data.pert_names            # List of perturbation names
-data.ctrl_expression       # Control expression profiles
+from perturblab.data import PerturbationData
+import scanpy as sc
+
+# Load your data
+adata = sc.read_h5ad('perturbation_data.h5ad')
+# adata.obs should contain:
+# - 'perturbation': perturbation conditions (e.g., 'GENE1', 'GENE1+GENE2', 'control')
+# - 'cell_type': cell type information (optional)
+
+# Initialize PerturbationData
+data = PerturbationData(
+    adata,
+    perturb_col='perturbation',  # Column in adata.obs with perturbation info
+    control_tag='control',        # Tag(s) for control cells (can be list)
+    ignore_tags=['unknown'],      # Optional: tags to ignore
+)
+
+# For GEARS-based models, apply GEARS format
+data.set_gears_format(
+    fallback_cell_type='unknown',  # Default cell type if not specified
+)
+# This standardizes column names:
+# - 'perturbation' → 'condition'
+# - 'control' → 'ctrl'
+
+# Compute DE genes (required for GEARS models)
+data.compute_de_genes(
+    n_top_genes=20,
+    method='t-test_overestim_var',
+    use_hpdex=False,  # Set True for faster computation with hpdex
+)
+
+# Split data
+data.split_data(
+    split_type='simple',           # 'simple', 'simulation', 'combo_seen0', etc.
+    split_ratio=(0.7, 0.15, 0.15), # (train, val, test)
+    seed=1,
+)
+
+# Access data
+data.adata                       # Underlying AnnData object
+data.adata.obs['condition']      # Perturbation conditions (after GEARS format)
+data.adata.obs['split']          # Train/val/test splits
+data.adata.obs['cell_type']      # Cell type information
+data.perturb_col                 # Current perturbation column name
+data.control_tags                # Set of control tags
+data.gears_format                # Boolean: whether GEARS format is applied
+
+# Convert to GEARS PertData (if needed)
+pert_data = data.to_gears(data_path='./data', check_de_genes=True)
 ```
+
+### Split Types
+
+PerturbationData supports multiple split strategies:
+
+- **`simple`**: Random split by cells (train/val/test)
+- **`simulation`**: Gene-level split (seen/unseen genes)
+- **`simulation_single`**: Single perturbation gene-level split
+- **`combo_seen0`**: Combo perturbations with 0 seen genes
+- **`combo_seen1`**: Combo perturbations with 1 seen gene
+- **`combo_seen2`**: Combo perturbations with 2 seen genes
+- **`no_test`**: Only train/val split (no test set)
 
 ## Performance Tips
 
