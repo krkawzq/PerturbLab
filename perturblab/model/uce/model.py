@@ -26,13 +26,12 @@ from ...data import PerturbationData
 from ...utils import download_from_huggingface
 from ..base import PerturbationModel
 from .config import UCEConfig
-from .source.data_proc.data_utils import (
-    adata_path_to_prot_chrom_starts,
-    get_spec_chrom_csv,
-    get_species_to_pe,
-    process_raw_anndata,
-)
-from .source.eval_data import MultiDatasetSentenceCollator, MultiDatasetSentences
+from .source.data_proc.data_utils import (adata_path_to_prot_chrom_starts,
+                                          get_spec_chrom_csv,
+                                          get_species_to_pe,
+                                          process_raw_anndata)
+from .source.eval_data import (MultiDatasetSentenceCollator,
+                               MultiDatasetSentences)
 from .source.model import TransformerModel
 from .source.utils import figshare_download
 
@@ -750,7 +749,7 @@ class UCEModel(PerturbationModel):
         # Save auxiliary files if they exist
         if save_auxiliary:
             import shutil
-            
+
             # Copy species_chrom.csv
             if self.spec_chrom_csv_path and os.path.exists(self.spec_chrom_csv_path):
                 dest = os.path.join(save_directory, "species_chrom.csv")

@@ -18,11 +18,9 @@ from ..base import PerturbationModel
 from .config import scGPTConfig
 from .source.loss import criterion_neg_log_bernoulli, masked_mse_loss
 from .source.model import TransformerGenerator, TransformerModel
-from .source.tokenizer.gene_tokenizer import (
-    GeneVocab,
-    get_default_gene_vocab,
-    random_mask_value,
-)
+from .source.tokenizer.gene_tokenizer import (GeneVocab,
+                                              get_default_gene_vocab,
+                                              random_mask_value)
 from .source.utils.util import load_pretrained
 
 logger = logging.getLogger(__name__)
