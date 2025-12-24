@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
 
-# Avoid circular import at module level
-# project_bipartite_graph will be imported inside the function that needs it
-from perturblab.types import BipartiteGraph
 from perturblab.utils import get_logger
+
+if TYPE_CHECKING:
+    from perturblab.types import BipartiteGraph
 
 logger = get_logger()
 
@@ -238,6 +238,7 @@ def compute_gene_similarity_from_go(
 
     # Import here to avoid circular import
     from perturblab.tools._bipartite import project_bipartite_graph
+    from perturblab.types import BipartiteGraph
 
     # Create BipartiteGraph
     shape = (len(gene_names), len(go_to_idx))

@@ -408,3 +408,288 @@ class _SmartLazyModelRegistry:
 
 # Create smart lazy-loading MODELS registry
 MODELS = _SmartLazyModelRegistry(_MODELS_BASE)
+
+def Model(key: str):
+    """Elegant model loader function as an alternative to MODELS.xxx.xxx access.
+
+    This function provides a concise way to access and build models using URL-style
+    paths with case-insensitive matching. It manually traverses the registry tree
+    and handles lazy imports.
+
+    Args:
+        key (str): Model identifier in URL-style format:
+            - Path format: `GEARS/default`, `GEARS/component/sss`, `scGPT/default`
+            - Case-insensitive matching is supported
+            - Falls back to case-insensitive search if exact match fails
+
+    Returns:
+        ModelBuilder: A callable builder object supporting multiple usage patterns:
+            - `Model("GEARS/default")(num_genes=1000, num_perts=50)`  # direct construction
+            - `Model("GEARS/default").build(num_genes=1000)`         # build method
+            - `Model("GEARS/default").class_`                         # get model class
+
+    Examples:
+        >>> # Instead of MODELS.GEARS.default
+        >>> model = Model("GEARS/default")(num_genes=1000, num_perts=50)
+        >>>
+        >>> # Case-insensitive matching
+        >>> model = Model("gears/default")(num_genes=1000, num_perts=50)
+        >>>
+        >>> # Access nested components
+        >>> component = Model("GEARS/component/sss")
+        >>>
+        >>> # Get model class
+        >>> model_class = Model("GEARS/default").class_
+        >>> model = model_class(num_genes=1000, num_perts=50)
+    """
+    class ModelBuilder:
+        """Builder object to construct the model in a flexible way."""
+
+        def __init__(self, model_key: str):
+            self._key = model_key
+            self._model_class = None
+            self._resolved_path = None
+
+        def _parse_path(self) -> list[str]:
+            """Parse the URL-style path into components.
+
+            Returns:
+                list[str]: List of path components (e.g., ['GEARS', 'default'])
+            """
+            if self._resolved_path:
+                return self._resolved_path
+
+            # Split by '/' and filter empty parts
+            parts = [p for p in self._key.split("/") if p]
+            if not parts:
+                parts = ["default"]  # Default to root default
+
+            # Normalize first part to uppercase (model type)
+            if len(parts) > 0:
+                parts[0] = parts[0].upper()
+
+            self._resolved_path = parts
+            logger.debug(f"Parsed path: '{self._key}' -> {parts}")
+            return parts
+
+        def _find_in_registry(self, registry, path_parts: list[str], case_sensitive: bool = True):
+            """Manually traverse registry tree to find model.
+
+            Args:
+                registry: The registry object to search in.
+                path_parts: List of path components to traverse.
+                case_sensitive: Whether to use case-sensitive matching.
+
+            Returns:
+                The found model class or None.
+            """
+            current = registry
+            remaining_parts = path_parts.copy()
+
+            # Initialize registry if needed
+            if hasattr(current, "_initialize_if_needed"):
+                current._initialize_if_needed()
+
+            # Get the actual registry object
+            if hasattr(current, "_registry"):
+                current = current._registry
+
+            while remaining_parts:
+                part = remaining_parts[0]
+
+                # Try exact match first
+                found = None
+                if hasattr(current, "_child_registries"):
+                    # Check child registries
+                    for name, child in current._child_registries.items():
+                        if (case_sensitive and name == part) or (
+                            not case_sensitive and name.upper() == part.upper()
+                        ):
+                            found = child
+                            break
+
+                if found is None and hasattr(current, "_obj_map"):
+                    # Check direct models
+                    for name, obj in current._obj_map.items():
+                        if (case_sensitive and name == part) or (
+                            not case_sensitive and name.upper() == part.upper()
+                        ):
+                            found = obj
+                            break
+
+                if found is None:
+                    # Not found, try lazy loading
+                    if case_sensitive:
+                        # Try smart loading for the current part
+                        try:
+                            if hasattr(MODELS, "_smart_load_model"):
+                                # Try loading with the part as key
+                                MODELS._smart_load_model(part)
+                                # Also try with full path up to this point
+                                full_key = ".".join(path_parts[: len(path_parts) - len(remaining_parts) + 1])
+                                MODELS._smart_load_model(full_key)
+                                
+                                # Retry after loading
+                                if hasattr(current, "_child_registries"):
+                                    for name, child in current._child_registries.items():
+                                        if name == part:
+                                            found = child
+                                            break
+                                if found is None and hasattr(current, "_obj_map"):
+                                    for name, obj in current._obj_map.items():
+                                        if name == part:
+                                            found = obj
+                                            break
+                        except Exception as e:
+                            logger.debug(f"Lazy loading failed for '{part}': {e}")
+
+                    if found is None:
+                        # If case-sensitive search failed, try case-insensitive
+                        if case_sensitive:
+                            return self._find_in_registry(registry, path_parts, case_sensitive=False)
+                        return None
+
+                # Move to next level
+                remaining_parts.pop(0)
+                if remaining_parts:
+                    # If there are more parts, found must be a registry
+                    if isinstance(found, ModelRegistry):
+                        current = found
+                    elif hasattr(found, "_registry"):
+                        current = found._registry
+                    else:
+                        # Found an object but we need to go deeper - not possible
+                        return None
+                else:
+                    # Last part - return the found object
+                    # If it's a wrapped registry, unwrap it
+                    if hasattr(found, "_registry"):
+                        # It's a _SmartLazyModelRegistry wrapper
+                        found = found._registry
+                    return found
+
+            # If no parts left but we're still here, return current registry's default
+            if hasattr(current, "_obj_map") and "default" in current._obj_map:
+                return current._obj_map["default"]
+
+            return None
+
+        def _get_model_class(self):
+            """Get the model class by manually traversing the registry tree.
+
+            Returns:
+                type: The model class.
+
+            Raises:
+                KeyError: If model class cannot be resolved.
+            """
+            if self._model_class is not None:
+                return self._model_class
+
+            path_parts = self._parse_path()
+
+            # Try to find in registry
+            found = self._find_in_registry(MODELS, path_parts, case_sensitive=True)
+
+            if found is None:
+                # Try loading the specific model module
+                model_type = path_parts[0].lower()
+                try:
+                    _load_method_modules(model_type)
+                except Exception as e:
+                    logger.debug(f"Failed to load method modules for '{model_type}': {e}")
+                
+                # Retry finding
+                found = self._find_in_registry(MODELS, path_parts, case_sensitive=True)
+
+            if found is None:
+                # Try loading all methods as fallback
+                _load_all_methods()
+                found = self._find_in_registry(MODELS, path_parts, case_sensitive=True)
+
+            if found is None:
+                # Try with default fallback
+                if len(path_parts) == 1:
+                    # If only one part, try appending 'default'
+                    path_parts_with_default = path_parts + ["default"]
+                    found = self._find_in_registry(MODELS, path_parts_with_default, case_sensitive=True)
+
+            if found is None:
+                available = MODELS.list_keys(recursive=True)[:20]
+                raise KeyError(
+                    f"Model '{self._key}' (path: {path_parts}) not found in registry. "
+                    f"Available models: {available}"
+                )
+
+            # If found is a registry, try to get default
+            if isinstance(found, ModelRegistry):
+                if "default" in found._obj_map:
+                    found = found._obj_map["default"]
+                else:
+                    raise KeyError(
+                        f"Model '{self._key}' resolved to a registry without 'default' model. "
+                        f"Available in registry: {list(found._obj_map.keys())}"
+                    )
+
+            # Unwrap if it's a wrapped registry
+            if hasattr(found, "_registry"):
+                if "default" in found._registry._obj_map:
+                    found = found._registry._obj_map["default"]
+
+            self._model_class = found
+            logger.debug(f"Found model class for '{self._key}': {found}")
+            return found
+
+        @property
+        def class_(self):
+            """Return the model class.
+
+            Returns:
+                type: The class of the model.
+            """
+            return self._get_model_class()
+
+        def build(self, *args, **kwargs):
+            """Construct a model instance.
+
+            Args:
+                *args: Positional arguments for the model constructor.
+                **kwargs: Keyword arguments for the model constructor.
+
+            Returns:
+                torch.nn.Module: Model instance.
+
+            Raises:
+                ValueError: If instantiation fails.
+            """
+            model_class = self._get_model_class()
+            try:
+                return model_class(*args, **kwargs)
+            except TypeError as e:
+                raise ValueError(
+                    f"Failed to build model '{self._key}' with provided arguments. "
+                    f"Error: {e}"
+                )
+
+        def __call__(self, *args, **kwargs):
+            """Call to directly build the model (syntactic sugar).
+
+            Enables usage like: `Model("GEARS/default")(num_genes=1000)`
+
+            Args:
+                *args: Positional arguments for the model constructor.
+                **kwargs: Keyword arguments for the model constructor.
+
+            Returns:
+                torch.nn.Module: Model instance.
+            """
+            return self.build(*args, **kwargs)
+
+        def __repr__(self):
+            path = self._parse_path()
+            return f"ModelBuilder(key='{self._key}', path={path})"
+
+    return ModelBuilder(key)
+
+
+__all__ = ["MODELS", "Model"]

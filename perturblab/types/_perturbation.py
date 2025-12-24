@@ -12,12 +12,6 @@ import numpy as np
 import pandas as pd
 import scipy.sparse
 
-from perturblab.tools import (
-    split_perturbations_combo_seen,
-    split_perturbations_no_test,
-    split_perturbations_simple,
-    split_perturbations_simulation,
-)
 from perturblab.utils import get_logger
 
 from ._cell import CellData, DuplicatedGenePolicy
@@ -422,6 +416,14 @@ class PerturbationData(CellData):
         # Separate controls and perturbations
         ctrl_perts = [p for p in all_perts if p in self.control_labels]
         pert_only = [p for p in all_perts if p not in self.control_labels]
+
+        # Import here to avoid circular import
+        from perturblab.tools import (
+            split_perturbations_combo_seen,
+            split_perturbations_no_test,
+            split_perturbations_simple,
+            split_perturbations_simulation,
+        )
 
         # Apply splitting strategy
         if split_type == "simple":

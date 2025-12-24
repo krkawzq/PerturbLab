@@ -16,14 +16,16 @@ Licensed under the MIT License
 from __future__ import annotations
 
 from multiprocessing import Pool
-from typing import Callable, Literal
+from typing import TYPE_CHECKING, Callable, Literal
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from perturblab.types import BipartiteGraph
 from perturblab.utils import get_logger
+
+if TYPE_CHECKING:
+    from perturblab.types import BipartiteGraph
 
 from ._gene_similarity import (
     _compute_similarities_for_node,

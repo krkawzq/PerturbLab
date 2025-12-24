@@ -14,12 +14,6 @@ import pandas as pd
 import scipy.sparse
 import torch
 
-from perturblab.tools import (
-    sample_cells_by_group,
-    sample_cells_simple,
-    sample_cells_weighted,
-    split_cells,
-)
 from perturblab.utils import get_logger
 
 logger = get_logger()
@@ -514,6 +508,8 @@ class CellData:
                 stratify_labels = self.cell_types.values
 
         # Use decoupled split algorithm
+        from perturblab.tools import split_cells
+
         train_idx, test_idx = split_cells(
             n_cells=self.n_cells,
             test_size=test_size,
@@ -595,6 +591,8 @@ class CellData:
 
         # A. Custom weight sampling
         if sampler:
+            from perturblab.tools import sample_cells_weighted
+
             weights = sampler(self.adata.obs)
             sel_idx = sample_cells_weighted(
                 n_cells=self.n_cells,
@@ -608,6 +606,8 @@ class CellData:
 
         # B. By cell type
         if by_cell_type or balance:
+            from perturblab.tools import sample_cells_by_group
+
             if not self.cell_type_col:
                 raise ValueError("Requires cell_type_col")
 
@@ -626,6 +626,8 @@ class CellData:
             return self[sel_idx]
 
         # C. Simple random
+        from perturblab.tools import sample_cells_simple
+
         sel_idx = sample_cells_simple(
             n_cells=self.n_cells, n=n, frac=frac, random_state=random_state, replace=replace
         )
