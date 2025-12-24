@@ -46,6 +46,13 @@ from .ops._normalization import (
 )
 from .ops._scale import standardize
 from .ops._ttest import log_fold_change, ttest
+from .ops._hvg import (
+    sparse_mean_var,
+    sparse_clipped_moments,
+    clip_matrix,
+    get_backend as get_hvg_backend,
+    has_cpp_backend as has_hvg_cpp_backend,
+)
 
 __all__ = [
     "mannwhitneyu",
@@ -60,4 +67,10 @@ __all__ = [
     "sparse_row_sum_exclude_genes",
     # Scale ops
     "standardize",
+    # HVG ops
+    "sparse_mean_var",
+    "sparse_clipped_moments",
+    "clip_matrix",
+    "get_hvg_backend",
+    "has_hvg_cpp_backend",
 ]

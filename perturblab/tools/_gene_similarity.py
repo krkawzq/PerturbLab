@@ -5,7 +5,8 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
-from perturblab.tools import project_bipartite_graph
+# Avoid circular import at module level
+# project_bipartite_graph will be imported inside the function that needs it
 from perturblab.types import BipartiteGraph
 from perturblab.utils import get_logger
 
@@ -234,6 +235,9 @@ def compute_gene_similarity_from_go(
             edges.append((gene_idx, go_idx))
 
     logger.info(f"   Gene-GO edges: {len(edges)}")
+
+    # Import here to avoid circular import
+    from perturblab.tools._bipartite import project_bipartite_graph
 
     # Create BipartiteGraph
     shape = (len(gene_names), len(go_to_idx))

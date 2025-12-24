@@ -5,7 +5,8 @@ from typing import Literal
 import numpy as np
 import scipy.sparse as sparse
 
-from perturblab.kernels.mapping import bipartite_graph_query
+# Avoid circular import: delay import to method level
+# from perturblab.kernels.mapping import bipartite_graph_query
 
 
 class BipartiteGraph:
@@ -164,6 +165,9 @@ class BipartiteGraph:
             list[np.ndarray]: List where item i contains target node indices
                 connected to sources[i].
         """
+        # Import here to avoid circular import
+        from perturblab.kernels.mapping import bipartite_graph_query
+
         return bipartite_graph_query(self.graph, sources, check_bounds)
 
     def get_neighbors(

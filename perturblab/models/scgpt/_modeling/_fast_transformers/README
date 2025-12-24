@@ -1,0 +1,110 @@
+FAST-TRANSFORMERS (PARTIAL MIGRATION)
+================================================================================
+
+PACKAGE INFO
+------------
+Name:           pytorch-fast-transformers
+Original URL:   https://github.com/idiap/fast-transformers
+Version:        0.4.0 (Snapshot from Dec 2020)
+License:        MIT License
+Status:         FROZEN / PARTIAL SUBSET
+
+
+MIGRATION CONTEXT
+-----------------
+This directory contains a stripped-down, pure-Python subset of the 
+'fast-transformers' library. It was migrated into PerturbLab to support 
+legacy weight compatibility for scGPT models while resolving critical build 
+failures on modern environments.
+
+This is NOT a full clone of the original repository.
+
+
+RATIONALE FOR VENDORING
+-----------------------
+1.  Unmaintained Upstream: 
+    The original library has seen no active development since 2020.
+
+2.  Modern Compatibility:
+    The original package fails to compile on PyTorch 2.x and CUDA 12.x due to 
+    outdated C++ extension bindings.
+
+3.  Build Isolation:
+    PerturbLab aims to be easily installable via `pip`. The original package
+    requires complex local compilation of CUDA kernels, which is a barrier 
+    for many bioinformatics users.
+
+4.  Specific Usage:
+    scGPT primarily utilizes the `LinearAttention` mechanism, which can be 
+    implemented using pure PyTorch operations (einsum) without requiring 
+    custom CUDA kernels.
+
+
+INCLUDED COMPONENTS (PURE PYTHON)
+---------------------------------
+Only the following components have been retained:
+
+* core/           (Base interfaces)
+* attention/      (LinearAttention logic using pure PyTorch)
+* builders/       (TransformerEncoderBuilder)
+* transformers/   (TransformerEncoder)
+* masking/        (LengthMask)
+* feature_maps/   (Kernel feature maps)
+* events/         (Event dispatching system)
+
+EXCLUDED COMPONENTS (REMOVED)
+-----------------------------
+All C++/CUDA extensions were removed to ensure portability:
+
+* [REMOVED] causal_product (C++ extension)
+* [REMOVED] local_product (C++ extension)
+* [REMOVED] sparse_product (C++ extension)
+* [REMOVED] aggregate (C++ extension)
+* [REMOVED] clustering (C++ extension)
+* [REMOVED] hashing (C++ extension)
+
+NOTE: Do not attempt to re-add these files unless you plan to maintain 
+custom CUDA kernels for PyTorch 2.x.
+
+
+MAINTENANCE POLICY
+------------------
+This directory is treated as "Legacy/Frozen". 
+
+* DO NOT apply feature updates here.
+* DO NOT sync with upstream (upstream is dead).
+* Only apply critical bug fixes if they directly affect scGPT inference.
+
+For new model development, use:
+1.  Flash Attention (flash-attn)
+2.  PyTorch Native SDPA (Scaled Dot Product Attention)
+3.  xFormers
+
+
+ORIGINAL LICENSE
+----------------
+The original code is licensed under the MIT License.
+
+Copyright (c) 2020 Idiap Research Institute
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+Migration Date: December 2025 (Happy Christmas!)
+Maintainer: PerturbLab Team
