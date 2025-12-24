@@ -6,7 +6,6 @@ gradient detachment, and dictionary-like access.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Optional
 
 from torch import Tensor

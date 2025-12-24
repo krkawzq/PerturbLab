@@ -6,9 +6,7 @@ topological properties.
 """
 
 from collections import defaultdict, deque
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-
-import numpy as np
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from perturblab.utils import get_logger
 

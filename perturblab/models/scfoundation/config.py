@@ -10,6 +10,8 @@ from typing import Literal, Optional
 
 from perturblab.core.config import Config
 
+__all__ = ["scFoundationConfig"]
+
 
 class scFoundationConfig(Config):
     """Configuration options for scFoundation MAE-Autobin model.

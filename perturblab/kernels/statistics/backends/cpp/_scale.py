@@ -9,7 +9,6 @@ Licensed under BSD 3-Clause License
 
 import ctypes
 from pathlib import Path
-from typing import Optional, Tuple
 
 import numpy as np
 import scipy.sparse

@@ -1,19 +1,10 @@
 """Configuration definition for GEARS model."""
 
-from dataclasses import dataclass, field
-from typing import List
-
 from perturblab.core.config import Config
 
-__all__ = ["GEARSConfig", "dependencies"]
-
-# Required dependencies for GEARS model
-dependencies = [
-    "torch_geometric",
-]
+__all__ = ["GEARSConfig"]
 
 
-@dataclass
 class GEARSConfig(Config):
     """Configuration for GEARS (Graph-Enhanced gene Activation and Repression Simulator) model.
 

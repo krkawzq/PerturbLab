@@ -125,7 +125,6 @@ class PerturbationDataset(CellDataset):
         list of str
             List of unique perturbations (excluding controls and ignored).
         """
-        import numpy as np
 
         valid_mask = ~self.data.perturbations.isin(self.data.ignore_labels)
         all_perts = self.data.perturbations[valid_mask].unique()

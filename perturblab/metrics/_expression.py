@@ -7,7 +7,7 @@ perturbation effect (delta) metrics.
 
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Dict
 from warnings import catch_warnings, simplefilter
 
 import numpy as np

@@ -10,7 +10,6 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from .dsbn import DomainSpecificBatchNorm1d
 from .grad_reverse import grad_reverse
 
 __all__ = [

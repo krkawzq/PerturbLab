@@ -10,7 +10,6 @@ function that returns a feature map instance when called with the query
 dimensions.
 """
 
-from functools import partial
 
 import torch
 from torch.nn import Module

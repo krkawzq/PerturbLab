@@ -9,7 +9,6 @@ from math import sqrt
 
 import torch
 from torch.nn import Dropout, Module
-from torch.nn import functional as F
 
 from ..attention_registry import AttentionRegistry, EventDispatcherInstance, Float, Int, Optional
 from ..events import EventDispatcher

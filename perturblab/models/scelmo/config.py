@@ -1,6 +1,6 @@
 """Configuration definition for scELMo model."""
 
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import List, Literal, Optional
 
 from perturblab.core.config import Config
@@ -8,7 +8,6 @@ from perturblab.core.config import Config
 __all__ = ["scELMoConfig"]
 
 
-@dataclass
 class scELMoConfig(Config):
     """Configuration for scELMo (Single-Cell Embeddings from Language Models).
 

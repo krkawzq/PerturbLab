@@ -262,7 +262,7 @@ class GeneCompassModel(nn.Module):
             ImportError: If transformers is not installed.
         """
         try:
-            from transformers import BertConfig
+            import transformers  # noqa: F401
         except ImportError:
             raise ImportError(
                 "GeneCompass requires the transformers library. "

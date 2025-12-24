@@ -91,6 +91,20 @@ profile = "black"
 line_length = 100
 skip_gitignore = true
 
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["F401"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+# Internal fast_transformers module - imports are for re-export
+"**/_fast_transformers/**/*.py" = ["F401"]
+# C++ backend - imports are for availability checking
+"**/backends/cpp/**/*.py" = ["F401"]
+
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true

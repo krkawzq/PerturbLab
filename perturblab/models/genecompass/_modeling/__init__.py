@@ -2,11 +2,7 @@
 
 from perturblab.utils import create_lazy_loader
 
-# Import dependencies from config
-try:
-    from perturblab.models.genecompass.config import dependencies
-except (ImportError, AttributeError):
-    dependencies = []
+dependencies = ["transformers"]
 
 # Define lazy loading module map
 _LAZY_MODULES = {

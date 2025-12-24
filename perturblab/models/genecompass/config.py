@@ -7,7 +7,6 @@ Copyright: GeneCompass Authors, adapted for PerturbLab.
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 from perturblab.core.config import ModelConfig
 

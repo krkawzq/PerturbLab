@@ -5,14 +5,12 @@ Contains fast transformer implementations including:
 - FlashTransformerEncoderLayer: Flash attention integration
 """
 
-import warnings
 from typing import Optional
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
 try:
     from flash_attn.flash_attention import FlashMHA

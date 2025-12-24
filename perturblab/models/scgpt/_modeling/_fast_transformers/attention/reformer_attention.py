@@ -22,7 +22,6 @@ from ..attention_registry import (
     Optional,
 )
 from ..events import EventDispatcher
-from ..masking import FullMask
 
 
 class ReformerAttention(Module):

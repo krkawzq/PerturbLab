@@ -5,9 +5,6 @@ from typing import Iterable
 
 import numpy as np
 
-# Avoid circular import: delay import of lookup functions to method level
-# from perturblab.kernels.mapping import lookup_indices, lookup_tokens
-
 
 class Vocab:
     """Vocabulary for bidirectional token-index mapping.

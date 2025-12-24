@@ -10,9 +10,6 @@ from anndata import AnnData
 from scipy.sparse import issparse
 from scipy.stats import false_discovery_control
 
-from perturblab.kernels.statistics import (
-    group_mean,
-)
 from perturblab.kernels.statistics import log_fold_change as calc_log_fc
 from perturblab.kernels.statistics import (
     mannwhitneyu,
@@ -136,7 +133,7 @@ def differential_expression(
         gene_names = adata.var_names.values
 
     # Convert to CSC format for efficient column access (genes)
-    from scipy.sparse import csc_matrix, csr_matrix
+    from scipy.sparse import csc_matrix
 
     if issparse(X):
         if not isinstance(X, csc_matrix):

@@ -5,7 +5,6 @@ Downloads official gene symbol data from HGNC.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Literal
 
@@ -15,7 +14,6 @@ import requests
 from perturblab.utils import get_logger
 
 from ._base import BaseDownloader, DownloadError, _prepare_path
-from ._http import HTTPDownloader
 
 logger = get_logger()
 

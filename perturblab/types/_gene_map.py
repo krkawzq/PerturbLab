@@ -1,7 +1,7 @@
 """Gene mapping system for alias/symbol/ID resolution."""
 
 import os
-from typing import Dict, Literal, Optional
+from typing import Literal, Optional
 
 import pandas as pd
 

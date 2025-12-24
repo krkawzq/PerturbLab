@@ -7,12 +7,10 @@ if the C++ library is not available.
 
 import ctypes
 import logging
-import os
 from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
-import scipy.sparse
 
 logger = logging.getLogger(__name__)
 

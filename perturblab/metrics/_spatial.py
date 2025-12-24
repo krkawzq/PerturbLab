@@ -55,8 +55,6 @@ Original implementation: scanpy/metrics/_morans_i.py, scanpy/metrics/_gearys_c.p
 
 from __future__ import annotations
 
-from typing import Literal
-
 import numba
 import numpy as np
 from scipy import sparse

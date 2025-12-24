@@ -8,7 +8,7 @@ Provides abstract base classes for dataset implementations:
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from torch.utils.data import Dataset as _BaseTorchDataset
 

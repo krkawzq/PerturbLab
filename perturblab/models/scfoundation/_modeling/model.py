@@ -166,11 +166,10 @@ Migrated to PerturbLab by the PerturbLab team.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import torch
 import torch.nn as nn
-from torch import Tensor
 
 if TYPE_CHECKING:
     from perturblab.models.scfoundation.config import scFoundationConfig
@@ -261,7 +260,7 @@ class scFoundationModel(nn.Module):
         Args:
             config (scFoundationConfig): Model configuration.
         """
-        from .components import AutoDiscretizationEmbedding, RandomPositionalEmbedding
+        from .components import AutoDiscretizationEmbedding
 
         # Auto-discretization embedding (learns soft binning)
         self.token_emb = AutoDiscretizationEmbedding(

@@ -6,11 +6,7 @@ users without accelerate to use other parts of PerturbLab.
 
 from perturblab.utils import create_lazy_loader
 
-# Import dependencies from config
-try:
-    from ..config import dependencies
-except (ImportError, AttributeError):
-    dependencies = []
+dependencies = []
 
 # Define lazy loading module map
 _LAZY_MODULES = {

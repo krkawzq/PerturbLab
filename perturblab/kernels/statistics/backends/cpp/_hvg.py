@@ -6,7 +6,6 @@ of HVG detection algorithms, including Seurat V3 method.
 
 import ctypes
 import logging
-import os
 from pathlib import Path
 from typing import Optional, Tuple
 

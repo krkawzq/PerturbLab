@@ -25,12 +25,9 @@ from ..attention_registry import (
 from ..clustering.hamming import cluster
 from ..events import EventDispatcher
 from ..hashing import compute_hashes
-from ..masking import FullMask
 from ..sparse_product import (
     clustered_sparse_dot_product,
     clustered_sparse_weighted_average,
-    sparse_dot_product,
-    sparse_weighted_average,
 )
 
 

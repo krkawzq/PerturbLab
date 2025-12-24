@@ -409,6 +409,7 @@ class _SmartLazyModelRegistry:
 # Create smart lazy-loading MODELS registry
 MODELS = _SmartLazyModelRegistry(_MODELS_BASE)
 
+
 def Model(key: str):
     """Elegant model loader function as an alternative to MODELS.xxx.xxx access.
 
@@ -442,6 +443,7 @@ def Model(key: str):
         >>> model_class = Model("GEARS/default").class_
         >>> model = model_class(num_genes=1000, num_perts=50)
     """
+
     class ModelBuilder:
         """Builder object to construct the model in a flexible way."""
 
@@ -526,9 +528,11 @@ def Model(key: str):
                                 # Try loading with the part as key
                                 MODELS._smart_load_model(part)
                                 # Also try with full path up to this point
-                                full_key = ".".join(path_parts[: len(path_parts) - len(remaining_parts) + 1])
+                                full_key = ".".join(
+                                    path_parts[: len(path_parts) - len(remaining_parts) + 1]
+                                )
                                 MODELS._smart_load_model(full_key)
-                                
+
                                 # Retry after loading
                                 if hasattr(current, "_child_registries"):
                                     for name, child in current._child_registries.items():
@@ -546,7 +550,9 @@ def Model(key: str):
                     if found is None:
                         # If case-sensitive search failed, try case-insensitive
                         if case_sensitive:
-                            return self._find_in_registry(registry, path_parts, case_sensitive=False)
+                            return self._find_in_registry(
+                                registry, path_parts, case_sensitive=False
+                            )
                         return None
 
                 # Move to next level
@@ -598,7 +604,7 @@ def Model(key: str):
                     _load_method_modules(model_type)
                 except Exception as e:
                     logger.debug(f"Failed to load method modules for '{model_type}': {e}")
-                
+
                 # Retry finding
                 found = self._find_in_registry(MODELS, path_parts, case_sensitive=True)
 
@@ -612,7 +618,9 @@ def Model(key: str):
                 if len(path_parts) == 1:
                     # If only one part, try appending 'default'
                     path_parts_with_default = path_parts + ["default"]
-                    found = self._find_in_registry(MODELS, path_parts_with_default, case_sensitive=True)
+                    found = self._find_in_registry(
+                        MODELS, path_parts_with_default, case_sensitive=True
+                    )
 
             if found is None:
                 available = MODELS.list_keys(recursive=True)[:20]
@@ -667,8 +675,7 @@ def Model(key: str):
                 return model_class(*args, **kwargs)
             except TypeError as e:
                 raise ValueError(
-                    f"Failed to build model '{self._key}' with provided arguments. "
-                    f"Error: {e}"
+                    f"Failed to build model '{self._key}' with provided arguments. " f"Error: {e}"
                 )
 
         def __call__(self, *args, **kwargs):

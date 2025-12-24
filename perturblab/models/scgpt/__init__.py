@@ -69,6 +69,10 @@ except (DependencyError, ImportError):
 
 # Register components (encoders, decoders, attention layers)
 try:
+    from ._modeling.components import GradReverse  # noqa: F401
+    from ._modeling.components import Similarity  # noqa: F401
+    from ._modeling.components import generate_square_subsequent_mask  # noqa: F401
+    from ._modeling.components import grad_reverse  # noqa: F401
     from ._modeling.components import (  # Encoders; Decoders; Attention; Batch Normalization; Gradient Reversal; Misc
         AdversarialDiscriminator,
         BatchLabelEncoder,
@@ -81,12 +85,8 @@ try:
         FastTransformerEncoderWrapper,
         FlashTransformerEncoderLayer,
         GeneEncoder,
-        GradReverse,
         MVCDecoder,
         PositionalEncoding,
-        Similarity,
-        generate_square_subsequent_mask,
-        grad_reverse,
     )
 
     # Register encoders

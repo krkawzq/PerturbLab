@@ -8,7 +8,7 @@ import pandas as pd
 from perturblab.utils import get_logger
 
 if TYPE_CHECKING:
-    from perturblab.types import BipartiteGraph
+    pass
 
 logger = get_logger()
 

@@ -332,8 +332,6 @@ def load_dataset(path: str) -> "Path":  # type: ignore
     >>> go_path = load_dataset('go/go_basic')
     >>> print(go_path)
     """
-    from pathlib import Path
-
     resource = get_dataset(path)
 
     # All resources should return Path via .load()

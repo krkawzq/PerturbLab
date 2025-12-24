@@ -74,4 +74,10 @@ __all__ = [
     "download_http",
     "FigshareDownloader",
     "download_figshare",
+    "EnsemblDownloader",
+    "GODownloader",
+    "HGNCDownloader",
+    "download_ensembl",
+    "download_go",
+    "download_hgnc",
 ]

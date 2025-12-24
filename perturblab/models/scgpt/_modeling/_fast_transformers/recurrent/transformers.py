@@ -15,7 +15,6 @@ interface is subject to change given the implementation of other recurrent
 attentions.
 """
 
-import warnings
 
 import torch
 import torch.nn.functional as F

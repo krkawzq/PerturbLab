@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List
 
-import numpy as np
-import torch
 from torch import Tensor
 
 from perturblab.core.model_io import ModelIO
@@ -14,7 +11,6 @@ from perturblab.core.model_io import ModelIO
 __all__ = ["scELMoInput", "scELMoOutput"]
 
 
-@dataclass
 class scELMoInput(ModelIO):
     """Container for scELMo inputs.
 
@@ -30,7 +26,6 @@ class scELMoInput(ModelIO):
     gene_names: List[str]
 
 
-@dataclass
 class scELMoOutput(ModelIO):
     """Container for scELMo outputs.
 

@@ -13,7 +13,7 @@ Modifications by PerturbLab team.
 """
 
 import logging
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 import scipy.sparse

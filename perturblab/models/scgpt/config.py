@@ -4,22 +4,13 @@ This configuration handles hyperparameters for standard scGPT, multi-omics,
 and generative tasks.
 """
 
-from dataclasses import dataclass, field
 from typing import Literal, Optional
 
 from perturblab.core.config import Config
 
-__all__ = ["scGPTConfig", "dependencies"]
-
-# Required dependencies for scGPT
-dependencies = [
-    "scanpy",
-    "scipy",
-    "sklearn",
-]
+__all__ = ["scGPTConfig"]
 
 
-@dataclass
 class scGPTConfig(Config):
     """Configuration for scGPT models.
 

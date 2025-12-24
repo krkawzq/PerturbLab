@@ -9,14 +9,11 @@ Copyright (c) 2023 CellFM Authors
 Licensed under CC BY-NC-ND 4.0
 """
 
-from dataclasses import dataclass
-
 from perturblab.core.config import Config
 
 __all__ = ["CellFMConfig"]
 
 
-@dataclass
 class CellFMConfig(Config):
     """Configuration class for CellFM models.
 

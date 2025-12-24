@@ -7,11 +7,8 @@ Copyright (c) 2017 F. Alexander Wolf, P. Angerer, Theis Lab
 Licensed under BSD 3-Clause License
 """
 
-from typing import Tuple
-
 import numba
 import numpy as np
-import scipy.sparse
 
 
 @numba.njit(parallel=True, cache=True)

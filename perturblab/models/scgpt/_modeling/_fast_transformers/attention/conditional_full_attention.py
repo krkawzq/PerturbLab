@@ -7,7 +7,6 @@
 """Implement a self attention that delegates to full attention or another
 attention depending on the input sequence length."""
 
-import torch
 from torch.nn import Module
 
 from ..attention_registry import AttentionRegistry, EventDispatcherInstance, Float, Int, Optional

@@ -5,10 +5,8 @@ for the GeneCompass model. These schemas enable type safety and standardize
 interfaces for model pipelines.
 """
 
-from dataclasses import dataclass
 from typing import Optional, Tuple
 
-import torch
 from torch import Tensor
 
 from perturblab.core.model_io import ModelIO
@@ -16,7 +14,6 @@ from perturblab.core.model_io import ModelIO
 __all__ = ["GeneCompassInput", "GeneCompassOutput", "MaskedLMOutputBoth"]
 
 
-@dataclass
 class GeneCompassInput(ModelIO):
     """Input schema for the GeneCompass model.
 
@@ -100,7 +97,6 @@ class GeneCompassInput(ModelIO):
     output_hidden_states: bool = False
 
 
-@dataclass
 class GeneCompassOutput(ModelIO):
     """Output schema for the GeneCompass model.
 
@@ -148,7 +144,6 @@ class GeneCompassOutput(ModelIO):
     attentions: Optional[Tuple[Tensor, ...]] = None
 
 
-@dataclass
 class MaskedLMOutputBoth(ModelIO):
     """Internal output for GeneCompass masked language modeling (MLM + value).
 

@@ -25,7 +25,6 @@ from ..attention_registry import (
 from ..clustering.hamming import cluster
 from ..events import EventDispatcher
 from ..hashing import compute_hashes
-from ..masking import FullMask
 
 
 class _GroupQueries(torch.autograd.Function):

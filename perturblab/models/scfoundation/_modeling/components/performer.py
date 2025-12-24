@@ -14,12 +14,11 @@ import math
 import warnings
 from contextlib import contextmanager
 from functools import partial
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch import Tensor
 
 # External dependencies (assuming installed)
@@ -287,7 +286,7 @@ class FastAttention(nn.Module):
         if causal:
             # Check for CUDA extension availability
             try:
-                import fast_transformers.causal_product.causal_product_cuda
+                import fast_transformers.causal_product.causal_product_cuda  # noqa: F401
 
                 self.causal_linear_fn = causal_linear_attention
             except ImportError:
