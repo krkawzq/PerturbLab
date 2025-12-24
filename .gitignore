@@ -13,8 +13,20 @@ uv.lock
 forks/
 download/
 weights/
+external/
 
 GEMINI.md
 AGENT.md
 CLAUDE.md
 CODEX.md
+
+*.so
+*.dll
+
+perturblab/kernels/mapping/backends/cython/*.c
+perturblab/kernels/statistics/backends/cython/*.c
+perturblab_v*/
+perturblab/*/cython/*.c
+
+test.py
+test.ipynb

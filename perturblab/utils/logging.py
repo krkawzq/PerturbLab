@@ -161,18 +161,30 @@ def get_logger(
 ) -> logging.Logger:
     """Get or create a logger.
     
-    If the logger doesn't exist, creates it with default settings.
+    If the logger doesn't exist, creates it with default INFO level to avoid
+    verbose DEBUG output during normal operations.
     
     Args:
-        name: Logger name.
-        level: Optional logging level. If None, uses existing level or INFO.
+        name: Logger name. Default: 'perturblab'.
+        level: Optional logging level. If None, uses existing level or INFO (default).
+               Use 'DEBUG' to see detailed registration and loading information.
     
     Returns:
         logging.Logger: Logger instance.
+    
+    Examples:
+        >>> # Get default logger (INFO level)
+        >>> logger = get_logger()
+        >>> logger.info("This will be shown")
+        >>> logger.debug("This will NOT be shown by default")
+        >>> 
+        >>> # Get logger with DEBUG level
+        >>> debug_logger = get_logger(level='DEBUG')
+        >>> debug_logger.debug("This WILL be shown")
     """
     logger = logging.getLogger(name)
     
-    # If logger not configured, set it up with defaults
+    # If logger not configured, set it up with defaults (INFO level)
     if not logger.handlers:
         setup_logger(name, level=level or logging.INFO)
     elif level is not None:
@@ -330,25 +342,55 @@ def get_distributed_logger(
 _default_logger = None
 
 
-def init_default_logger(
+def get_default_logger(
     level: str | int = None,
     log_file: Optional[str | Path] = None,
 ) -> logging.Logger:
-    """Initialize the default PerturbLab logger.
+    """Get or initialize the default PerturbLab logger.
+    
+    By default, uses INFO level to avoid verbose DEBUG messages during
+    model loading and registration. Set PERTURBLAB_LOG_LEVEL=DEBUG to
+    see detailed debugging information.
+    
+    This is a lazy-loading getter: the logger is created on first access
+    and cached for subsequent calls.
     
     Args:
         level: Logging level. If None, uses INFO or PERTURBLAB_LOG_LEVEL env var.
+               Default: INFO (does not show DEBUG messages).
         log_file: Optional log file path.
     
     Returns:
-        logging.Logger: Initialized logger.
+        logging.Logger: The default logger instance.
+    
+    Environment Variables:
+        PERTURBLAB_LOG_LEVEL: Override default log level (DEBUG, INFO, WARNING, ERROR).
+    
+    Examples:
+        >>> # Default: INFO level
+        >>> logger = get_default_logger()
+        >>> 
+        >>> # Enable debug mode
+        >>> import os
+        >>> os.environ['PERTURBLAB_LOG_LEVEL'] = 'DEBUG'
+        >>> logger = get_default_logger()
+        >>> 
+        >>> # Or programmatically
+        >>> logger = get_default_logger(level='DEBUG')
     """
     global _default_logger
     
-    # Get level from environment or use default
+    # Return cached logger if already initialized and no override
+    if _default_logger is not None and level is None and log_file is None:
+        return _default_logger
+    
+    # Get level from environment or use default (INFO)
+    # INFO level prevents verbose DEBUG logs during model registration
     if level is None:
         level_str = os.environ.get('PERTURBLAB_LOG_LEVEL', 'INFO')
         level = getattr(logging, level_str.upper(), logging.INFO)
+    elif isinstance(level, str):
+        level = getattr(logging, level.upper(), logging.INFO)
     
     _default_logger = setup_logger(
         name='perturblab',
@@ -361,7 +403,7 @@ def init_default_logger(
     return _default_logger
 
 
-# Auto-initialize on import
+# Auto-initialize on import with INFO level (no DEBUG messages by default)
 if _default_logger is None:
-    init_default_logger()
+    _default_logger = get_default_logger()
 

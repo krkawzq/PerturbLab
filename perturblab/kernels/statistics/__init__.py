@@ -12,7 +12,7 @@ Available Functions:
 All functions support:
     - Sparse matrix formats (CSC/CSR)
     - Multi-threading with OpenMP
-    - Automatic backend selection (C++ → Cython → scipy/numpy)
+    - Automatic backend selection (C++ → Cython → numpy/scipy)
 
 Examples:
     >>> import numpy as np
@@ -35,12 +35,30 @@ Examples:
     >>> means = group_mean(X, group_id, n_groups=3)
 """
 
-from ._mannwhitneyu import mannwhitneyu, group_mean
-from ._ttest import ttest, log_fold_change
+# Import from ops modules (no ops/__init__.py needed)
+from .ops._mannwhitneyu import mannwhitneyu, group_mean
+from .ops._ttest import ttest, log_fold_change
+from .ops._normalization import (
+    sparse_row_sum,
+    inplace_divide_rows,
+    compute_median_nonzero,
+    find_highly_expressed_genes,
+    sparse_row_sum_exclude_genes,
+)
+from .ops._scale import standardize
 
 __all__ = [
     "mannwhitneyu",
     "group_mean",
     "ttest",
     "log_fold_change",
+    # Normalization ops
+    "sparse_row_sum",
+    "inplace_divide_rows",
+    "compute_median_nonzero",
+    "find_highly_expressed_genes",
+    "sparse_row_sum_exclude_genes",
+    # Scale ops
+    "standardize",
 ]
+
