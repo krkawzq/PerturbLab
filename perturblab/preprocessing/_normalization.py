@@ -14,7 +14,7 @@ import numpy as np
 import scipy.sparse
 from anndata import AnnData
 
-from ..kernels.statistics import (
+from perturblab.kernels.statistics import (
     compute_median_nonzero,
     find_highly_expressed_genes,
     inplace_divide_rows,

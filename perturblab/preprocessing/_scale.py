@@ -13,8 +13,8 @@ import numpy as np
 import scipy.sparse
 from anndata import AnnData
 
-from ..kernels.statistics import standardize
-from ..kernels.statistics.ops._hvg import sparse_mean_var
+from perturblab.kernels.statistics import standardize
+from perturblab.kernels.statistics import sparse_mean_var
 
 
 def scale(
