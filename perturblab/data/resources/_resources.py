@@ -21,21 +21,21 @@ __all__ = ["File", "Files", "h5adFile"]
 
 class File(Resource[Path]):
     """Generic file resource.
-    
+
     A simple resource that represents a single file and returns its Path
     when loaded. Useful for lazy file downloading without immediate parsing.
-    
+
     Examples
     --------
     >>> from perturblab.data.resources import File
-    >>> 
+    >>>
     >>> # Local file
     >>> file = File(
     ...     key='data.csv',
     ...     local_path='/data/file.csv'
     ... )
     >>> path = file.load()  # Returns Path
-    
+
     >>> # Remote file (HTTP)
     >>> file = File(
     ...     key='model.pt',
@@ -46,10 +46,10 @@ class File(Resource[Path]):
     ... )
     >>> path = file.load()  # Downloads and returns cached Path
     """
-    
+
     def _fetch_remote(self, config: dict[str, Any], target_path: Path) -> None:
         """Download file using configured downloader.
-        
+
         Parameters
         ----------
         config : dict
@@ -58,9 +58,9 @@ class File(Resource[Path]):
             Where to save the downloaded file.
         """
         from perturblab.io import download
-        
-        downloader_name = config.get('downloader', 'HTTPDownloader')
-        
+
+        downloader_name = config.get("downloader", "HTTPDownloader")
+
         try:
             downloader_cls = getattr(download, downloader_name)
         except AttributeError:
@@ -69,32 +69,29 @@ class File(Resource[Path]):
                 f"Available: HTTPDownloader, FigshareDownloader, HGNCDownloader, "
                 f"EnsemblDownloader, GODownloader"
             )
-        
+
         # Build download kwargs
-        download_kwargs = {
-            k: v for k, v in config.items()
-            if k != 'downloader'
-        }
-        
+        download_kwargs = {k: v for k, v in config.items() if k != "downloader"}
+
         # Add target_path based on downloader
-        if downloader_name in ['HGNCDownloader', 'GODownloader']:
+        if downloader_name in ["HGNCDownloader", "GODownloader"]:
             # target_path as first positional arg
-            download_kwargs['target_path'] = target_path
+            download_kwargs["target_path"] = target_path
         else:
             # target_path as keyword arg or second positional
-            download_kwargs['target_path'] = target_path
-        
+            download_kwargs["target_path"] = target_path
+
         logger.debug(f"Downloading with {downloader_name}...")
         downloader_cls.download(**download_kwargs)
-    
+
     def _load_from_disk(self, path: Path) -> Path:
         """Return the path itself (no parsing needed).
-        
+
         Parameters
         ----------
         path : Path
             Path to file.
-        
+
         Returns
         -------
         Path
@@ -102,15 +99,15 @@ class File(Resource[Path]):
         """
         logger.debug(f"File resource loaded: {path}")
         return path
-    
+
     def _check_file(self, path: Path) -> bool:
         """Validate that path is a file (not a directory).
-        
+
         Parameters
         ----------
         path : Path
             Path to validate.
-        
+
         Returns
         -------
         bool
@@ -129,14 +126,14 @@ class File(Resource[Path]):
 
 class Files(Resource[Path]):
     """Directory resource (collection of files).
-    
+
     Represents a directory containing multiple files. Returns the directory
     Path when loaded.
-    
+
     Examples
     --------
     >>> from perturblab.data.resources import Files
-    >>> 
+    >>>
     >>> # Local directory
     >>> files = Files(
     ...     key='dataset_dir',
@@ -146,7 +143,7 @@ class Files(Resource[Path]):
     >>> dir_path = files.load()  # Returns Path to directory
     >>> for file in dir_path.iterdir():
     ...     print(file)
-    
+
     >>> # Remote directory (e.g., Figshare article)
     >>> files = Files(
     ...     key='article_files',
@@ -158,7 +155,7 @@ class Files(Resource[Path]):
     ... )
     >>> dir_path = files.load()  # Downloads all files to directory
     """
-    
+
     def __init__(
         self,
         key: str,
@@ -168,7 +165,7 @@ class Files(Resource[Path]):
         cache_manager: Any | None = None,
     ):
         """Initialize directory resource.
-        
+
         Parameters
         ----------
         key : str
@@ -187,10 +184,10 @@ class Files(Resource[Path]):
             is_directory=True,  # Always a directory
             cache_manager=cache_manager,
         )
-    
+
     def _fetch_remote(self, config: dict[str, Any], target_path: Path) -> None:
         """Download directory using configured downloader.
-        
+
         Parameters
         ----------
         config : dict
@@ -199,35 +196,32 @@ class Files(Resource[Path]):
             Target directory path.
         """
         from perturblab.io import download
-        
-        downloader_name = config.get('downloader', 'HTTPDownloader')
-        
+
+        downloader_name = config.get("downloader", "HTTPDownloader")
+
         try:
             downloader_cls = getattr(download, downloader_name)
         except AttributeError:
             raise RuntimeError(f"Downloader '{downloader_name}' not found")
-        
+
         # Build download kwargs
-        download_kwargs = {
-            k: v for k, v in config.items()
-            if k != 'downloader'
-        }
-        download_kwargs['target_path'] = target_path
-        
+        download_kwargs = {k: v for k, v in config.items() if k != "downloader"}
+        download_kwargs["target_path"] = target_path
+
         # Ensure target is a directory
         target_path.mkdir(parents=True, exist_ok=True)
-        
+
         logger.debug(f"Downloading directory with {downloader_name}...")
         downloader_cls.download(**download_kwargs)
-    
+
     def _load_from_disk(self, path: Path) -> Path:
         """Return the directory path itself.
-        
+
         Parameters
         ----------
         path : Path
             Path to directory.
-        
+
         Returns
         -------
         Path
@@ -235,15 +229,15 @@ class Files(Resource[Path]):
         """
         logger.debug(f"Directory resource loaded: {path}")
         return path
-    
+
     def _check_file(self, path: Path) -> bool:
         """Validate that path is a directory.
-        
+
         Parameters
         ----------
         path : Path
             Path to validate.
-        
+
         Returns
         -------
         bool
@@ -263,21 +257,21 @@ class Files(Resource[Path]):
 
 class h5adFile(Resource[Path]):
     """AnnData H5AD/H5 file resource.
-    
+
     Specialized resource for AnnData files with format validation.
     Requires files to have .h5ad or .h5 extension.
-    
+
     Examples
     --------
     >>> from perturblab.data.resources import h5adFile
-    >>> 
+    >>>
     >>> # Local h5ad file
     >>> file = h5adFile(
     ...     key='norman_2019',
     ...     local_path='/data/norman_2019.h5ad'
     ... )
     >>> path = file.load()  # Returns Path after validation
-    
+
     >>> # Remote h5ad file
     >>> file = h5adFile(
     ...     key='adamson_2016',
@@ -287,18 +281,18 @@ class h5adFile(Resource[Path]):
     ...     }
     ... )
     >>> path = file.load()  # Downloads and validates
-    
+
     >>> # Then load into AnnData
     >>> import anndata as ad
     >>> adata = ad.read_h5ad(path)
     """
-    
+
     # Allowed file extensions
-    VALID_EXTENSIONS = {'.h5ad', '.h5'}
-    
+    VALID_EXTENSIONS = {".h5ad", ".h5"}
+
     def _fetch_remote(self, config: dict[str, Any], target_path: Path) -> None:
         """Download h5ad file using configured downloader.
-        
+
         Parameters
         ----------
         config : dict
@@ -307,32 +301,29 @@ class h5adFile(Resource[Path]):
             Target file path.
         """
         from perturblab.io import download
-        
-        downloader_name = config.get('downloader', 'HTTPDownloader')
-        
+
+        downloader_name = config.get("downloader", "HTTPDownloader")
+
         try:
             downloader_cls = getattr(download, downloader_name)
         except AttributeError:
             raise RuntimeError(f"Downloader '{downloader_name}' not found")
-        
+
         # Build download kwargs
-        download_kwargs = {
-            k: v for k, v in config.items()
-            if k != 'downloader'
-        }
-        download_kwargs['target_path'] = target_path
-        
+        download_kwargs = {k: v for k, v in config.items() if k != "downloader"}
+        download_kwargs["target_path"] = target_path
+
         logger.debug(f"Downloading h5ad with {downloader_name}...")
         downloader_cls.download(**download_kwargs)
-    
+
     def _load_from_disk(self, path: Path) -> Path:
         """Return the h5ad file path.
-        
+
         Parameters
         ----------
         path : Path
             Path to h5ad file.
-        
+
         Returns
         -------
         Path
@@ -340,21 +331,21 @@ class h5adFile(Resource[Path]):
         """
         logger.debug(f"h5ad file resource loaded: {path}")
         return path
-    
+
     def _check_file(self, path: Path) -> bool:
         """Validate that file is a valid h5ad/h5 file.
-        
+
         Checks:
         1. File exists
         2. Is a file (not directory)
         3. Has .h5ad or .h5 extension
         4. Is not empty
-        
+
         Parameters
         ----------
         path : Path
             Path to validate.
-        
+
         Returns
         -------
         bool
@@ -363,57 +354,58 @@ class h5adFile(Resource[Path]):
         if not path.exists():
             logger.error(f"File does not exist: {path}")
             return False
-        
+
         if not path.is_file():
             logger.error(f"Expected file but got directory: {path}")
             return False
-        
+
         if path.suffix not in self.VALID_EXTENSIONS:
             logger.error(
                 f"Invalid file extension: {path.suffix}. "
                 f"Expected one of: {self.VALID_EXTENSIONS}"
             )
             return False
-        
+
         if path.stat().st_size == 0:
             logger.error(f"File is empty: {path}")
             return False
-        
+
         # Optional: Quick h5 format check
         try:
             import h5py
-            with h5py.File(path, 'r') as f:
+
+            with h5py.File(path, "r") as f:
                 # Basic check - h5ad files should have certain structure
-                if 'X' not in f and 'obs' not in f:
+                if "X" not in f and "obs" not in f:
                     logger.warning(
                         f"File {path} might not be a valid h5ad format "
                         f"(missing 'X' and 'obs' groups)"
                     )
         except Exception as e:
             logger.warning(f"Could not validate h5 format: {e}")
-        
+
         return True
-    
+
     def _get_cache_key(self) -> str:
         """Generate cache key with .h5ad extension.
-        
+
         Returns
         -------
         str
             Cache key with .h5ad extension.
         """
-        if self.key.endswith('.h5ad') or self.key.endswith('.h5'):
+        if self.key.endswith(".h5ad") or self.key.endswith(".h5"):
             return self.key
         return f"{self.key}.h5ad"
-    
+
     def load_adata(self) -> "AnnData":  # type: ignore
         """Convenience method to directly load as AnnData object.
-        
+
         Returns
         -------
         AnnData
             Loaded AnnData object.
-        
+
         Examples
         --------
         >>> file = h5adFile(key='data', local_path='file.h5ad')
@@ -424,6 +416,7 @@ class h5adFile(Resource[Path]):
         >>> adata = ad.read_h5ad(path)
         """
         import anndata as ad
+
         path = self.load()
         logger.info(f"Loading AnnData from: {path}")
         return ad.read_h5ad(path)

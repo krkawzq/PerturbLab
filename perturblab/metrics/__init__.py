@@ -73,46 +73,40 @@ Basic usage:
 ... )
 """
 
-from ._expression import (
-    r_squared,
-    pearson_correlation,
-    mse,
-    rmse,
-    mae,
-    cosine_similarity_score,
-    l2_distance,
-    compute_expression_metrics,
-)
-
-from ._distribution import (
-    mmd,
-    wasserstein_distance,
-    compute_distribution_metrics,
-)
-
-from ._direction import (
-    delta_direction_accuracy,
-    compute_direction_metrics,
-)
-
-from ._deg_overlap import (
-    deg_overlap_topn,
-    deg_overlap_pvalue,
-    deg_overlap_fdr,
-    compute_deg_overlap_metrics,
-)
-
-from ._spatial import (
-    morans_i,
-    gearys_c,
-    compute_spatial_metrics,
-)
-
 from ._classification import (
     confusion_matrix,
 )
-
+from ._deg_overlap import (
+    compute_deg_overlap_metrics,
+    deg_overlap_fdr,
+    deg_overlap_pvalue,
+    deg_overlap_topn,
+)
+from ._direction import (
+    compute_direction_metrics,
+    delta_direction_accuracy,
+)
+from ._distribution import (
+    compute_distribution_metrics,
+    mmd,
+    wasserstein_distance,
+)
 from ._evaluate import evaluate_prediction
+from ._expression import (
+    compute_expression_metrics,
+    cosine_similarity_score,
+    l2_distance,
+    mae,
+    mse,
+    pearson_correlation,
+    r_squared,
+    rmse,
+)
+from ._spatial import (
+    compute_spatial_metrics,
+    gearys_c,
+    morans_i,
+)
 
 __all__ = [
     # Expression metrics
@@ -145,4 +139,3 @@ __all__ = [
     # Comprehensive evaluation
     "evaluate_prediction",
 ]
-

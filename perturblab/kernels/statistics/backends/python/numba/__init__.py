@@ -10,11 +10,11 @@ Licensed under BSD-3-Clause
 """
 
 from ._hvg import (
+    group_mean_var_numba,
+    group_var_numba,
     has_numba_backend,
     sparse_clipped_moments_numba,
     sparse_mean_var_numba,
-    group_var_numba,
-    group_mean_var_numba,
 )
 
 __all__ = [
@@ -24,4 +24,3 @@ __all__ = [
     "group_var_numba",
     "group_mean_var_numba",
 ]
-

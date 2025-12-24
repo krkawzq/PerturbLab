@@ -20,7 +20,7 @@ def mannwhitneyu_scipy(
     use_continuity: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Mann-Whitney U test using SciPy (fallback implementation).
-    
+
     Parameters
     ----------
     matrix_csc : csc_matrix
@@ -32,7 +32,7 @@ def mannwhitneyu_scipy(
         Number of target groups.
     use_continuity : bool, default=True
         Whether to use continuity correction.
-    
+
     Returns
     -------
     U1 : np.ndarray
@@ -43,36 +43,34 @@ def mannwhitneyu_scipy(
         Two-sided p-values, shape (n_targets, n_genes).
     """
     n_cols = matrix_csc.shape[1]
-    
+
     # Allocate output arrays
     U1 = np.zeros((n_targets, n_cols), dtype=np.float64)
     U2 = np.zeros((n_targets, n_cols), dtype=np.float64)
     P = np.ones((n_targets, n_cols), dtype=np.float64)
-    
+
     # Get reference group mask
     ref_mask = group_id == 0
-    
+
     # Process each target group
     for t in range(n_targets):
         tar_mask = group_id == (t + 1)
-        
+
         # Process each gene
         for g in range(n_cols):
             # Extract values
             ref_vals = matrix_csc[ref_mask, g].toarray().flatten()
             tar_vals = matrix_csc[tar_mask, g].toarray().flatten()
-            
+
             if len(ref_vals) == 0 or len(tar_vals) == 0:
                 continue
-            
+
             # Call scipy
             try:
                 stat, pval = scipy_mannwhitneyu(
-                    tar_vals, ref_vals,
-                    alternative='two-sided',
-                    use_continuity=use_continuity
+                    tar_vals, ref_vals, alternative="two-sided", use_continuity=use_continuity
                 )
-                
+
                 # scipy returns U for the first group (target)
                 U1[t, g] = stat
                 # U2 = n_ref * n_tar - U1
@@ -81,7 +79,7 @@ def mannwhitneyu_scipy(
             except Exception:
                 # Handle edge cases (all values identical, etc.)
                 P[t, g] = 1.0
-    
+
     return U1, U2, P
 
 
@@ -92,7 +90,7 @@ def group_mean_numpy(
     include_zeros: bool = True,
 ) -> np.ndarray:
     """Compute group means using NumPy (fallback implementation).
-    
+
     Parameters
     ----------
     matrix_csc : csc_matrix
@@ -103,7 +101,7 @@ def group_mean_numpy(
         Number of groups.
     include_zeros : bool, default=True
         Whether to include zeros in mean calculation.
-    
+
     Returns
     -------
     means : np.ndarray
@@ -111,15 +109,15 @@ def group_mean_numpy(
     """
     n_cols = matrix_csc.shape[1]
     means = np.zeros((n_groups, n_cols), dtype=np.float64)
-    
+
     for g in range(n_groups):
         mask = group_id == g
         if np.sum(mask) == 0:
             continue
-        
+
         # Extract group data
         group_data = matrix_csc[mask, :]
-        
+
         # Compute mean
         if include_zeros:
             # Include implicit zeros in the mean
@@ -130,6 +128,5 @@ def group_mean_numpy(
                 col_data = group_data[:, col].data
                 if len(col_data) > 0:
                     means[g, col] = np.mean(col_data)
-    
-    return means
 
+    return means

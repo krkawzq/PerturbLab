@@ -7,7 +7,8 @@ Backend priority: C++ (SIMD + OpenMP) > Python (NumPy/SciPy fallback)
 """
 
 import logging
-from typing import Tuple, Optional
+from typing import Optional, Tuple
+
 import numpy as np
 import scipy.sparse
 
@@ -23,17 +24,17 @@ _has_cpp: bool = False
 
 # Try C++ backend first (highest performance)
 try:
+    from ..backends.cpp._hvg import clip_matrix_cpp as _clip_matrix_impl
+    from ..backends.cpp._hvg import group_mean_var_cpp as _group_mean_var_impl
+    from ..backends.cpp._hvg import group_var_cpp as _group_var_impl
     from ..backends.cpp._hvg import (
         has_cpp_backend,
-        sparse_clipped_moments_cpp as _sparse_clipped_moments_impl,
-        sparse_mean_var_cpp as _sparse_mean_var_impl,
-        clip_matrix_cpp as _clip_matrix_impl,
-        polynomial_fit_cpp as _polynomial_fit_impl,
-        loess_fit_cpp as _loess_fit_impl,
-        group_var_cpp as _group_var_impl,
-        group_mean_var_cpp as _group_mean_var_impl,
     )
-    
+    from ..backends.cpp._hvg import loess_fit_cpp as _loess_fit_impl
+    from ..backends.cpp._hvg import polynomial_fit_cpp as _polynomial_fit_impl
+    from ..backends.cpp._hvg import sparse_clipped_moments_cpp as _sparse_clipped_moments_impl
+    from ..backends.cpp._hvg import sparse_mean_var_cpp as _sparse_mean_var_impl
+
     if has_cpp_backend():
         _backend_name = "cpp"
         _has_cpp = True
@@ -44,68 +45,70 @@ try:
 except (ImportError, RuntimeError) as e:
     logger.warning(f"C++ backend unavailable: {e}")
     _has_cpp = False
-    
+
     # Try Cython backend (good performance)
     try:
+        from ..backends.cython._hvg_wrapper import clip_matrix_cy as _clip_matrix_impl
+        from ..backends.cython._hvg_wrapper import group_mean_var_cy as _group_mean_var_impl
+        from ..backends.cython._hvg_wrapper import group_var_cy as _group_var_impl
         from ..backends.cython._hvg_wrapper import (
             has_cython_backend,
-            sparse_clipped_moments_cy as _sparse_clipped_moments_impl,
-            sparse_mean_var_cy as _sparse_mean_var_impl,
-            clip_matrix_cy as _clip_matrix_impl,
-            polynomial_fit_cy as _polynomial_fit_impl,
-            loess_fit_cy as _loess_fit_impl,
-            group_var_cy as _group_var_impl,
-            group_mean_var_cy as _group_mean_var_impl,
         )
-        
+        from ..backends.cython._hvg_wrapper import loess_fit_cy as _loess_fit_impl
+        from ..backends.cython._hvg_wrapper import polynomial_fit_cy as _polynomial_fit_impl
+        from ..backends.cython._hvg_wrapper import (
+            sparse_clipped_moments_cy as _sparse_clipped_moments_impl,
+        )
+        from ..backends.cython._hvg_wrapper import sparse_mean_var_cy as _sparse_mean_var_impl
+
         if has_cython_backend():
             _backend_name = "cython"
             logger.info("Using Cython backend for HVG operators")
         else:
             raise ImportError("Cython backend not functional")
-    
+
     except (ImportError, RuntimeError) as e2:
         logger.warning(f"Cython backend unavailable: {e2}")
-        
+
         # Try Numba backend (optional, JIT-compiled)
         try:
+            from ..backends.python.numba import group_var_numba as _group_var_impl
             from ..backends.python.numba import (
                 has_numba_backend,
-                sparse_clipped_moments_numba as _sparse_clipped_moments_impl,
-                sparse_mean_var_numba as _sparse_mean_var_impl,
-                group_var_numba as _group_var_impl,
             )
-            
+            from ..backends.python.numba import (
+                sparse_clipped_moments_numba as _sparse_clipped_moments_impl,
+            )
+            from ..backends.python.numba import sparse_mean_var_numba as _sparse_mean_var_impl
+
             if has_numba_backend():
                 _backend_name = "numba"
                 logger.info("Using Numba backend for HVG operators (JIT)")
-                
+
                 # Numba doesn't have all operators, use Python for missing ones
-                from ..backends.python._hvg import (
-                    clip_matrix_py as _clip_matrix_impl,
-                    polynomial_fit_py as _polynomial_fit_impl,
-                    loess_fit_py as _loess_fit_impl,
-                    group_mean_var_py as _group_mean_var_impl,
-                )
+                from ..backends.python._hvg import clip_matrix_py as _clip_matrix_impl
+                from ..backends.python._hvg import group_mean_var_py as _group_mean_var_impl
+                from ..backends.python._hvg import loess_fit_py as _loess_fit_impl
+                from ..backends.python._hvg import polynomial_fit_py as _polynomial_fit_impl
             else:
                 raise ImportError("Numba backend not functional")
-        
+
         except (ImportError, RuntimeError) as e3:
             logger.warning(f"Numba backend unavailable: {e3}")
-            
+
             # Final fallback: Pure Python/NumPy
             logger.info("Using Python/NumPy backend for HVG operators (slowest)")
-            
+
+            from ..backends.python._hvg import clip_matrix_py as _clip_matrix_impl
+            from ..backends.python._hvg import group_mean_var_py as _group_mean_var_impl
+            from ..backends.python._hvg import group_var_py as _group_var_impl
+            from ..backends.python._hvg import loess_fit_py as _loess_fit_impl
+            from ..backends.python._hvg import polynomial_fit_py as _polynomial_fit_impl
             from ..backends.python._hvg import (
                 sparse_clipped_moments_py as _sparse_clipped_moments_impl,
-                sparse_mean_var_py as _sparse_mean_var_impl,
-                clip_matrix_py as _clip_matrix_impl,
-                polynomial_fit_py as _polynomial_fit_impl,
-                loess_fit_py as _loess_fit_impl,
-                group_var_py as _group_var_impl,
-                group_mean_var_py as _group_mean_var_impl,
             )
-            
+            from ..backends.python._hvg import sparse_mean_var_py as _sparse_mean_var_impl
+
             _backend_name = "python"
 
 
@@ -165,8 +168,10 @@ def sparse_clipped_moments(
         >>> X = sp.random(1000, 500, density=0.1, format='csc')
         >>> clip_vals = X.mean(axis=0).A1 * 2
         >>> sums, sum_sq = sparse_clipped_moments(X, clip_vals)
-    """.format(backend=_backend_name)
-    
+    """.format(
+        backend=_backend_name
+    )
+
     if _has_cpp:
         return _sparse_clipped_moments_impl(X, clip_vals, n_threads)
     else:
@@ -193,8 +198,10 @@ def sparse_mean_var(
     
     Backend:
         Auto-selected at import time: {backend}
-    """.format(backend=_backend_name)
-    
+    """.format(
+        backend=_backend_name
+    )
+
     if _has_cpp:
         return _sparse_mean_var_impl(X, include_zeros, n_threads)
     else:
@@ -223,8 +230,10 @@ def clip_matrix(
         >>> X = np.random.randn(1000, 500)
         >>> clip_vals = X.mean(axis=0) * 2
         >>> X_clipped = clip_matrix(X, clip_vals)  # X is modified in-place
-    """.format(backend=_backend_name)
-    
+    """.format(
+        backend=_backend_name
+    )
+
     if _has_cpp:
         return _clip_matrix_impl(X, clip_vals, n_threads)
     else:
@@ -258,8 +267,10 @@ def polynomial_fit(
         >>> x = np.linspace(0, 10, 100)
         >>> y = 2 + 3*x + 0.5*x**2 + np.random.randn(100)
         >>> fitted, coeffs = polynomial_fit(x, y, degree=2, return_coeffs=True)
-    """.format(backend=_backend_name)
-    
+    """.format(
+        backend=_backend_name
+    )
+
     return _polynomial_fit_impl(x, y, degree, weights, return_coeffs)
 
 
@@ -287,8 +298,10 @@ def loess_fit(
         >>> x = np.sort(np.random.rand(100))
         >>> y = np.sin(x * 5) + np.random.randn(100) * 0.1
         >>> fitted = loess_fit(x, y, span=0.2)
-    """.format(backend=_backend_name)
-    
+    """.format(
+        backend=_backend_name
+    )
+
     if _has_cpp:
         return _loess_fit_impl(x, y, span, n_threads)
     else:
@@ -317,8 +330,10 @@ def group_var(
     
     Backend:
         Auto-selected at import time: {backend}
-    """.format(backend=_backend_name)
-    
+    """.format(
+        backend=_backend_name
+    )
+
     if _has_cpp:
         return _group_var_impl(X, group_id, n_groups, include_zeros, n_threads)
     else:
@@ -349,10 +364,11 @@ def group_mean_var(
     
     Backend:
         Auto-selected at import time: {backend}
-    """.format(backend=_backend_name)
-    
+    """.format(
+        backend=_backend_name
+    )
+
     if _has_cpp:
         return _group_mean_var_impl(X, group_id, n_groups, include_zeros, n_threads)
     else:
         return _group_mean_var_impl(X, group_id, n_groups, include_zeros)
-

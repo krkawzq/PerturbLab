@@ -22,7 +22,7 @@ __all__ = [
 
 def _to_dense(data: np.ndarray) -> np.ndarray:
     """Convert sparse matrix to dense numpy array if needed."""
-    if hasattr(data, 'toarray'):
+    if hasattr(data, "toarray"):
         return data.toarray()
     return data
 
@@ -34,12 +34,12 @@ def delta_direction_accuracy(
     per_gene: bool = False,
 ) -> float | np.ndarray:
     """Compute delta direction agreement accuracy.
-    
+
     For each gene, checks if the predicted perturbation effect (pred - ctrl)
     has the same sign (positive/negative) as the true perturbation effect
     (true - ctrl). This metric evaluates whether the model correctly predicts
     whether genes are up-regulated or down-regulated.
-    
+
     Parameters
     ----------
     pred
@@ -51,24 +51,24 @@ def delta_direction_accuracy(
     per_gene
         If True, return direction accuracy for each gene separately.
         If False (default), return average accuracy across all genes.
-    
+
     Returns
     -------
     float or np.ndarray
         If per_gene=False: Average direction consistency accuracy (range [0, 1]).
         If per_gene=True: Boolean array indicating direction consistency for each gene.
         Higher values indicate better direction prediction.
-    
+
     Notes
     -----
     This metric is particularly useful when:
     - The exact magnitude of change is less important than the direction
     - Evaluating whether a model captures biological regulation patterns
     - Comparing models that may have different scaling but correct trends
-    
+
     A value of 1.0 means perfect direction agreement for all genes.
     A value of 0.5 would be expected from random guessing.
-    
+
     Examples
     --------
     >>> import numpy as np
@@ -78,7 +78,7 @@ def delta_direction_accuracy(
     >>> ctrl = np.random.rand(100, 50)
     >>> acc = delta_direction_accuracy(pred, true, ctrl)
     >>> print(f"Direction accuracy = {acc:.2%}")
-    
+
     See Also
     --------
     perturblab.metrics.compute_expression_metrics : For magnitude-aware metrics
@@ -86,23 +86,23 @@ def delta_direction_accuracy(
     pred = _to_dense(pred)
     true = _to_dense(true)
     ctrl = _to_dense(ctrl)
-    
+
     # Compute mean expression across cells
     pred_mean = np.mean(pred, axis=0)
     true_mean = np.mean(true, axis=0)
     ctrl_mean = np.mean(ctrl, axis=0)
-    
+
     # Calculate deltas (perturbation effects)
     pred_delta = pred_mean - ctrl_mean
     true_delta = true_mean - ctrl_mean
-    
+
     # Check direction consistency for each gene
     # Both positive or both negative = consistent
     pred_positive = pred_delta > 0
     true_positive = true_delta > 0
-    
-    consistent_genes = (pred_positive == true_positive)
-    
+
+    consistent_genes = pred_positive == true_positive
+
     if per_gene:
         return consistent_genes
     else:
@@ -115,7 +115,7 @@ def compute_direction_metrics(
     ctrl: np.ndarray,
 ) -> Dict[str, float]:
     """Compute all direction consistency metrics.
-    
+
     Parameters
     ----------
     pred
@@ -124,7 +124,7 @@ def compute_direction_metrics(
         True expression matrix [cells × genes].
     ctrl
         Control expression matrix [cells × genes].
-    
+
     Returns
     -------
     dict
@@ -135,7 +135,7 @@ def compute_direction_metrics(
         - n_genes_up_true: Number of up-regulated genes in truth
         - n_genes_down_true: Number of down-regulated genes in truth
         - n_genes_agree: Number of genes with correct direction
-    
+
     Examples
     --------
     >>> import numpy as np
@@ -150,25 +150,24 @@ def compute_direction_metrics(
     pred = _to_dense(pred)
     true = _to_dense(true)
     ctrl = _to_dense(ctrl)
-    
+
     # Compute per-gene direction consistency
     consistent_genes = delta_direction_accuracy(pred, true, ctrl, per_gene=True)
-    
+
     # Compute mean expression across cells
     pred_mean = np.mean(pred, axis=0)
     true_mean = np.mean(true, axis=0)
     ctrl_mean = np.mean(ctrl, axis=0)
-    
+
     # Calculate deltas
     pred_delta = pred_mean - ctrl_mean
     true_delta = true_mean - ctrl_mean
-    
-    return {
-        'delta_agreement_acc': float(np.mean(consistent_genes)),
-        'n_genes_up_pred': int(np.sum(pred_delta > 0)),
-        'n_genes_down_pred': int(np.sum(pred_delta < 0)),
-        'n_genes_up_true': int(np.sum(true_delta > 0)),
-        'n_genes_down_true': int(np.sum(true_delta < 0)),
-        'n_genes_agree': int(np.sum(consistent_genes)),
-    }
 
+    return {
+        "delta_agreement_acc": float(np.mean(consistent_genes)),
+        "n_genes_up_pred": int(np.sum(pred_delta > 0)),
+        "n_genes_down_pred": int(np.sum(pred_delta < 0)),
+        "n_genes_up_true": int(np.sum(true_delta > 0)),
+        "n_genes_down_true": int(np.sum(true_delta < 0)),
+        "n_genes_agree": int(np.sum(consistent_genes)),
+    }

@@ -13,9 +13,9 @@ For model access with smart lazy loading, use:
 """
 
 from .dataset import Dataset, TorchDataset
+from .model_registry import ModelRegistry
 from .resource import Resource
 from .resource_registry import ResourceRegistry
-from .model_registry import ModelRegistry
 
 __all__ = [
     # Dataset classes
@@ -27,4 +27,3 @@ __all__ = [
     # Model registry (base class only, use perturblab.models.MODELS for instances)
     "ModelRegistry",
 ]
-

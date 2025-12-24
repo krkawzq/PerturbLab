@@ -35,12 +35,14 @@ _group_mean_impl = None
 def _select_backend():
     """Select backend at import time."""
     global _BACKEND_NAME, _mannwhitneyu_impl, _group_mean_impl
-    
+
     # Try C++ backend first
     try:
         from ..backends.cpp._mannwhitneyu import has_cpp_backend
+
         if has_cpp_backend():
-            from ..backends.cpp._mannwhitneyu import mannwhitneyu_cpp, group_mean_cpp
+            from ..backends.cpp._mannwhitneyu import group_mean_cpp, mannwhitneyu_cpp
+
             _BACKEND_NAME = "C++"
             _mannwhitneyu_impl = mannwhitneyu_cpp
             _group_mean_impl = group_mean_cpp
@@ -48,10 +50,11 @@ def _select_backend():
             return
     except (ImportError, OSError):
         pass
-    
+
     # Try Cython backend
     try:
-        from ..backends.cython.mannwhitneyu import mannwhitneyu_csc, group_mean_csc
+        from ..backends.cython.mannwhitneyu import group_mean_csc, mannwhitneyu_csc
+
         _BACKEND_NAME = "Cython"
         _mannwhitneyu_impl = mannwhitneyu_csc
         _group_mean_impl = group_mean_csc
@@ -59,13 +62,16 @@ def _select_backend():
         return
     except ImportError:
         pass
-    
+
     # Fall back to Python (NumPy/SciPy)
-    from ..backends.python._mannwhitneyu import mannwhitneyu_scipy, group_mean_numpy
+    from ..backends.python._mannwhitneyu import group_mean_numpy, mannwhitneyu_scipy
+
     _BACKEND_NAME = "Python"
     _mannwhitneyu_impl = mannwhitneyu_scipy
     _group_mean_impl = group_mean_numpy
-    logger.warning("Mann-Whitney U backend: Python (NumPy/SciPy) - slower, consider installing compiled backends")
+    logger.warning(
+        "Mann-Whitney U backend: Python (NumPy/SciPy) - slower, consider installing compiled backends"
+    )
 
 
 # Select backend on module import
@@ -76,6 +82,7 @@ _select_backend()
 # Wrapper Functions (with input preprocessing)
 # =============================================================================
 
+
 def mannwhitneyu(
     X: np.ndarray | spmatrix,
     group_id: np.ndarray,
@@ -85,10 +92,10 @@ def mannwhitneyu(
     use_continuity: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Mann-Whitney U test for differential expression.
-    
+
     Performs Mann-Whitney U test (Wilcoxon rank-sum test) for multiple
     target groups against a reference group.
-    
+
     Parameters
     ----------
     X : np.ndarray or sparse matrix
@@ -106,7 +113,7 @@ def mannwhitneyu(
     use_continuity : bool, default=True
         Whether to use continuity correction.
         Only used by Python backend.
-    
+
     Returns
     -------
     U1 : np.ndarray
@@ -115,39 +122,45 @@ def mannwhitneyu(
         U statistic for reference group, shape (n_targets, n_genes).
     P : np.ndarray
         Two-sided p-values, shape (n_targets, n_genes).
-    
+
     Examples
     --------
     >>> import numpy as np
     >>> import scipy.sparse as sp
     >>> from perturblab.kernels.statistics import mannwhitneyu
-    >>> 
+    >>>
     >>> # Create example data
     >>> X = sp.random(100, 50, density=0.1, format='csc')
     >>> group_id = np.array([0]*40 + [1]*30 + [2]*30, dtype=np.int32)
-    >>> 
+    >>>
     >>> # Run test
     >>> U1, U2, P = mannwhitneyu(X, group_id, n_targets=2)
-    >>> 
+    >>>
     >>> # Find significant genes (p < 0.05)
     >>> significant = P < 0.05
     """
-    
+
     # Convert to CSC if needed
     if issparse(X):
         if not isinstance(X, csc_matrix):
             X = csc_matrix(X)
     else:
         X = csc_matrix(X)
-    
+
     # Ensure group_id is int32
     group_id = np.asarray(group_id, dtype=np.int32)
-    
+
     # Call backend-specific implementation
     if _BACKEND_NAME == "C++":
         return _mannwhitneyu_impl(
-            X.data, X.indices, X.indptr, group_id, n_targets,
-            tie_correction=True, use_continuity=use_continuity, threads=threads
+            X.data,
+            X.indices,
+            X.indptr,
+            group_id,
+            n_targets,
+            tie_correction=True,
+            use_continuity=use_continuity,
+            threads=threads,
         )
     elif _BACKEND_NAME == "Cython":
         return _mannwhitneyu_impl(X, group_id, n_targets, threads=threads)
@@ -164,10 +177,10 @@ def group_mean(
     include_zeros: bool = True,
 ) -> np.ndarray:
     """Compute group-wise mean expression.
-    
+
     Calculates mean expression for each group efficiently, with support
     for sparse matrices and parallel computation.
-    
+
     Parameters
     ----------
     X : np.ndarray or sparse matrix
@@ -184,42 +197,47 @@ def group_mean(
     include_zeros : bool, default=True
         Whether to include zeros in mean calculation.
         If False, only non-zero values are averaged (for sparse data).
-    
+
     Returns
     -------
     means : np.ndarray
         Group means, shape (n_groups, n_genes).
-    
+
     Examples
     --------
     >>> import numpy as np
     >>> import scipy.sparse as sp
     >>> from perturblab.kernels.statistics import group_mean
-    >>> 
+    >>>
     >>> # Create example data
     >>> X = sp.random(100, 50, density=0.1, format='csc')
     >>> group_id = np.array([0]*40 + [1]*30 + [2]*30, dtype=np.int32)
-    >>> 
+    >>>
     >>> # Compute group means
     >>> means = group_mean(X, group_id, n_groups=3)
     >>> print(means.shape)  # (3, 50)
     """
-    
+
     # Convert to CSC if needed
     if issparse(X):
         if not isinstance(X, csc_matrix):
             X = csc_matrix(X)
     else:
         X = csc_matrix(X)
-    
+
     # Ensure group_id is int32
     group_id = np.asarray(group_id, dtype=np.int32)
-    
+
     # Call backend-specific implementation
     if _BACKEND_NAME == "C++":
         return _group_mean_impl(
-            X.data, X.indices, X.indptr, group_id, n_groups,
-            include_zeros=include_zeros, threads=threads
+            X.data,
+            X.indices,
+            X.indptr,
+            group_id,
+            n_groups,
+            include_zeros=include_zeros,
+            threads=threads,
         )
     elif _BACKEND_NAME == "Cython":
         return _group_mean_impl(X, group_id, n_groups, include_zeros=include_zeros, threads=threads)

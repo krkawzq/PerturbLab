@@ -15,9 +15,10 @@ Licensed under BSD-3-Clause
 """
 
 import numpy as np
-cimport numpy as cnp
-from libc.math cimport sqrt, fabs
+
 cimport cython
+cimport numpy as cnp
+from libc.math cimport fabs, sqrt
 
 cnp.import_array()
 

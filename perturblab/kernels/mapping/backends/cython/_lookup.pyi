@@ -1,6 +1,7 @@
 """Type stubs for Cython lookup module."""
 
 from typing import Iterable
+
 import numpy as np
 
 def lookup_indices(
@@ -8,10 +9,8 @@ def lookup_indices(
     queries: Iterable[str],
     fallback_value: int = -1,
 ) -> np.ndarray: ...
-
 def lookup_tokens(
     indices: list | np.ndarray,
     vocabulary: list[str],
-    fallback_value: str = '<unk>',
+    fallback_value: str = "<unk>",
 ) -> list[str]: ...
-

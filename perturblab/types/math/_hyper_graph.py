@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Hashable, Any, Tuple, Set, TypeVar, Generic, Type
+from typing import Any, Generic, Hashable, Set, Tuple, Type, TypeVar
+
 
 class Entity(ABC):
     @abstractmethod
@@ -23,6 +24,7 @@ class Atom(Entity, ABC):
     """
     Atom: An indivisible relationship unit. Also acts as an Entity.
     """
+
     @property
     @abstractmethod
     def constituents(self) -> Tuple[Entity, ...]:
@@ -53,15 +55,17 @@ class Atom(Entity, ABC):
 # Type variable, constrained to Atom subclasses
 T_Atom = TypeVar("T_Atom", bound=Atom)
 
+
 class Relationship(ABC, Generic[T_Atom]):
     """
     Relationship: A container for a set of Atoms of a specific type.
     The current domain (all involved entities) is calculated dynamically.
     """
+
     def __init__(self, name: str, atom_cls: Type[T_Atom]):
         self.name = name
         self._bound_class = atom_cls
-        self._atoms: Set[T_Atom] = set()   # Store core atoms
+        self._atoms: Set[T_Atom] = set()  # Store core atoms
 
     @property
     def domain(self) -> Set[Entity]:
@@ -97,16 +101,20 @@ class Relationship(ABC, Generic[T_Atom]):
     def __repr__(self):
         return f"Relationship(name='{self.name}', atoms={len(self)}, domain={len(self.domain)})"
 
+
 # ==========================================
 # 4. Example implementation
 # ==========================================
+
 
 # Example: undirected gene coexpression atom
 class Gene(Entity):
     def __init__(self, symbol):
         self.symbol = symbol
+
     def unique_id(self):
         return self.symbol
+
 
 class CoexpAtom(Atom):
     def __init__(self, g1: Gene, g2: Gene, score: float):

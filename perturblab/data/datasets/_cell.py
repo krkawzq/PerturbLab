@@ -5,10 +5,11 @@ Provides PyTorch-compatible dataset interface for CellData objects.
 
 from __future__ import annotations
 
-import scipy.sparse
-import numpy as np
-import torch
 from typing import Dict, List, Union
+
+import numpy as np
+import scipy.sparse
+import torch
 
 from perturblab.core import TorchDataset
 from perturblab.types import CellData
@@ -21,22 +22,22 @@ __all__ = ["CellDataset"]
 
 class CellDataset(TorchDataset[CellData]):
     """PyTorch-compatible dataset wrapper for CellData.
-    
+
     Wraps a CellData object to provide PyTorch DataLoader compatibility.
     The generic type is constrained to CellData, indicating this dataset
     holds and operates on CellData objects.
-    
+
     Note:
         While the dataset holds CellData (generic type T=CellData),
         __getitem__ returns training samples as Dict[str, torch.Tensor] for
         PyTorch compatibility.
-    
+
     Each item returned by __getitem__ is a dictionary with:
         - 'x': Gene expression tensor (shape: [n_genes])
         - 'cell_id': Cell identifier (if available)
         - 'cell_type': Cell type label (if available)
         - Additional metadata as needed
-    
+
     Args:
         cell_data: CellData object to wrap.
         return_sparse: If True, returns sparse tensors. If False, converts to dense.
@@ -44,40 +45,40 @@ class CellDataset(TorchDataset[CellData]):
         return_metadata: If True, includes cell metadata in returned dict.
             Defaults to True.
         device: Device for tensors ('cpu' or 'cuda'). Defaults to 'cpu'.
-    
+
     Examples:
         >>> from perturblab.data.datasets import CellDataset
         >>> from perturblab.types import CellData
         >>> from torch.utils.data import DataLoader
-        >>> 
+        >>>
         >>> # Create CellData
         >>> cell_data = CellData(adata, cell_type_col='cell_type')
-        >>> 
+        >>>
         >>> # Wrap in CellDataset
         >>> dataset = CellDataset(cell_data)
-        >>> 
+        >>>
         >>> # Access underlying data
         >>> data = dataset.data  # Returns CellData
-        >>> 
+        >>>
         >>> # Use with DataLoader
         >>> loader = DataLoader(dataset, batch_size=32, shuffle=True)
-        >>> 
+        >>>
         >>> for batch in loader:
         ...     x = batch['x']  # Gene expression
         ...     cell_types = batch['cell_type']  # Cell type labels
         ...     # Training logic
     """
-    
+
     def __init__(
         self,
         cell_data: CellData,
         *,
         return_sparse: bool = False,
         return_metadata: bool = True,
-        device: str = 'cpu',
+        device: str = "cpu",
     ):
         """Initialize CellDataset.
-        
+
         Parameters
         ----------
         cell_data : CellData
@@ -90,21 +91,21 @@ class CellDataset(TorchDataset[CellData]):
             Device for tensors.
         """
         super().__init__()
-        
+
         self._cell_data = cell_data
         self.return_sparse = return_sparse
         self.return_metadata = return_metadata
         self.device = device
-    
+
     @property
     def data(self) -> CellData:
         """Get the underlying CellData object.
-        
+
         Returns
         -------
         CellData
             The wrapped CellData object.
-        
+
         Examples
         --------
         >>> dataset = CellDataset(cell_data)
@@ -112,28 +113,25 @@ class CellDataset(TorchDataset[CellData]):
         >>> print(cell_data.n_genes)
         """
         return self._cell_data
-    
+
     def __len__(self) -> int:
         """Return number of cells in the dataset.
-        
+
         Returns
         -------
         int
             Number of cells.
         """
         return len(self._cell_data)
-    
-    def __getitem__(
-        self,
-        index: int | slice
-    ) -> Dict[str, Union[torch.Tensor, str, int, List]]:
+
+    def __getitem__(self, index: int | slice) -> Dict[str, Union[torch.Tensor, str, int, List]]:
         """Get cell(s) by index.
-        
+
         Parameters
         ----------
         index : int or slice
             Cell index or slice.
-        
+
         Returns
         -------
         dict
@@ -143,15 +141,15 @@ class CellDataset(TorchDataset[CellData]):
             - 'cell_id': Cell identifier (if return_metadata=True)
             - 'cell_type': Cell type (if return_metadata=True)
             - 'cell_type_idx': Encoded cell type index (if available)
-        
+
         Examples
         --------
         >>> dataset = CellDataset(cell_data)
-        >>> 
+        >>>
         >>> # Get single cell
         >>> item = dataset[0]
         >>> print(item['x'].shape)  # [n_genes]
-        >>> 
+        >>>
         >>> # Get multiple cells
         >>> items = dataset[0:10]
         >>> print(items['x'].shape)  # [10, n_genes]
@@ -169,7 +167,7 @@ class CellDataset(TorchDataset[CellData]):
                 expr_data = expr_data.reshape(1, -1)
             batch_size = 1
             is_batch = False
-        
+
         # Convert to dense if needed
         if scipy.sparse.issparse(expr_data):
             if self.return_sparse:
@@ -178,106 +176,100 @@ class CellDataset(TorchDataset[CellData]):
                 indices = torch.LongTensor(np.vstack([coo.row, coo.col]))
                 values = torch.FloatTensor(coo.data)
                 shape = torch.Size(coo.shape)
-                x_tensor = torch.sparse_coo_tensor(
-                    indices, values, shape, device=self.device
-                )
+                x_tensor = torch.sparse_coo_tensor(indices, values, shape, device=self.device)
             else:
                 # Convert to dense
                 x_tensor = torch.tensor(
-                    expr_data.toarray(),
-                    dtype=torch.float32,
-                    device=self.device
+                    expr_data.toarray(), dtype=torch.float32, device=self.device
                 )
         else:
-            x_tensor = torch.tensor(
-                np.asarray(expr_data),
-                dtype=torch.float32,
-                device=self.device
-            )
-        
+            x_tensor = torch.tensor(np.asarray(expr_data), dtype=torch.float32, device=self.device)
+
         # Squeeze if single item
         if not is_batch:
             x_tensor = x_tensor.squeeze(0)
-        
+
         # Build result dict
         result = {
-            'x': x_tensor,
-            'index': index if isinstance(index, int) else list(range(*index.indices(len(self)))),
+            "x": x_tensor,
+            "index": index if isinstance(index, int) else list(range(*index.indices(len(self)))),
         }
-        
+
         # Add metadata if requested
         if self.return_metadata:
             # Cell IDs
-            if self._cell_data.cell_id_col and self._cell_data.cell_id_col in self._cell_data.obs.columns:
+            if (
+                self._cell_data.cell_id_col
+                and self._cell_data.cell_id_col in self._cell_data.obs.columns
+            ):
                 cell_ids = self._cell_data.obs[self._cell_data.cell_id_col].iloc[index]
-                result['cell_id'] = cell_ids.tolist() if is_batch else cell_ids
-            
+                result["cell_id"] = cell_ids.tolist() if is_batch else cell_ids
+
             # Cell types
             if (
-                self._cell_data.cell_type_col is not None 
+                self._cell_data.cell_type_col is not None
                 and self._cell_data.cell_type_col in self._cell_data.obs.columns
             ):
                 cell_types = self._cell_data.obs[self._cell_data.cell_type_col].iloc[index]
-                result['cell_type'] = cell_types.tolist() if is_batch else cell_types
-                
+                result["cell_type"] = cell_types.tolist() if is_batch else cell_types
+
                 # Encoded cell type indices (requires both cell_type_col and type_to_idx)
                 if (
-                    self._cell_data.cell_type_col is not None 
+                    self._cell_data.cell_type_col is not None
                     and self._cell_data.type_to_idx is not None
                 ):
                     if is_batch:
                         type_indices = [
-                            self._cell_data.type_to_idx.get(ct, -1)
-                            for ct in cell_types
+                            self._cell_data.type_to_idx.get(ct, -1) for ct in cell_types
                         ]
-                        result['cell_type_idx'] = torch.tensor(
+                        result["cell_type_idx"] = torch.tensor(
                             type_indices, dtype=torch.long, device=self.device
                         )
                     else:
                         type_idx = self._cell_data.type_to_idx.get(cell_types, -1)
-                        result['cell_type_idx'] = torch.tensor(
+                        result["cell_type_idx"] = torch.tensor(
                             type_idx, dtype=torch.long, device=self.device
                         )
-        
+
         return result
-    
+
     @property
     def gene_names(self) -> List[str]:
         """Get gene names from the dataset.
-        
+
         Returns
         -------
         list of str
             List of gene names.
         """
         return self._cell_data.gene_names.tolist()
-    
+
     @property
     def n_genes(self) -> int:
         """Get number of genes.
-        
+
         Returns
         -------
         int
             Number of genes.
         """
         return self._cell_data.n_genes
-    
+
     @property
     def n_cells(self) -> int:
         """Get number of cells.
-        
+
         Returns
         -------
         int
             Number of cells.
         """
         return len(self._cell_data)
-    
+
     @property
     def cell_types(self) -> List[str] | None:
         """Get unique cell types.
-        
+
         Returns
         -------
         list of str or None
@@ -289,12 +281,12 @@ class CellDataset(TorchDataset[CellData]):
         ):
             return self._cell_data.obs[self._cell_data.cell_type_col].unique().tolist()
         return None
-    
+
     def split(
         self,
         *,
         use_split: bool = True,
-        split_col: str = 'split',
+        split_col: str = "split",
         force_compute: bool = False,
         compute_only: bool = False,
         test_size: float = 0.2,
@@ -303,14 +295,14 @@ class CellDataset(TorchDataset[CellData]):
         shuffle: bool = True,
     ) -> Dict[str, "CellDataset"]:
         """Split dataset into train/test subsets.
-        
+
         This method supports multiple modes:
         1. use_split=True: Use existing split column (if available)
         2. force_compute=True: Compute new split (overwrites existing)
         3. compute_only=True: Compute split but don't store in obs
-        
+
         Returns lazy view subsets - no data copying until access.
-        
+
         Parameters
         ----------
         use_split : bool, default=True
@@ -335,27 +327,27 @@ class CellDataset(TorchDataset[CellData]):
             Random seed for reproducibility.
         shuffle : bool, default=True
             Whether to shuffle before splitting.
-        
+
         Returns
         -------
         dict
             Dictionary with keys 'train' and 'test' containing CellDataset subsets.
             Each subset is a lazy view (zero-copy until accessed).
-        
+
         Examples
         --------
         >>> from perturblab.data.datasets import CellDataset
-        >>> 
+        >>>
         >>> dataset = CellDataset(cell_data)
-        >>> 
+        >>>
         >>> # Use existing split (if available)
         >>> splits = dataset.split(use_split=True)
         >>> train_ds = splits['train']
         >>> test_ds = splits['test']
-        >>> 
+        >>>
         >>> # Force compute new split
         >>> splits = dataset.split(force_compute=True, test_size=0.3)
-        >>> 
+        >>>
         >>> # Compute temporary split (don't modify data)
         >>> splits = dataset.split(compute_only=True, test_size=0.1)
         """
@@ -364,20 +356,20 @@ class CellDataset(TorchDataset[CellData]):
             if split_col in self._cell_data.obs.columns:
                 # Use existing split column
                 split_labels = self._cell_data.obs[split_col]
-                
+
                 # Get unique split names
                 unique_splits = split_labels.unique()
-                
+
                 # Build subsets using boolean indexing
                 subsets = {}
                 for split_name in unique_splits:
                     # Get boolean mask
                     mask = (split_labels == split_name).values
                     indices = np.where(mask)[0]
-                    
+
                     # Create subset view (zero-copy)
                     subset_data = self._cell_data[indices]
-                    
+
                     # Wrap in CellDataset
                     subsets[split_name] = CellDataset(
                         subset_data,
@@ -385,9 +377,9 @@ class CellDataset(TorchDataset[CellData]):
                         return_metadata=self.return_metadata,
                         device=self.device,
                     )
-                
+
                 return subsets
-        
+
         # Need to compute new split
         if compute_only:
             # Compute split without modifying obs
@@ -397,36 +389,36 @@ class CellDataset(TorchDataset[CellData]):
                 random_state=random_state,
                 shuffle=shuffle,
                 dry_run=True,  # Add split column
-                split_col=f'_temp_split_{random_state}',  # Temp column
+                split_col=f"_temp_split_{random_state}",  # Temp column
             )
-            
+
             # Get the temporary split column
-            temp_col = f'_temp_split_{random_state}'
+            temp_col = f"_temp_split_{random_state}"
             split_labels = split_result.obs[temp_col]
-            
+
             # Build subsets
             subsets = {}
             for split_name in split_labels.unique():
                 mask = (split_labels == split_name).values
                 indices = np.where(mask)[0]
                 subset_data = split_result[indices]
-                
+
                 # Remove temporary split column from view
                 subset_data.obs = subset_data.obs.drop(columns=[temp_col])
-                
+
                 subsets[split_name] = CellDataset(
                     subset_data,
                     return_sparse=self.return_sparse,
                     return_metadata=self.return_metadata,
                     device=self.device,
                 )
-            
+
             # Clean up temp column from original data
             if temp_col in self._cell_data.obs.columns:
                 self._cell_data.obs.drop(columns=[temp_col], inplace=True)
-            
+
             return subsets
-        
+
         else:
             # Compute and store split (or force overwrite)
             if force_compute or split_col not in self._cell_data.obs.columns:
@@ -439,25 +431,25 @@ class CellDataset(TorchDataset[CellData]):
                     dry_run=True,  # Only add labels, don't actually split
                     split_col=split_col,
                 )
-            
+
             # Now use the split column
             split_labels = self._cell_data.obs[split_col]
-            
+
             subsets = {}
             for split_name in split_labels.unique():
                 mask = (split_labels == split_name).values
                 indices = np.where(mask)[0]
                 subset_data = self._cell_data[indices]
-                
+
                 subsets[split_name] = CellDataset(
                     subset_data,
                     return_sparse=self.return_sparse,
                     return_metadata=self.return_metadata,
                     device=self.device,
                 )
-            
+
             return subsets
-    
+
     def __repr__(self) -> str:
         """String representation."""
         return (

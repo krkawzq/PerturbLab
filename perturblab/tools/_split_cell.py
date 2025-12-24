@@ -8,8 +8,8 @@ All functions are data-agnostic and can be applied to any array-like data.
 
 from __future__ import annotations
 
-from typing import Optional, Tuple
 import warnings
+from typing import Optional, Tuple
 
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -31,10 +31,10 @@ def split_cells(
     shuffle: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Split cell indices into train and test sets.
-    
+
     Provides a simple wrapper around sklearn's train_test_split with
     graceful handling of stratification failures.
-    
+
     Parameters
     ----------
     n_cells : int
@@ -49,19 +49,19 @@ def split_cells(
         Random seed for reproducibility.
     shuffle : bool, default=True
         Whether to shuffle data before split.
-    
+
     Returns
     -------
     train_indices : np.ndarray
         Indices for training set.
     test_indices : np.ndarray
         Indices for test set.
-    
+
     Examples
     --------
     >>> # Simple random split
     >>> train_idx, test_idx = split_cells(n_cells=1000, test_size=0.2)
-    >>> 
+    >>>
     >>> # Stratified split by cell type
     >>> cell_types = np.array(['TypeA', 'TypeB', ...])
     >>> train_idx, test_idx = split_cells(
@@ -72,7 +72,7 @@ def split_cells(
     ... )
     """
     indices = np.arange(n_cells)
-    
+
     try:
         train_idx, test_idx = train_test_split(
             indices,
@@ -92,7 +92,7 @@ def split_cells(
             random_state=random_state,
             shuffle=shuffle,
         )
-    
+
     return train_idx, test_idx
 
 
@@ -104,9 +104,9 @@ def sample_cells_simple(
     replace: bool = False,
 ) -> np.ndarray:
     """Simple random sampling of cell indices.
-    
+
     Randomly samples a subset of cells without considering any grouping.
-    
+
     Parameters
     ----------
     n_cells : int
@@ -120,17 +120,17 @@ def sample_cells_simple(
         Random seed for reproducibility.
     replace : bool, default=False
         Sample with replacement.
-    
+
     Returns
     -------
     np.ndarray
         Array of sampled indices.
-    
+
     Examples
     --------
     >>> # Sample 100 cells
     >>> sampled_idx = sample_cells_simple(n_cells=1000, n=100)
-    >>> 
+    >>>
     >>> # Sample 10% of cells
     >>> sampled_idx = sample_cells_simple(n_cells=1000, frac=0.1)
     """
@@ -138,13 +138,13 @@ def sample_cells_simple(
         raise ValueError("Must provide either 'n' or 'frac'")
     if n is not None and frac is not None:
         raise ValueError("Cannot provide both 'n' and 'frac'")
-    
+
     np.random.seed(random_state)
     indices = np.arange(n_cells)
-    
+
     size = n if n is not None else int(n_cells * frac)
     sel_idx = np.random.choice(indices, size=size, replace=replace)
-    
+
     return sel_idx
 
 
@@ -157,10 +157,10 @@ def sample_cells_weighted(
     replace: bool = False,
 ) -> np.ndarray:
     """Weighted sampling of cell indices.
-    
+
     Samples cells with probabilities proportional to provided weights.
     Useful for importance sampling or biased sampling strategies.
-    
+
     Parameters
     ----------
     n_cells : int
@@ -176,12 +176,12 @@ def sample_cells_weighted(
         Random seed for reproducibility.
     replace : bool, default=False
         Sample with replacement.
-    
+
     Returns
     -------
     np.ndarray
         Array of sampled indices.
-    
+
     Examples
     --------
     >>> # Sample cells weighted by expression level
@@ -198,16 +198,16 @@ def sample_cells_weighted(
         raise ValueError("Cannot provide both 'n' and 'frac'")
     if len(weights) != n_cells:
         raise ValueError(f"weights length ({len(weights)}) must match n_cells ({n_cells})")
-    
+
     np.random.seed(random_state)
     indices = np.arange(n_cells)
-    
+
     # Normalize weights
     p = weights / weights.sum()
-    
+
     size = n if n is not None else int(n_cells * frac)
     sel_idx = np.random.choice(indices, size=size, replace=replace, p=p)
-    
+
     return sel_idx
 
 
@@ -220,10 +220,10 @@ def sample_cells_by_group(
     replace: bool = False,
 ) -> np.ndarray:
     """Sample cells within groups (e.g., cell types, conditions).
-    
+
     Samples cells separately from each group, with options for balanced
     or proportional sampling.
-    
+
     Parameters
     ----------
     group_indices : dict[str, np.ndarray]
@@ -241,12 +241,12 @@ def sample_cells_by_group(
         Random seed for reproducibility.
     replace : bool, default=False
         Sample with replacement.
-    
+
     Returns
     -------
     np.ndarray
         Array of sampled indices (shuffled).
-    
+
     Examples
     --------
     >>> # Balanced sampling: 50 cells per cell type
@@ -259,7 +259,7 @@ def sample_cells_by_group(
     ...     n=50,
     ...     balance=True
     ... )
-    >>> 
+    >>>
     >>> # Proportional sampling: 10% from each group
     >>> sampled_idx = sample_cells_by_group(
     ...     group_indices=group_indices,
@@ -270,16 +270,16 @@ def sample_cells_by_group(
         raise ValueError("Must provide either 'n' or 'frac'")
     if balance and n is None:
         raise ValueError("Balance mode requires 'n'")
-    
+
     np.random.seed(random_state)
     sel_indices = []
-    
+
     # Calculate total cells for proportional sampling
     total_cells = sum(len(idx) for idx in group_indices.values())
-    
+
     for group_name, grp_idx in group_indices.items():
         n_grp = len(grp_idx)
-        
+
         # Determine sample size for this group
         if balance:
             size = n
@@ -289,23 +289,23 @@ def sample_cells_by_group(
             else:  # n is not None
                 # Proportional to group size
                 size = int(n * (n_grp / total_cells))
-        
+
         # Adjust if size exceeds group size (when not replacing)
         if size > n_grp and not replace:
             size = n_grp
-        
+
         # Sample from this group
         if size > 0:
             sel = np.random.choice(grp_idx, size=size, replace=replace)
             sel_indices.append(sel)
-    
+
     # Concatenate and shuffle
     if len(sel_indices) == 0:
         return np.array([], dtype=int)
-    
+
     final_idx = np.concatenate(sel_indices)
     np.random.shuffle(final_idx)
-    
+
     return final_idx
 
 
@@ -315,11 +315,11 @@ def stratify_split_cells_by_group(
     random_state: int = 42,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Stratified split maintaining group proportions.
-    
+
     Splits each group independently with the same test_size ratio,
     ensuring that the train/test split maintains the original group
     distribution.
-    
+
     Parameters
     ----------
     group_indices : dict[str, np.ndarray]
@@ -328,14 +328,14 @@ def stratify_split_cells_by_group(
         Fraction for test set (0.0 to 1.0).
     random_state : int, default=42
         Random seed for reproducibility.
-    
+
     Returns
     -------
     train_indices : np.ndarray
         Indices for training set.
     test_indices : np.ndarray
         Indices for test set.
-    
+
     Examples
     --------
     >>> group_indices = {
@@ -350,30 +350,25 @@ def stratify_split_cells_by_group(
     np.random.seed(random_state)
     train_indices = []
     test_indices = []
-    
+
     for group_name, grp_idx in group_indices.items():
         n_grp = len(grp_idx)
         n_test = int(n_grp * test_size)
         n_train = n_grp - n_test
-        
+
         # Shuffle group indices
         shuffled = grp_idx.copy()
         np.random.shuffle(shuffled)
-        
+
         # Split
         train_indices.append(shuffled[:n_train])
         test_indices.append(shuffled[n_train:])
-    
+
     # Concatenate and shuffle
-    train_idx = (
-        np.concatenate(train_indices) if train_indices else np.array([], dtype=int)
-    )
-    test_idx = (
-        np.concatenate(test_indices) if test_indices else np.array([], dtype=int)
-    )
-    
+    train_idx = np.concatenate(train_indices) if train_indices else np.array([], dtype=int)
+    test_idx = np.concatenate(test_indices) if test_indices else np.array([], dtype=int)
+
     np.random.shuffle(train_idx)
     np.random.shuffle(test_idx)
-    
-    return train_idx, test_idx
 
+    return train_idx, test_idx

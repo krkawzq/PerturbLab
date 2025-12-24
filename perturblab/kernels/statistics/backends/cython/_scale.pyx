@@ -13,8 +13,10 @@ Licensed under BSD 3-Clause License
 """
 
 cimport cython
-from cython.parallel import prange
+
 import numpy as np
+from cython.parallel import prange
+
 cimport numpy as np
 from libc.math cimport isfinite
 

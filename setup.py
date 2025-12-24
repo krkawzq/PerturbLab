@@ -20,10 +20,10 @@ Available Cython Extensions:
 Usage:
     # Install package only (no compilation)
     pip install -e .
-    
+
     # Compile Cython extensions (optional, for 5-10x speedup)
     python setup.py build_ext --inplace
-    
+
     # Compile C++ library (optional, for 100-300x speedup)
     ./scripts/setup_cpp_deps.sh
     ./scripts/build_cpp_kernels.sh
@@ -35,8 +35,8 @@ Platform-Specific Notes:
 """
 
 import os
-import sys
 import platform
+import sys
 from pathlib import Path
 
 from setuptools import Extension, setup
@@ -51,6 +51,7 @@ NUMPY_AVAILABLE = False
 
 try:
     from Cython.Build import cythonize
+
     USE_CYTHON = True
 except ImportError:
     print("⚠️  Cython not available, skipping Cython extensions")
@@ -58,6 +59,7 @@ except ImportError:
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     print("⚠️  NumPy not available, skipping extensions")
@@ -68,9 +70,10 @@ except ImportError:
 # Custom build_ext Command
 # =============================================================================
 
+
 class build_ext(_build_ext):
     """Custom build_ext to handle compilation failures gracefully."""
-    
+
     def run(self):
         """Run build_ext with graceful error handling."""
         try:
@@ -79,7 +82,7 @@ class build_ext(_build_ext):
         except Exception as e:
             print(f"⚠️  Extension compilation failed: {e}")
             print("   Package will still work with slower fallback implementations")
-    
+
     def build_extension(self, ext):
         """Build individual extension with error handling."""
         try:
@@ -93,13 +96,14 @@ class build_ext(_build_ext):
 # Extension Configuration
 # =============================================================================
 
+
 def get_extensions():
     """Get list of Cython extensions to compile."""
     if not (USE_CYTHON and NUMPY_AVAILABLE):
         return []
-    
+
     extensions = []
-    
+
     # Determine OpenMP flags based on platform
     if sys.platform == "darwin":
         # macOS with Homebrew libomp
@@ -107,16 +111,16 @@ def get_extensions():
         openmp_compile_args = ["-Xpreprocessor", "-fopenmp"]
         openmp_link_args = ["-lomp"]
         openmp_libs = []
-        
+
         # Potential libomp paths (ARM64 and Intel)
         potential_paths = [
-            "/opt/homebrew/opt/libomp",      # ARM64 (Apple Silicon)
-            "/usr/local/opt/libomp",         # x86_64 (Intel)
+            "/opt/homebrew/opt/libomp",  # ARM64 (Apple Silicon)
+            "/usr/local/opt/libomp",  # x86_64 (Intel)
         ]
-        
+
         openmp_lib_dirs = []
         openmp_include_dirs = []
-        
+
         for base_path in potential_paths:
             lib_path = f"{base_path}/lib"
             inc_path = f"{base_path}/include"
@@ -124,10 +128,10 @@ def get_extensions():
                 openmp_lib_dirs.append(lib_path)
             if Path(inc_path).exists():
                 openmp_include_dirs.append(inc_path)
-        
+
         if not openmp_lib_dirs:
             print("⚠️  Warning: libomp not found. Install with: brew install libomp")
-            
+
     elif sys.platform == "win32":
         # Windows MSVC
         openmp_compile_args = ["/openmp"]
@@ -142,26 +146,27 @@ def get_extensions():
         openmp_libs = ["gomp"]
         openmp_lib_dirs = []
         openmp_include_dirs = []
-    
+
     # Base compile args
     if sys.platform == "win32":
         base_compile_args = ["/O2", "/W3"]
     else:
         base_compile_args = ["-O3", "-ffast-math", "-Wall"]
-        
+
         # Add -march=native if not cross-compiling
         # Skip for ARM64 macOS to avoid compatibility issues
         import platform
+
         machine = platform.machine().lower()
         if not (sys.platform == "darwin" and machine in ["arm64", "aarch64"]):
             base_compile_args.append("-march=native")
-    
+
     # ==========================================================================
     # Mapping Kernels
     # ==========================================================================
-    
+
     mapping_cython_dir = "perturblab/kernels/mapping/backends/cython"
-    
+
     # Check if files exist
     if Path(f"{mapping_cython_dir}/_lookup.pyx").exists():
         extensions.append(
@@ -173,7 +178,7 @@ def get_extensions():
                 extra_compile_args=base_compile_args,
             )
         )
-    
+
     if Path(f"{mapping_cython_dir}/_bipartite_query.pyx").exists():
         extensions.append(
             Extension(
@@ -184,13 +189,13 @@ def get_extensions():
                 extra_compile_args=base_compile_args,
             )
         )
-    
+
     # ==========================================================================
     # Statistics Kernels (with OpenMP)
     # ==========================================================================
-    
+
     statistics_cython_dir = "perturblab/kernels/statistics/backends/cython"
-    
+
     # Mann-Whitney U kernel
     if Path(f"{statistics_cython_dir}/mannwhitneyu.pyx").exists():
         extensions.append(
@@ -205,7 +210,7 @@ def get_extensions():
                 extra_link_args=openmp_link_args,
             )
         )
-    
+
     # T-test kernel
     if Path(f"{statistics_cython_dir}/ttest.pyx").exists():
         extensions.append(
@@ -220,7 +225,7 @@ def get_extensions():
                 extra_link_args=openmp_link_args,
             )
         )
-    
+
     # Group operations kernel
     if Path(f"{statistics_cython_dir}/group_ops.pyx").exists():
         extensions.append(
@@ -235,7 +240,7 @@ def get_extensions():
                 extra_link_args=openmp_link_args,
             )
         )
-    
+
     # HVG (Highly Variable Genes) kernel
     if Path(f"{statistics_cython_dir}/_hvg.pyx").exists():
         extensions.append(
@@ -250,7 +255,7 @@ def get_extensions():
                 extra_link_args=openmp_link_args,
             )
         )
-    
+
     # Scale (standardization) kernel
     if Path(f"{statistics_cython_dir}/_scale.pyx").exists():
         extensions.append(
@@ -265,7 +270,7 @@ def get_extensions():
                 extra_link_args=openmp_link_args,
             )
         )
-    
+
     return extensions
 
 
@@ -275,15 +280,15 @@ def get_extensions():
 
 if __name__ == "__main__":
     if USE_CYTHON and NUMPY_AVAILABLE:
-        print("="*80)
+        print("=" * 80)
         print("Compiling Cython Extensions")
-        print("="*80)
+        print("=" * 80)
         print(f"Platform: {sys.platform}")
         print(f"Python: {sys.version.split()[0]}")
         print(f"Cython: available")
         print(f"NumPy: {np.__version__}")
-        print("="*80)
-        
+        print("=" * 80)
+
         ext_modules = cythonize(
             get_extensions(),
             compiler_directives={
@@ -298,17 +303,17 @@ if __name__ == "__main__":
             annotate=False,  # Set to True to generate HTML annotation files for debugging
         )
     else:
-        print("="*80)
+        print("=" * 80)
         print("Skipping Cython Extensions")
-        print("="*80)
+        print("=" * 80)
         if not USE_CYTHON:
             print("Reason: Cython not available")
         if not NUMPY_AVAILABLE:
             print("Reason: NumPy not available")
         print("Package will use slower fallback implementations")
-        print("="*80)
+        print("=" * 80)
         ext_modules = []
-    
+
     setup(
         ext_modules=ext_modules,
         cmdclass={"build_ext": build_ext},

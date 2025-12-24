@@ -4,20 +4,22 @@ This module provides `PerturbationDataset`, a specialized dataset for perturbati
 Inherits all features from `CellDataset` and adds perturbation-specific functionality.
 """
 
+import warnings
+from typing import Dict, List, Optional, Union
+
 import anndata as ad
 import numpy as np
 import pandas as pd
-import warnings
-from typing import Optional, Dict, List, Union
 
-from ._cell import CellData, DuplicatedGenePolicy
-from perturblab.utils import get_logger
 from perturblab.tools import (
-    split_perturbations_simple,
-    split_perturbations_simulation,
     split_perturbations_combo_seen,
     split_perturbations_no_test,
+    split_perturbations_simple,
+    split_perturbations_simulation,
 )
+from perturblab.utils import get_logger
+
+from ._cell import CellData, DuplicatedGenePolicy
 
 logger = get_logger()
 
@@ -25,14 +27,14 @@ logger = get_logger()
 class PerturbationData(CellData):
     """
     Dataset for single-cell perturbation analysis.
-    
+
     Inherits all features from CellDataset (Lazy loading, Virtual views, Backed mode)
     and adds perturbation-specific features:
     - Perturbation label management
-    - Control cell identification  
+    - Control cell identification
     - Multiple splitting strategies (simulation, combo_seen0/1/2, etc.)
     - Control cell pairing for differential analysis
-    
+
     Args:
         adata: AnnData object
         perturbation_col: Column name for perturbation labels (Mandatory)
@@ -42,7 +44,7 @@ class PerturbationData(CellData):
         gene_name_col: Column name for gene names
         cell_id_col: Column name for cell IDs
         duplicated_gene_policy: Policy for handling duplicate genes
-        
+
     Example:
         >>> adata = ad.read_h5ad('perturbation_data.h5ad')
         >>> dataset = PerturbationDataset(
@@ -51,29 +53,29 @@ class PerturbationData(CellData):
         ...     control_label='ctrl',
         ...     cell_type_col='cell_type'
         ... )
-        >>> 
+        >>>
         >>> # Split data for perturbation analysis
         >>> dataset.split(split_type='simulation', test_size=0.2, dry_run=True)
-        >>> 
+        >>>
         >>> # Pair with control cells
         >>> dataset.pair_cells(num_samples=5)
     """
-    
+
     def __init__(
         self,
         adata: ad.AnnData,
         perturbation_col: str,
-        control_label: Union[str, List[str]] = 'ctrl',
+        control_label: Union[str, List[str]] = "ctrl",
         ignore_labels: Optional[List[str]] = None,
         cell_type_col: Optional[str] = None,
         gene_name_col: Optional[str] = None,
         cell_id_col: Optional[str] = None,
-        duplicated_gene_policy: DuplicatedGenePolicy = 'error',
+        duplicated_gene_policy: DuplicatedGenePolicy = "error",
     ):
         """Initialize PerturbationDataset."""
         # Initialize perturbation-specific attributes FIRST
         self.perturbation_col = perturbation_col
-        
+
         # Normalize control labels to set
         if isinstance(control_label, str):
             self.control_labels = {control_label}
@@ -81,9 +83,9 @@ class PerturbationData(CellData):
             self.control_labels = set(control_label)
         else:
             self.control_labels = set()
-            
+
         self.ignore_labels = set(ignore_labels) if ignore_labels else set()
-        
+
         # Call parent init
         super().__init__(
             adata=adata,
@@ -92,37 +94,35 @@ class PerturbationData(CellData):
             cell_id_col=cell_id_col,
             duplicated_gene_policy=duplicated_gene_policy,
         )
-    
+
     @classmethod
-    def _initialize(cls) -> 'PerturbationData':
+    def _initialize(cls) -> "PerturbationData":
         """Internal factory for creating uninitialized instances.
-        
+
         Used internally for views. External users should use __init__.
         """
         # Call parent _initialize
         instance = super(PerturbationData, cls)._initialize()
-        
+
         # Initialize perturbation-specific attributes
         instance.perturbation_col = None
         instance.control_labels = set()
         instance.ignore_labels = set()
-        
+
         return instance
 
     def _validate_columns(self):
         """Override to add perturbation column validation."""
         # Call parent validation first
         super()._validate_columns()
-        
+
         # Add perturbation-specific validation
         if not self.perturbation_col:
             raise ValueError("perturbation_col cannot be empty.")
-        
+
         if self.perturbation_col not in self.adata.obs:
-            raise KeyError(
-                f"Perturbation column '{self.perturbation_col}' not found in adata.obs"
-            )
-            
+            raise KeyError(f"Perturbation column '{self.perturbation_col}' not found in adata.obs")
+
         # Validate control labels exist if provided
         if self.control_labels:
             unique_perts = set(self.adata.obs[self.perturbation_col].unique())
@@ -133,61 +133,77 @@ class PerturbationData(CellData):
                     f"perturbation column '{self.perturbation_col}'."
                 )
 
-    def _create_from_existing(self, new_adata: ad.AnnData) -> 'PerturbationData':
+    def _create_from_existing(self, new_adata: ad.AnnData) -> "PerturbationData":
         """Override to preserve perturbation attributes when creating from existing AnnData.
-        
+
         Optimized version that bypasses validation for views.
         """
         instance = type(self)._initialize()
-        
+
         # Set AnnData and column names
         instance.adata = new_adata
         instance.cell_type_col = self.cell_type_col
         instance.gene_name_col = self.gene_name_col
         instance.cell_id_col = self.cell_id_col
-        
+
         # Copy configuration (deep copy mutable objects)
         instance._duplicated_policy = self._duplicated_policy
         instance._layer_name = self._layer_name
         instance.type_to_idx = self.type_to_idx.copy() if self.type_to_idx else None
-        
+
         # Copy virtual view metadata
         instance._is_virtual_view = self._is_virtual_view
         instance._target_genes = self._target_genes
         instance._virtual_genes = self._virtual_genes
         instance._gene_indices = self._gene_indices
-        
+
         # Copy perturbation-specific attributes
         instance.perturbation_col = self.perturbation_col
-        instance.control_labels = self.control_labels.copy() if isinstance(self.control_labels, list) else self.control_labels
-        instance.ignore_labels = self.ignore_labels.copy() if isinstance(self.ignore_labels, list) else self.ignore_labels
-        
+        instance.control_labels = (
+            self.control_labels.copy()
+            if isinstance(self.control_labels, list)
+            else self.control_labels
+        )
+        instance.ignore_labels = (
+            self.ignore_labels.copy()
+            if isinstance(self.ignore_labels, list)
+            else self.ignore_labels
+        )
+
         return instance
-    
+
     def _create_virtual_view(
         self,
         target_genes,
         gene_indices,
         virtual_genes,
         adata=None,
-    ) -> 'PerturbationData':
+    ) -> "PerturbationData":
         """Override to preserve perturbation attributes when creating virtual views."""
         # Call parent implementation
         instance = super()._create_virtual_view(target_genes, gene_indices, virtual_genes, adata)
-        
+
         # Copy perturbation-specific attributes
         instance.perturbation_col = self.perturbation_col
-        instance.control_labels = self.control_labels.copy() if isinstance(self.control_labels, list) else self.control_labels
-        instance.ignore_labels = self.ignore_labels.copy() if isinstance(self.ignore_labels, list) else self.ignore_labels
-        
+        instance.control_labels = (
+            self.control_labels.copy()
+            if isinstance(self.control_labels, list)
+            else self.control_labels
+        )
+        instance.ignore_labels = (
+            self.ignore_labels.copy()
+            if isinstance(self.ignore_labels, list)
+            else self.ignore_labels
+        )
+
         return instance
-    
-    def _create_materialized_instance(self, new_adata: ad.AnnData) -> 'PerturbationData':
+
+    def _create_materialized_instance(self, new_adata: ad.AnnData) -> "PerturbationData":
         """Override to create PerturbationData instance on materialization.
-        
+
         Args:
             new_adata: Materialized AnnData object
-        
+
         Returns:
             Materialized PerturbationData instance
         """
@@ -203,7 +219,7 @@ class PerturbationData(CellData):
         )
         instance._layer_name = self._layer_name
         instance.type_to_idx = self.type_to_idx.copy() if self.type_to_idx else None
-        
+
         return instance
 
     # ====================================================================================
@@ -220,7 +236,7 @@ class PerturbationData(CellData):
         """Number of unique perturbations (excluding ignored labels)."""
         valid_perts = self.perturbations[~self.perturbations.isin(self.ignore_labels)]
         return valid_perts.nunique()
-    
+
     @property
     def unique_perturbations(self) -> np.ndarray:
         """Get unique perturbation labels (excluding ignored labels)."""
@@ -231,13 +247,13 @@ class PerturbationData(CellData):
     def is_control(self) -> np.ndarray:
         """Boolean mask for control cells."""
         return self.perturbations.isin(self.control_labels).values
-    
+
     @property
     def is_perturbed(self) -> np.ndarray:
         """Boolean mask for perturbed cells (non-control, non-ignored)."""
         return (
-            ~self.perturbations.isin(self.control_labels) &
-            ~self.perturbations.isin(self.ignore_labels)
+            ~self.perturbations.isin(self.control_labels)
+            & ~self.perturbations.isin(self.ignore_labels)
         ).values
 
     # ====================================================================================
@@ -249,95 +265,90 @@ class PerturbationData(CellData):
         num_samples: int = 1,
         seed: int = 42,
         stratify_by: Optional[str] = None,
-        ctrl_pairing_key: str = 'ctrl_indices'
+        ctrl_pairing_key: str = "ctrl_indices",
     ) -> None:
         """
         Pair each perturbed cell with control cell(s).
-        
+
         This is essential for models that compare perturbed vs control cells.
         Control cells are sampled randomly (with replacement) from the control pool.
-        
+
         Args:
             num_samples: Number of control cells to pair with each perturbed cell
             seed: Random seed for reproducibility
             stratify_by: Optional column name to stratify control sampling
                 (e.g., 'cell_type' to match cell types)
             ctrl_pairing_key: Key name in adata.obsm to store pairing indices
-        
+
         Results are stored in:
             adata.obsm[ctrl_pairing_key]: Array of shape (n_cells, num_samples)
                 For perturbed cells: indices of paired control cells
                 For control cells: self-indices
                 For ignored cells: -1
-        
+
         Example:
             >>> dataset.pair_cells(num_samples=5, stratify_by='cell_type')
         """
         np.random.seed(seed)
-        
+
         # Create index column if not exists
-        if 'index_col' not in self.adata.obs:
-            self.adata.obs['index_col'] = np.arange(self.adata.n_obs, dtype=int)
-        
+        if "index_col" not in self.adata.obs:
+            self.adata.obs["index_col"] = np.arange(self.adata.n_obs, dtype=int)
+
         # Get control indices
         ctrl_mask = self.is_control & ~self.perturbations.isin(self.ignore_labels)
-        
+
         if not ctrl_mask.any():
             raise ValueError("No valid control cells found.")
-        
+
         n_obs = self.adata.n_obs
         ctrl_pairing = np.full((n_obs, num_samples), -1, dtype=int)
-        
+
         # Get perturbed cells
         pert_mask = self.is_perturbed
         pert_positions = np.where(pert_mask)[0]
-        
+
         if len(pert_positions) == 0:
             logger.warning("No perturbed cells found.")
             self.adata.obsm[ctrl_pairing_key] = ctrl_pairing
             return
-        
+
         # Pairing logic
         if stratify_by and stratify_by in self.adata.obs:
             logger.info(f"Pairing controls stratified by '{stratify_by}'...")
-            
+
             # Group-wise pairing
             for strata_val in self.adata.obs[stratify_by].unique():
                 strata_ctrl_mask = ctrl_mask & (self.adata.obs[stratify_by] == strata_val)
                 strata_pert_mask = pert_mask & (self.adata.obs[stratify_by] == strata_val)
-                
+
                 if not strata_ctrl_mask.any():
                     logger.warning(
-                        f"No control cells for {stratify_by}={strata_val}. "
-                        "Using all controls."
+                        f"No control cells for {stratify_by}={strata_val}. " "Using all controls."
                     )
                     strata_ctrl_mask = ctrl_mask
-                
-                strata_ctrl_indices = self.adata.obs.loc[
-                    strata_ctrl_mask, 'index_col'
-                ].values
+
+                strata_ctrl_indices = self.adata.obs.loc[strata_ctrl_mask, "index_col"].values
                 strata_pert_positions = np.where(strata_pert_mask)[0]
-                
+
                 if len(strata_pert_positions) > 0:
                     sampled = np.random.choice(
                         strata_ctrl_indices,
                         size=(len(strata_pert_positions), num_samples),
-                        replace=True
+                        replace=True,
                     )
                     ctrl_pairing[strata_pert_positions, :] = sampled
         else:
             # Random pairing
-            ctrl_indices = self.adata.obs.loc[ctrl_mask, 'index_col'].values
+            ctrl_indices = self.adata.obs.loc[ctrl_mask, "index_col"].values
             sampled = np.random.choice(
-                ctrl_indices,
-                size=(len(pert_positions), num_samples),
-                replace=True
+                ctrl_indices, size=(len(pert_positions), num_samples), replace=True
             )
             ctrl_pairing[pert_positions, :] = sampled
-        
+
         # Control cells pair with themselves
         ctrl_positions = np.where(ctrl_mask)[0]
-        ctrl_self = self.adata.obs.loc[ctrl_mask, 'index_col'].values
+        ctrl_self = self.adata.obs.loc[ctrl_mask, "index_col"].values
         for i, pos in enumerate(ctrl_positions):
             ctrl_pairing[pos, :] = ctrl_self[i]
 
@@ -349,21 +360,21 @@ class PerturbationData(CellData):
 
     def split(
         self,
-        split_type: str = 'simple',
+        split_type: str = "simple",
         test_size: float = 0.2,
         val_size: Optional[float] = None,
         stratify: Union[bool, str] = False,
         seed: int = 42,
         dry_run: bool = True,
-        split_col: str = 'split',
-        **kwargs
-    ) -> Union['PerturbationData', Dict[str, 'PerturbationData']]:
+        split_col: str = "split",
+        **kwargs,
+    ) -> Union["PerturbationData", Dict[str, "PerturbationData"]]:
         """
         Split dataset with multiple strategies for perturbation analysis.
-        
+
         Supports both simple random splitting and advanced gene-level splitting
         strategies for generalization testing.
-        
+
         Args:
             split_type: Splitting strategy
                 - 'simple': Random split of all perturbations
@@ -381,15 +392,15 @@ class PerturbationData(CellData):
                 - train_gene_fraction: For gene-level splits (default: 0.7)
                 - test_perts: Explicit list of perturbations for test set
                 - test_genes: Explicit list of genes to be "unseen"
-        
+
         Returns:
             If dry_run=True: Self with split column added
             If dry_run=False: Dict with 'train', 'val', 'test' datasets
-        
+
         Example:
             >>> # Simple random split with dry_run
             >>> dataset.split(split_type='simple', test_size=0.2, dry_run=True)
-            >>> 
+            >>>
             >>> # Gene-level split for generalization testing
             >>> dataset.split(
             ...     split_type='simulation',
@@ -401,32 +412,32 @@ class PerturbationData(CellData):
             ... )
         """
         # Initialize split column
-        self.adata.obs[split_col] = 'train'
-        
+        self.adata.obs[split_col] = "train"
+
         # Get valid perturbations
         valid_mask = ~self.perturbations.isin(self.ignore_labels)
         all_perts = self.perturbations[valid_mask].unique()
-        
+
         # Separate controls and perturbations
         ctrl_perts = [p for p in all_perts if p in self.control_labels]
         pert_only = [p for p in all_perts if p not in self.control_labels]
-        
+
         # Apply splitting strategy
-        if split_type == 'simple':
+        if split_type == "simple":
             train_perts, test_perts, val_perts = split_perturbations_simple(
                 pert_only, test_size, val_size, seed
             )
-        elif split_type in ['simulation', 'simulation_single']:
+        elif split_type in ["simulation", "simulation_single"]:
             train_perts, test_perts, val_perts = split_perturbations_simulation(
-                pert_only, 
+                pert_only,
                 self.control_labels,
-                split_type, 
-                test_size, 
-                val_size, 
-                kwargs.get('train_gene_fraction', 0.7),
-                seed
+                split_type,
+                test_size,
+                val_size,
+                kwargs.get("train_gene_fraction", 0.7),
+                seed,
             )
-        elif split_type.startswith('combo_seen'):
+        elif split_type.startswith("combo_seen"):
             target_seen = int(split_type[-1])
             train_perts, test_perts, val_perts = split_perturbations_combo_seen(
                 pert_only,
@@ -434,48 +445,42 @@ class PerturbationData(CellData):
                 target_seen,
                 test_size,
                 val_size,
-                kwargs.get('train_gene_fraction', 0.7),
-                seed
+                kwargs.get("train_gene_fraction", 0.7),
+                seed,
             )
-        elif split_type == 'no_test':
+        elif split_type == "no_test":
             train_perts, val_perts = split_perturbations_no_test(
                 pert_only, val_size or test_size, seed
             )
             test_perts = []
         else:
             raise ValueError(f"Unknown split_type: {split_type}")
-        
+
         # Add controls to train
         train_set = set(train_perts) | set(ctrl_perts)
         val_set = set(val_perts) if val_perts else set()
         test_set = set(test_perts) if test_perts else set()
-        
+
         # Assign splits
-        self.adata.obs.loc[
-            self.perturbations.isin(train_set), split_col
-        ] = 'train'
+        self.adata.obs.loc[self.perturbations.isin(train_set), split_col] = "train"
         if val_set:
-            self.adata.obs.loc[
-                self.perturbations.isin(val_set), split_col
-            ] = 'val'
+            self.adata.obs.loc[self.perturbations.isin(val_set), split_col] = "val"
         if test_set:
-            self.adata.obs.loc[
-                self.perturbations.isin(test_set), split_col
-            ] = 'test'
-        
+            self.adata.obs.loc[self.perturbations.isin(test_set), split_col] = "test"
+
         # Log summary
         logger.info(
             f"Split ({split_type}): "
             f"Train={len(train_set)}, Val={len(val_set)}, Test={len(test_set)} perts"
         )
-        
+
         if dry_run:
             logger.info(f"Added split labels to obs['{split_col}']")
             return self
         else:
             # Create actual split datasets
             splits = {}
-            for split_name in ['train', 'val', 'test']:
+            for split_name in ["train", "val", "test"]:
                 mask = self.adata.obs[split_col] == split_name
                 if mask.any():
                     splits[split_name] = self[mask.values]
@@ -495,14 +500,14 @@ class PerturbationData(CellData):
         **kwargs,
     ) -> None:
         """Calculate differential expression between perturbations and control.
-        
+
         This method performs differential expression analysis using either our
         high-performance kernels (default) or scanpy's implementation. Results
         are stored in `adata.uns[key_added]` in scanpy-compatible format.
-        
+
         Supports lazy loading: if DE has already been calculated with the same
         parameters, it will not be recomputed unless `force_recalculate=True`.
-        
+
         Parameters
         ----------
         method
@@ -533,7 +538,7 @@ class PerturbationData(CellData):
             - layer: Use specific layer from `adata.layers`
             - threads: Number of threads (perturblab only, -1 for all)
             - min_samples: Minimum samples per group (perturblab only)
-        
+
         Returns
         -------
         None
@@ -545,36 +550,36 @@ class PerturbationData(CellData):
             - 'pvals_adj': Adjusted p-values (FDR)
             - 'pts': Fraction expressing (if pts=True)
             - 'params': Analysis parameters
-        
+
         Examples
         --------
         >>> # Basic usage with high-performance kernels
         >>> dataset.calculate_de(method='wilcoxon')
-        >>> 
+        >>>
         >>> # Use scanpy implementation
         >>> dataset.calculate_de(method='t-test', use_scanpy=True)
-        >>> 
+        >>>
         >>> # Analyze specific perturbations
         >>> dataset.calculate_de(
         ...     method='wilcoxon',
         ...     groups=['KRAS_KO', 'TP53_KO'],
         ...     n_genes=100,
         ... )
-        >>> 
+        >>>
         >>> # Force recalculation
         >>> dataset.calculate_de(method='wilcoxon', force_recalculate=True)
-        >>> 
+        >>>
         >>> # Access results
         >>> de_results = dataset.adata.uns['rank_genes_groups']
         >>> top_genes = de_results['names']['KRAS_KO'][:10]  # Top 10 genes
-        
+
         Notes
         -----
         - The perturblab implementation is typically 5-50x faster than scanpy
         - Results are stored in scanpy-compatible format for visualization
         - Lazy loading prevents redundant computation on repeated calls
         - Use `force_recalculate=True` if you change the underlying data
-        
+
         See Also
         --------
         perturblab.data.process.rank_genes_groups : Underlying DE function
@@ -590,7 +595,7 @@ class PerturbationData(CellData):
             # Use first control label as reference
             reference = next(iter(self.control_labels))
             logger.info(f"🎯 Auto-detected reference group: '{reference}'")
-        
+
         # Check if results already exist (lazy loading)
         if not force_recalculate and key_added in self.adata.uns:
             existing_params = self.adata.uns[key_added].get("params", {})
@@ -601,23 +606,18 @@ class PerturbationData(CellData):
                 "use_raw": kwargs.get("use_raw", None),
                 "layer": kwargs.get("layer", None),
             }
-            
+
             # Check if parameters match
-            params_match = all(
-                existing_params.get(k) == v
-                for k, v in current_params.items()
-            )
-            
+            params_match = all(existing_params.get(k) == v for k, v in current_params.items())
+
             if params_match:
                 logger.info(
                     f"✅ DE results already exist in adata.uns['{key_added}'] "
                     f"with matching parameters. Skipping calculation."
                 )
-                logger.info(
-                    "    Use `force_recalculate=True` to recompute."
-                )
+                logger.info("    Use `force_recalculate=True` to recompute.")
                 return
-        
+
         # Choose implementation
         if use_scanpy:
             logger.info("🔬 Using scanpy.tl.rank_genes_groups...")
@@ -628,7 +628,7 @@ class PerturbationData(CellData):
                     "scanpy is not installed. Install with `pip install scanpy` "
                     "or use `use_scanpy=False` to use perturblab's implementation."
                 )
-            
+
             # Call scanpy's rank_genes_groups
             sc.tl.rank_genes_groups(
                 self.adata,
@@ -642,11 +642,11 @@ class PerturbationData(CellData):
                 **kwargs,
             )
             logger.info(f"✅ Scanpy DE analysis complete (results in adata.uns['{key_added}'])")
-            
+
         else:
             logger.info("🚀 Using perturblab high-performance kernels...")
             from perturblab.analysis import rank_genes_groups
-            
+
             # Call our optimized rank_genes_groups
             rank_genes_groups(
                 self.adata,
@@ -664,14 +664,14 @@ class PerturbationData(CellData):
     def __repr__(self) -> str:
         """String representation with perturbation info."""
         base_repr = super().__repr__()
-        
+
         # Add perturbation info
         parts = [base_repr]
         parts.append(f"    perturbation_col: '{self.perturbation_col}'")
         parts.append(f"    n_perturbations: {self.n_perturbations}")
         parts.append(f"    control_labels: {self.control_labels}")
-        
+
         if self.ignore_labels:
             parts.append(f"    ignore_labels: {self.ignore_labels}")
-        
+
         return "\n".join(parts)

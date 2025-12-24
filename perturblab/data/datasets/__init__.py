@@ -4,8 +4,8 @@ Provides PyTorch-compatible dataset wrappers for various data types.
 """
 
 from ._cell import CellDataset
-from ._perturbation import PerturbationDataset
 from ._go import GODataset, load_go_from_gears
+from ._perturbation import PerturbationDataset
 
 __all__ = [
     "CellDataset",
@@ -13,4 +13,3 @@ __all__ = [
     "GODataset",
     "load_go_from_gears",
 ]
-

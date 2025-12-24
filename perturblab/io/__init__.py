@@ -8,16 +8,16 @@ This module provides a complete redesigned I/O system with:
 Quick Start
 -----------
 >>> from perturblab.io import get_resource, cached_download
->>> 
+>>>
 >>> # Simple download with automatic caching
 >>> path = get_resource("https://example.com/model.pt")
->>> 
+>>>
 >>> # Or use more explicit naming
 >>> path = cached_download(
 ...     "https://example.com/scgpt.pt",
 ...     filename="scgpt_v1.0.pt"
 ... )
->>> 
+>>>
 >>> # Use the cached file directly
 >>> import torch
 >>> model = torch.load(path)
@@ -25,18 +25,18 @@ Quick Start
 Advanced Usage
 --------------
 >>> from perturblab.io import ResourceManager, CacheManager
->>> 
+>>>
 >>> # Custom cache with size limits
 >>> cache = CacheManager(max_size_mb=1000, max_entries=100)
 >>> manager = ResourceManager(cache=cache)
->>> 
+>>>
 >>> # Download with metadata
 >>> path = manager.get_resource(
 ...     url="https://example.com/model.pt",
 ...     cache_key="my_model_v2.pt",
 ...     metadata={'version': '2.0', 'source': 'custom'}
 ... )
->>> 
+>>>
 >>> # Check cache stats
 >>> stats = manager.cache_stats()
 >>> print(f"Cache size: {stats['size_mb']:.1f} MB")
@@ -49,22 +49,20 @@ Components
 """
 
 # Cache management
-from .cache import CacheManager, CacheEntry, get_default_cache_manager
+from .cache import CacheEntry, CacheManager, get_default_cache_manager
 
 # Download utilities
-from .download import (
-    HTTPDownloader,
-    download_http,
-    # Repository downloaders
-    FigshareDownloader,
-    download_figshare,
-    # Biological databases
-    HGNCDownloader,
-    download_hgnc,
+from .download import (  # Repository downloaders; Biological databases
     EnsemblDownloader,
-    download_ensembl,
+    FigshareDownloader,
     GODownloader,
+    HGNCDownloader,
+    HTTPDownloader,
+    download_ensembl,
+    download_figshare,
     download_go,
+    download_hgnc,
+    download_http,
 )
 
 __all__ = [

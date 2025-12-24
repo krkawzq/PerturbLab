@@ -8,14 +8,14 @@ Local paths take precedence, while remote configurations are used to fetch data 
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Generic, TypeVar, Optional, Dict, Union
+from typing import Any, Dict, Generic, Optional, TypeVar, Union
 
+from perturblab.io.cache import CacheManager, get_default_cache_manager
 from perturblab.utils import get_logger
-from perturblab.io.cache import get_default_cache_manager, CacheManager
 
 logger = get_logger()
 
@@ -28,7 +28,7 @@ class Resource(ABC, Generic[T]):
     """
     Abstract Descriptor for a Data Resource.
 
-    A Resource describes *where* data is (Local Path and/or Remote Config) and 
+    A Resource describes *where* data is (Local Path and/or Remote Config) and
     *how* to load it into memory. It handles the lifecycle of checking local existence,
     downloading from remote if necessary, and loading into memory.
 
@@ -99,17 +99,17 @@ class Resource(ABC, Generic[T]):
     def path(self) -> Path:
         """
         Get the local filesystem path to the resource.
-        
+
         Logic:
         1. If `local_path` is set and exists, validate and return it (calls _process_local).
         2. If `remote_config` is set, download via CacheManager (calls _process_remote).
         3. Raise FileNotFoundError if neither works.
-        
+
         Returns
         -------
         Path
             Path to local file or directory.
-        
+
         Raises
         ------
         FileNotFoundError
@@ -122,13 +122,11 @@ class Resource(ABC, Generic[T]):
             if self._local_path.exists():
                 # Validate local file
                 if not self._check_file(self._local_path):
-                    raise ValueError(
-                        f"Local file validation failed: {self._local_path}"
-                    )
-                
+                    raise ValueError(f"Local file validation failed: {self._local_path}")
+
                 # Call local processing hook
                 self._process_local(self._local_path)
-                
+
                 return self._local_path
             elif not self._remote_config:
                 # If we only have a local definition and it's missing, that's an error.
@@ -139,16 +137,14 @@ class Resource(ABC, Generic[T]):
         # 2. Remote resolution
         if self._remote_config:
             remote_path = self._resolve_remote()
-            
+
             # Validate downloaded file
             if not self._check_file(remote_path):
-                raise ValueError(
-                    f"Downloaded file validation failed: {remote_path}"
-                )
-            
+                raise ValueError(f"Downloaded file validation failed: {remote_path}")
+
             # Call remote processing hook
             self._process_remote(remote_path)
-            
+
             return remote_path
 
         raise FileNotFoundError(f"Resource '{self.key}' could not be located.")
@@ -157,16 +153,16 @@ class Resource(ABC, Generic[T]):
     def data(self) -> T:
         """
         Get the data object in memory (Lazy Load).
-        
+
         Triggers:
         1. `self.path` (which might trigger download).
         2. `self._load_from_disk`.
-        
+
         Returns
         -------
         T
             Loaded data object.
-        
+
         Examples
         --------
         >>> resource = AnnDataResource(key='data', local_path='file.h5ad')
@@ -176,28 +172,28 @@ class Resource(ABC, Generic[T]):
         """
         if self._data is None:
             target_path = self.path  # Ensures file exists locally
-            
+
             logger.info(f"Loading resource '{self.key}' from {target_path}...")
             try:
                 self._data = self._load_from_disk(target_path)
             except Exception as e:
                 logger.error(f"Failed to load resource '{self.key}': {e}")
                 raise e
-                
+
         return self._data
-    
+
     def load(self) -> T:
         """
         Load the resource data (alias for .data property).
-        
+
         This method provides a functional interface equivalent to accessing
         the .data property. Use whichever style you prefer.
-        
+
         Returns
         -------
         T
             Loaded data object.
-        
+
         Examples
         --------
         >>> resource = AnnDataResource(key='data', local_path='file.h5ad')
@@ -213,9 +209,9 @@ class Resource(ABC, Generic[T]):
 
     def clear(self) -> None:
         """Clear the in-memory data object to free RAM.
-        
+
         This only clears the cached Python object, not the file on disk.
-        
+
         Examples
         --------
         >>> resource = AnnDataResource(key='data', local_path='file.h5ad')
@@ -231,11 +227,11 @@ class Resource(ABC, Generic[T]):
 
     def invalidate_cache(self) -> None:
         """
-        Remove the downloaded file from the cache. 
+        Remove the downloaded file from the cache.
         Does NOT affect explicit `local_path` files.
-        
+
         This is useful when you want to force a fresh download on next access.
-        
+
         Examples
         --------
         >>> resource = AnnDataResource(
@@ -251,7 +247,7 @@ class Resource(ABC, Generic[T]):
             self._cache_manager.invalidate(cache_key)
             # Also clear memory since backing file was deleted
             self.clear()
-            logger.info(f"Cache invalidated for: {self.key}") 
+            logger.info(f"Cache invalidated for: {self.key}")
 
     # =========================================================================
     # Abstract Methods (Subclass Implementation)
@@ -261,7 +257,7 @@ class Resource(ABC, Generic[T]):
     def _fetch_remote(self, config: Dict[str, Any], target_path: Path) -> None:
         """
         Logic to download the resource.
-        
+
         Args:
             config: The `remote_config` dictionary.
             target_path: The destination path (temp path provided by CacheManager).
@@ -272,7 +268,7 @@ class Resource(ABC, Generic[T]):
     def _load_from_disk(self, path: Path) -> T:
         """
         Logic to load the file into memory.
-        
+
         Args:
             path: The local path to the file/directory.
         """
@@ -285,7 +281,7 @@ class Resource(ABC, Generic[T]):
     def _resolve_remote(self) -> Path:
         """Interacts with CacheManager to fetch remote data."""
         cache_key = self._get_cache_key()
-        
+
         # Define the callback for CacheManager
         def _download_callback(temp_path: Path):
             logger.info(f"Downloading remote resource '{self.key}'...")
@@ -296,20 +292,20 @@ class Resource(ABC, Generic[T]):
             key=cache_key,
             create_fn=_download_callback,
             is_directory=self._is_dir,
-            metadata=self._remote_config
+            metadata=self._remote_config,
         )
 
     def _get_cache_key(self) -> str:
         """Generate a stable cache key based on the resource key.
-        
+
         Subclasses can override to customize cache key generation.
         Default implementation uses the resource key directly.
-        
+
         Returns
         -------
         str
             Cache key for this resource.
-        
+
         Examples
         --------
         >>> class CustomResource(Resource[MyData]):
@@ -319,15 +315,15 @@ class Resource(ABC, Generic[T]):
         ...         return f"{self.key}_{version}.dat"
         """
         return self.key
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize resource descriptor to dictionary.
-        
+
         Returns
         -------
         dict
             Serializable dictionary representation.
-        
+
         Examples
         --------
         >>> resource = AnnDataResource(
@@ -339,21 +335,21 @@ class Resource(ABC, Generic[T]):
         >>> # Can be saved to JSON, YAML, etc.
         """
         return {
-            'class': self.__class__.__name__,
-            'key': self.key,
-            'local_path': str(self._local_path) if self._local_path else None,
-            'remote_config': self._remote_config,
-            'is_directory': self._is_dir,
+            "class": self.__class__.__name__,
+            "key": self.key,
+            "local_path": str(self._local_path) if self._local_path else None,
+            "remote_config": self._remote_config,
+            "is_directory": self._is_dir,
         }
-    
+
     def get_info(self) -> dict[str, Any]:
         """Get resource information summary.
-        
+
         Returns
         -------
         dict
             Dictionary with resource status and metadata.
-        
+
         Examples
         --------
         >>> resource = AnnDataResource(key='data', local_path='file.h5ad')
@@ -364,70 +360,70 @@ class Resource(ABC, Generic[T]):
         >>> print(info['is_loaded'])  # True
         """
         info = {
-            'key': self.key,
-            'is_loaded': self.is_loaded,
-            'is_materialized': self.is_materialized,
-            'has_local_path': self._local_path is not None,
-            'has_remote_config': self._remote_config is not None,
+            "key": self.key,
+            "is_loaded": self.is_loaded,
+            "is_materialized": self.is_materialized,
+            "has_local_path": self._local_path is not None,
+            "has_remote_config": self._remote_config is not None,
         }
-        
+
         if self._local_path:
-            info['local_path'] = str(self._local_path)
-            info['local_exists'] = self._local_path.exists()
-        
+            info["local_path"] = str(self._local_path)
+            info["local_exists"] = self._local_path.exists()
+
         if self._remote_config:
-            info['remote_config'] = self._remote_config
-            info['cache_key'] = self._get_cache_key()
-        
+            info["remote_config"] = self._remote_config
+            info["cache_key"] = self._get_cache_key()
+
         if self.is_materialized:
             try:
                 path = self.path
-                info['path'] = str(path)
+                info["path"] = str(path)
                 if path.exists():
                     if path.is_file():
-                        info['size_bytes'] = path.stat().st_size
-                        info['size_mb'] = path.stat().st_size / (1024 * 1024)
+                        info["size_bytes"] = path.stat().st_size
+                        info["size_mb"] = path.stat().st_size / (1024 * 1024)
                     elif path.is_dir():
-                        info['is_directory'] = True
+                        info["is_directory"] = True
             except Exception:
                 pass
-        
+
         return info
 
     def __repr__(self) -> str:
         """String representation."""
         status = "loaded" if self.is_loaded else "lazy"
-        
+
         sources = []
         if self._local_path:
             exists = "✓" if (self._local_path.exists()) else "✗"
             sources.append(f"local={exists}")
         if self._remote_config:
             sources.append("remote=✓")
-            
+
         source_str = ", ".join(sources)
         return f"<{self.__class__.__name__} '{self.key}' [{source_str}] ({status})>"
-    
+
     def __str__(self) -> str:
         """Human-readable string."""
         return self.__repr__()
 
     def _check_file(self, path: Path) -> bool:
         """Hook to validate file/directory before loading.
-        
+
         Subclasses can override this to add custom validation logic
         (e.g., check file format, verify integrity, etc.).
-        
+
         Parameters
         ----------
         path : Path
             Path to validate.
-        
+
         Returns
         -------
         bool
             True if file is valid, False otherwise.
-        
+
         Examples
         --------
         >>> class MyResource(Resource[MyData]):
@@ -441,24 +437,24 @@ class Resource(ABC, Generic[T]):
         ...         return True
         """
         return path.exists()
-    
+
     def _process_remote(self, path: Path) -> None:
         """Hook called after remote download completes.
-        
+
         This hook is ONLY called after downloading from remote source.
         It is NOT called when loading from local_path.
-        
+
         Use this for:
         - Post-download validation
         - File format conversion
         - Extraction/decompression
         - Metadata generation
-        
+
         Parameters
         ----------
         path : Path
             Path to downloaded file/directory.
-        
+
         Examples
         --------
         >>> class MyResource(Resource[MyData]):
@@ -473,20 +469,20 @@ class Resource(ABC, Generic[T]):
 
     def _process_local(self, path: Path) -> None:
         """Hook called when loading from local_path.
-        
+
         This hook is ONLY called when using explicit local_path.
         It is NOT called when loading from downloaded/cached files.
-        
+
         Use this for:
         - Local file validation
         - Format checking
         - Preprocessing
-        
+
         Parameters
         ----------
         path : Path
             Path to local file/directory.
-        
+
         Examples
         --------
         >>> class MyResource(Resource[MyData]):

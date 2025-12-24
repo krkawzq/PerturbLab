@@ -9,7 +9,6 @@ from ._normalization import normalize_total
 from ._scale import scale
 
 __all__ = [
-    'normalize_total',
-    'scale',
+    "normalize_total",
+    "scale",
 ]
-

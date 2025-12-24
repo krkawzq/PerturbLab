@@ -12,7 +12,6 @@ def group_mean_csc(
     include_zeros: bool = True,
     threads: int = -1,
 ) -> NDArray[np.float64]: ...
-
 def mannwhitneyu_csc(
     data: NDArray,
     indices: NDArray,
@@ -23,4 +22,3 @@ def mannwhitneyu_csc(
     use_continuity: bool = True,
     threads: int = -1,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]: ...
-

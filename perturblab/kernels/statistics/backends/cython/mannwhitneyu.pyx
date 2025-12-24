@@ -23,11 +23,12 @@ Cython for better integration with the Python ecosystem.
 """
 
 import numpy as np
+
 cimport numpy as np
-from libc.math cimport sqrt, abs, erfc, INFINITY, isnan, isfinite
-from libc.stdlib cimport malloc, free
-from cython.parallel cimport prange, parallel
 from cython cimport boundscheck, wraparound
+from cython.parallel cimport parallel, prange
+from libc.math cimport INFINITY, abs, erfc, isfinite, isnan, sqrt
+from libc.stdlib cimport free, malloc
 
 # Initialize NumPy C-API
 np.import_array()

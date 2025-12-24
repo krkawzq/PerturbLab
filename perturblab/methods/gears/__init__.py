@@ -5,7 +5,7 @@ method for predicting cellular responses to genetic perturbations using graph ne
 
 References
 ----------
-.. [1] Roohani et al. (2023). "GEARS: Predicting transcriptional outcomes 
+.. [1] Roohani et al. (2023). "GEARS: Predicting transcriptional outcomes
        of novel multi-gene perturbations." Nature Methods.
        https://www.nature.com/articles/s41592-023-01905-6
 
@@ -15,9 +15,9 @@ Licensed under the MIT License
 
 from .utils import (
     build_perturbation_graph,
+    dataframe_to_weighted_graph,
     filter_perturbations_in_go,
     get_perturbation_genes,
-    dataframe_to_weighted_graph,
     weighted_graph_to_dataframe,
 )
 
@@ -31,4 +31,3 @@ __all__ = [
     "filter_perturbations_in_go",
     "get_perturbation_genes",
 ]
-
