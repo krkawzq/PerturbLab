@@ -6,7 +6,6 @@ from ._check_dependencies import (
     create_lazy_loader,
     format_install_command,
 )
-from ._read_obo import read_obo
 from .logging import (
     disable_logging,
     enable_logging,
@@ -18,6 +17,14 @@ from .logging import (
     set_log_level,
     setup_logger,
 )
+
+
+def __getattr__(name: str):
+    """Lazy import for read_obo to avoid circular import."""
+    if name == "read_obo":
+        from ._read_obo import read_obo
+        return read_obo
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 __all__ = [
     "setup_logger",

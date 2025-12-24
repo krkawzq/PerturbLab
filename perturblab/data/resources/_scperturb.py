@@ -5,7 +5,7 @@ Single-cell perturbation datasets from the scPerturb repository.
 Citation: Peidli et al. (2023). scPerturb: harmonized single-cell perturbation data.
           Nature Methods. https://doi.org/10.1038/s41592-023-02144-y
 
-Data: https://zenodo.org/records/13350497
+Data: https://zenodo.org/record/13350497
 """
 
 from perturblab.data.resources import h5adFile

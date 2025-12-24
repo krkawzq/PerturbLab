@@ -1,7 +1,8 @@
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TYPE_CHECKING
 
-from perturblab.types.math import DAG
+if TYPE_CHECKING:
+    from perturblab.types.math import DAG
 
 from .logging import get_logger
 
@@ -151,6 +152,9 @@ def read_obo(obo_path: str, load_obsolete: bool = False) -> Tuple[List[Dict], "D
     # Remove temporary field
     for term in terms:
         del term["_parent_ids"]
+
+    # Import DAG here to avoid circular import
+    from perturblab.types.math import DAG
 
     dag = DAG(edges, validate=False) if edges else DAG([], validate=False)
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "perturblab"
-version = "0.1.0"
+version = "1.0.0"
 description = "High-performance single-cell perturbation analysis with unified model registry"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -64,6 +64,9 @@ scfoundation = [
 ]
 genecompass = [
     "transformers>=4.30.0",  # Required: HuggingFace transformers for BERT
+]
+example = [
+    "ipykernel"
 ]
 all = [
     "perturblab[accelerate,gears,uce,scgpt,scfoundation,genecompass]",

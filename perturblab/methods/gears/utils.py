@@ -409,9 +409,9 @@ def build_perturbation_graph(
             from perturblab.io.download import download_http
 
             download_http(
-                url="https://dataverse.harvard.edu/api/access/datafile/6153417",
-                dest=go_annotation_file,
-                desc="Downloading gene2go annotations",
+                "https://dataverse.harvard.edu/api/access/datafile/6153417",
+                go_annotation_file,
+                show_progress=True,
             )
     else:
         go_annotation_file = Path(go_annotation_file)
