@@ -26,18 +26,23 @@ from ._base import BaseDownloader, DownloadError
 
 # Core HTTP downloader
 from ._http import HTTPDownloader
+
 download_http = HTTPDownloader.download
 
 # Repository downloaders
 from ._figshare import FigshareDownloader
+
 download_figshare = FigshareDownloader.download
 
 # Biological database downloaders
 from ._hgnc import HGNCDownloader
+
 download_hgnc = HGNCDownloader.download
 from ._ensembl import EnsemblDownloader
+
 download_ensembl = EnsemblDownloader.download
 from ._go import GODownloader
+
 download_go = GODownloader.download
 
 __all__ = [
@@ -57,4 +62,3 @@ __all__ = [
     "download_ensembl",
     "download_go",
 ]
-
