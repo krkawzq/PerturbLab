@@ -13,7 +13,7 @@ from math import sqrt
 import torch
 from torch.nn import Dropout, Module
 
-from ..attention_registry import AttentionRegistry, Optional, Int, Float, EventDispatcherInstance
+from ..attention_registry import AttentionRegistry, EventDispatcherInstance, Float, Int, Optional
 from ..events import EventDispatcher
 
 

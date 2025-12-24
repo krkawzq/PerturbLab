@@ -58,7 +58,9 @@ class GeneVocab(Vocab):
                 # Optimization: Use Counter for O(N) duplicate detection instead of list.count() O(N^2)
                 counts = Counter(genes)
                 duplicates = [gene for gene, count in counts.items() if count > 1]
-                raise ValueError(f"Duplicate gene names found: {duplicates[:5]}... (Total {len(duplicates)})")
+                raise ValueError(
+                    f"Duplicate gene names found: {duplicates[:5]}... (Total {len(duplicates)})"
+                )
             return genes
 
         elif duplicate_policy == "first":
@@ -104,13 +106,13 @@ class GeneVocab(Vocab):
 
         Returns:
             GeneVocab: New vocabulary instance.
-            
+
         Raises:
             ValueError: If var_col doesn't exist or if no valid genes found.
         """
         if adata.n_vars == 0:
             raise ValueError("AnnData has no variables (genes)")
-        
+
         if var_col is None:
             genes = adata.var_names.tolist()
         else:
@@ -121,18 +123,17 @@ class GeneVocab(Vocab):
                     f"Available columns: {available}..."
                 )
             genes = adata.var[var_col].tolist()
-        
+
         # Filter empty strings
         if filter_empty:
             original_len = len(genes)
             genes = [g for g in genes if g and isinstance(g, str) and g.strip()]
             if len(genes) < original_len:
                 import logging
+
                 logger = logging.getLogger(__name__)
-                logger.warning(
-                    f"Filtered out {original_len - len(genes)} empty/invalid gene names"
-                )
-        
+                logger.warning(f"Filtered out {original_len - len(genes)} empty/invalid gene names")
+
         if len(genes) == 0:
             raise ValueError("No valid gene names found after filtering")
 
@@ -158,9 +159,9 @@ class GeneVocab(Vocab):
         """Standardize gene names in-place using the provided function.
 
         Warning:
-            This operation changes the gene names and potentially the indices 
-            (if duplicates are merged/removed). Do not use this on a vocab 
-            that has already been used to tokenize data, unless you plan to 
+            This operation changes the gene names and potentially the indices
+            (if duplicates are merged/removed). Do not use this on a vocab
+            that has already been used to tokenize data, unless you plan to
             re-tokenize.
 
         Args:
@@ -171,6 +172,7 @@ class GeneVocab(Vocab):
         # Use default standardization if not provided
         if standardize_fn is None:
             from ._gene_map import get_default_human_gene_map
+
             standardize_fn = get_default_human_gene_map().standardize
 
         # Apply standardization function
@@ -179,7 +181,7 @@ class GeneVocab(Vocab):
         # Handle duplicates and update all structures
         # Note: This effectively rebuilds the vocab
         clean_genes = self._handle_duplicate_genes(standardized, duplicate_policy)
-        
+
         # Re-initialize internal structures
         # Assuming Vocab uses standard self.itos/self.stoi/self.tokens attributes
         self.itos = clean_genes
@@ -192,30 +194,30 @@ class GeneVocab(Vocab):
         return GeneVocab(filtered, self.default_token, self.default_index, duplicate_policy="error")
 
     def select_genes(
-        self, 
-        genes_to_keep: Union[Set[str], List[str]], 
+        self,
+        genes_to_keep: Union[Set[str], List[str]],
         keep_order: bool = True,
         min_genes: int = 1,
     ) -> "GeneVocab":
         """Create new GeneVocab with specified genes.
-        
+
         Args:
             genes_to_keep (Union[Set[str], List[str]]): Genes to select.
             keep_order (bool, optional): If True, preserves order from self.
                 If False, uses order from genes_to_keep. Defaults to True.
             min_genes (int, optional): Minimum number of genes required.
                 Raises error if fewer genes selected. Defaults to 1.
-                
+
         Returns:
             GeneVocab: New vocabulary with selected genes.
-            
+
         Raises:
             ValueError: If fewer than min_genes are found.
             ValueError: If no genes from genes_to_keep exist in vocabulary.
         """
         if not genes_to_keep:
             raise ValueError("genes_to_keep cannot be empty")
-        
+
         genes_set = set(genes_to_keep)
 
         if keep_order:
@@ -227,30 +229,32 @@ class GeneVocab(Vocab):
             if not isinstance(genes_to_keep, list):
                 genes_to_keep = list(genes_to_keep)
             filtered = [gene for gene in genes_to_keep if gene in self.tokens]
-        
+
         if len(filtered) == 0:
             raise ValueError(
                 f"No genes from genes_to_keep ({len(genes_to_keep)}) "
                 f"exist in the current vocabulary ({len(self)})"
             )
-        
+
         if len(filtered) < min_genes:
-            raise ValueError(
-                f"Only {len(filtered)} genes selected, but min_genes={min_genes}"
-            )
+            raise ValueError(f"Only {len(filtered)} genes selected, but min_genes={min_genes}")
 
         return GeneVocab(filtered, self.default_token, self.default_index, duplicate_policy="first")
 
     def intersection(self, other: "GeneVocab") -> "GeneVocab":
         """Create vocabulary with genes present in both vocabularies."""
         common_genes = [gene for gene in self.itos if gene in other.tokens]
-        return GeneVocab(common_genes, self.default_token, self.default_index, duplicate_policy="error")
+        return GeneVocab(
+            common_genes, self.default_token, self.default_index, duplicate_policy="error"
+        )
 
     def union(self, other: "GeneVocab") -> "GeneVocab":
         """Create vocabulary with genes from both vocabularies."""
         # self.itos order preserved, then append new genes from other
         all_genes = self.itos + [gene for gene in other.itos if gene not in self.tokens]
-        return GeneVocab(all_genes, self.default_token, self.default_index, duplicate_policy="error")
+        return GeneVocab(
+            all_genes, self.default_token, self.default_index, duplicate_policy="error"
+        )
 
     def __repr__(self) -> str:
         return f"GeneVocab(size={len(self)}, default_token='{self.default_token}')"

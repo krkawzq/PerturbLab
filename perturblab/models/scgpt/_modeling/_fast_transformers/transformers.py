@@ -11,8 +11,8 @@ In all cases the batch dimension is first and the sequence dimension is second.
 """
 
 import torch
-from torch.nn import Dropout, LayerNorm, Linear, Module, ModuleList
 import torch.nn.functional as F
+from torch.nn import Dropout, LayerNorm, Linear, Module, ModuleList
 
 from .events import EventDispatcher, IntermediateOutput
 from .masking import FullMask, LengthMask

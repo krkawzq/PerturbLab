@@ -6,7 +6,6 @@
 
 
 import numpy as np
-
 import torch
 
 from .cluster_cpu import cluster as cluster_cpu

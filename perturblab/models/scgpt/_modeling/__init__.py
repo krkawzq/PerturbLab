@@ -15,10 +15,10 @@ except (ImportError, AttributeError):
 # Define lazy loading module map (unified models)
 _LAZY_MODULES = {
     # Unified model implementations (from model.py)
-    'scGPTBaseModel': '.model',
-    'scGPTModel': '.model',
-    'scGPTMultiOmicModel': '.model',
-    'scGPTPerturbationModel': '.model',
+    "scGPTBaseModel": ".model",
+    "scGPTModel": ".model",
+    "scGPTMultiOmicModel": ".model",
+    "scGPTPerturbationModel": ".model",
 }
 
 # Create lazy loader with dependency checking
@@ -26,7 +26,7 @@ __getattr__, __dir__ = create_lazy_loader(
     dependencies=dependencies,
     lazy_modules=_LAZY_MODULES,
     package_name=__package__,
-    install_hint="pip install perturblab[scgpt]"
+    install_hint="pip install perturblab[scgpt]",
 )
 
 __all__ = list(_LAZY_MODULES.keys())

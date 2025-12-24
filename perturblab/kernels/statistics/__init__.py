@@ -35,6 +35,16 @@ Examples:
     >>> means = group_mean(X, group_id, n_groups=3)
 """
 
+from .ops._hvg import (
+    clip_matrix,
+)
+from .ops._hvg import get_backend as get_hvg_backend
+from .ops._hvg import has_cpp_backend as has_hvg_cpp_backend
+from .ops._hvg import (
+    sparse_clipped_moments,
+    sparse_mean_var,
+)
+
 # Import from ops modules (no ops/__init__.py needed)
 from .ops._mannwhitneyu import group_mean, mannwhitneyu
 from .ops._normalization import (
@@ -46,13 +56,6 @@ from .ops._normalization import (
 )
 from .ops._scale import standardize
 from .ops._ttest import log_fold_change, ttest
-from .ops._hvg import (
-    sparse_mean_var,
-    sparse_clipped_moments,
-    clip_matrix,
-    get_backend as get_hvg_backend,
-    has_cpp_backend as has_hvg_cpp_backend,
-)
 
 __all__ = [
     "mannwhitneyu",

@@ -13,6 +13,7 @@ import torch
 
 from perturblab.core.model_io import ModelIO
 
+
 class scFoundationInput(ModelIO):
     """Input schema for scFoundation model forward pass.
 
@@ -64,7 +65,7 @@ class scFoundationOutput(ModelIO):
     including predicted gene expression (reconstructions) and optional attention weights.
 
     Attributes:
-        predictions: Reconstructed gene expression values, 
+        predictions: Reconstructed gene expression values,
             of shape [batch_size, seq_len] or [batch_size, seq_len, decoder_dim]
             depending on model configuration.
         attention_weights: Optional attention weights if requested by user.

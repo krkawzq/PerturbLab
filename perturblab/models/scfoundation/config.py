@@ -7,6 +7,7 @@ Licensed under the MIT License (see forks/scFoundation/LICENSE for details)
 """
 
 from typing import Literal, Optional
+
 from perturblab.core.config import Config
 
 
@@ -52,7 +53,7 @@ class scFoundationConfig(Config):
         ValueError: If invalid parameter values are provided.
 
     References:
-        Wang et al. (2023). "scFoundation: Large-scale Foundation Model for 
+        Wang et al. (2023). "scFoundation: Large-scale Foundation Model for
             Single-cell Transcriptomics." bioRxiv.
     """
 

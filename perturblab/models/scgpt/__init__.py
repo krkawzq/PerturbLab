@@ -29,7 +29,6 @@ from perturblab.utils import DependencyError
 from .config import scGPTConfig
 from .io import scGPTInput, scGPTOutput
 
-
 __all__ = [
     "scGPTConfig",
     "scGPTInput",
@@ -53,16 +52,16 @@ try:
         scGPTMultiOmicModel,
         scGPTPerturbationModel,
     )
-    
+
     # Register model variants
     SCGPT_REGISTRY.register("scGPTModel")(scGPTModel)
     SCGPT_REGISTRY.register("default")(scGPTModel)
     SCGPT_REGISTRY.register("scGPTMultiOmicModel")(scGPTMultiOmicModel)
     SCGPT_REGISTRY.register("scGPTPerturbationModel")(scGPTPerturbationModel)
-    
+
     # Add to __all__ if successfully imported
     __all__.extend(["scGPTModel", "scGPTMultiOmicModel", "scGPTPerturbationModel"])
-    
+
 except (DependencyError, ImportError):
     # Dependencies not satisfied - models won't be available
     pass
@@ -70,63 +69,70 @@ except (DependencyError, ImportError):
 
 # Register components (encoders, decoders, attention layers)
 try:
-    from ._modeling.components import (
-        # Encoders
-        GeneEncoder,
-        PositionalEncoding,
-        ContinuousValueEncoder,
-        CategoryValueEncoder,
-        BatchLabelEncoder,
-        # Decoders
-        ExprDecoder,
-        MVCDecoder,
-        ClsDecoder,
+    from ._modeling.components import (  # Encoders; Decoders; Attention; Batch Normalization; Gradient Reversal; Misc
         AdversarialDiscriminator,
-        # Attention
-        FastTransformerEncoderWrapper,
-        FlashTransformerEncoderLayer,
-        # Batch Normalization
+        BatchLabelEncoder,
+        CategoryValueEncoder,
+        ClsDecoder,
+        ContinuousValueEncoder,
         DomainSpecificBatchNorm1d,
         DomainSpecificBatchNorm2d,
-        # Gradient Reversal
-        grad_reverse,
+        ExprDecoder,
+        FastTransformerEncoderWrapper,
+        FlashTransformerEncoderLayer,
+        GeneEncoder,
         GradReverse,
-        # Misc
+        MVCDecoder,
+        PositionalEncoding,
         Similarity,
         generate_square_subsequent_mask,
+        grad_reverse,
     )
-    
+
     # Register encoders
     SCGPT_COMPONENTS.register("GeneEncoder")(GeneEncoder)
     SCGPT_COMPONENTS.register("PositionalEncoding")(PositionalEncoding)
     SCGPT_COMPONENTS.register("ContinuousValueEncoder")(ContinuousValueEncoder)
     SCGPT_COMPONENTS.register("CategoryValueEncoder")(CategoryValueEncoder)
     SCGPT_COMPONENTS.register("BatchLabelEncoder")(BatchLabelEncoder)
-    
+
     # Register decoders
     SCGPT_COMPONENTS.register("ExprDecoder")(ExprDecoder)
     SCGPT_COMPONENTS.register("MVCDecoder")(MVCDecoder)
     SCGPT_COMPONENTS.register("ClsDecoder")(ClsDecoder)
     SCGPT_COMPONENTS.register("AdversarialDiscriminator")(AdversarialDiscriminator)
-    
+
     # Register attention layers
     SCGPT_COMPONENTS.register("FastTransformerEncoderWrapper")(FastTransformerEncoderWrapper)
     SCGPT_COMPONENTS.register("FlashTransformerEncoderLayer")(FlashTransformerEncoderLayer)
-    
+
     # Register normalization
     SCGPT_COMPONENTS.register("DomainSpecificBatchNorm1d")(DomainSpecificBatchNorm1d)
     SCGPT_COMPONENTS.register("DomainSpecificBatchNorm2d")(DomainSpecificBatchNorm2d)
-    
+
     # Add components to __all__
-    __all__.extend([
-        "GeneEncoder", "PositionalEncoding", "ContinuousValueEncoder", 
-        "CategoryValueEncoder", "BatchLabelEncoder",
-        "ExprDecoder", "MVCDecoder", "ClsDecoder", "AdversarialDiscriminator",
-        "FastTransformerEncoderWrapper", "FlashTransformerEncoderLayer",
-        "DomainSpecificBatchNorm1d", "DomainSpecificBatchNorm2d",
-        "grad_reverse", "GradReverse", "Similarity", "generate_square_subsequent_mask",
-    ])
-    
+    __all__.extend(
+        [
+            "GeneEncoder",
+            "PositionalEncoding",
+            "ContinuousValueEncoder",
+            "CategoryValueEncoder",
+            "BatchLabelEncoder",
+            "ExprDecoder",
+            "MVCDecoder",
+            "ClsDecoder",
+            "AdversarialDiscriminator",
+            "FastTransformerEncoderWrapper",
+            "FlashTransformerEncoderLayer",
+            "DomainSpecificBatchNorm1d",
+            "DomainSpecificBatchNorm2d",
+            "grad_reverse",
+            "GradReverse",
+            "Similarity",
+            "generate_square_subsequent_mask",
+        ]
+    )
+
 except (DependencyError, ImportError):
     # Components not available - dependencies missing
     pass

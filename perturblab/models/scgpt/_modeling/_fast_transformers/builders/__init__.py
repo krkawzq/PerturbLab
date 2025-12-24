@@ -36,15 +36,15 @@ __all__ = ["AttentionBuilder", "RecurrentAttentionBuilder", "RecurrentCrossAtten
 #       implementations be imported in order to be useable? This also allows
 #       using the library even partially built, for instance.
 from ..attention import (
-    FullAttention,
-    LinearAttention,
     CausalLinearAttention,
     ClusteredAttention,
-    ImprovedClusteredAttention,
-    ReformerAttention,
-    ExactTopKAttention,
-    ImprovedClusteredCausalAttention,
     ConditionalFullAttention,
+    ExactTopKAttention,
+    FullAttention,
+    ImprovedClusteredAttention,
+    ImprovedClusteredCausalAttention,
+    LinearAttention,
+    ReformerAttention,
 )
 
 del (
@@ -65,10 +65,9 @@ from .attention_builders import (
     RecurrentAttentionBuilder,
     RecurrentCrossAttentionBuilder,
 )
-
 from .transformer_builders import (
-    TransformerEncoderBuilder,
+    RecurrentDecoderBuilder,
     RecurrentEncoderBuilder,
     TransformerDecoderBuilder,
-    RecurrentDecoderBuilder,
+    TransformerEncoderBuilder,
 )

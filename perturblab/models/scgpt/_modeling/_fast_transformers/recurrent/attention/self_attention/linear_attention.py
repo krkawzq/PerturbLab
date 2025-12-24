@@ -10,11 +10,11 @@ import torch
 from torch.nn import Module
 
 from ....attention_registry import (
-    RecurrentAttentionRegistry,
-    Optional,
-    Int,
     Callable,
     EventDispatcherInstance,
+    Int,
+    Optional,
+    RecurrentAttentionRegistry,
 )
 from ....events import EventDispatcher
 from ....feature_maps import elu_feature_map

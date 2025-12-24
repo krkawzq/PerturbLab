@@ -9,9 +9,9 @@
 import torch
 from torch.nn import Module
 
-from ..attention_registry import AttentionRegistry, Optional, Callable, Int, EventDispatcherInstance
-from ..events import EventDispatcher
+from ..attention_registry import AttentionRegistry, Callable, EventDispatcherInstance, Int, Optional
 from ..causal_product import causal_dot_product
+from ..events import EventDispatcher
 from ..feature_maps import elu_feature_map
 
 

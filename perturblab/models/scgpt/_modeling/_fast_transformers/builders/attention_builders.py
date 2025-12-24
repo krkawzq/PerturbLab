@@ -5,12 +5,12 @@
 
 from collections import defaultdict
 
-from .base import BaseBuilder
 from ..attention_registry import (
     AttentionRegistry,
     RecurrentAttentionRegistry,
     RecurrentCrossAttentionRegistry,
 )
+from .base import BaseBuilder
 
 
 class BaseAttentionBuilder(BaseBuilder):

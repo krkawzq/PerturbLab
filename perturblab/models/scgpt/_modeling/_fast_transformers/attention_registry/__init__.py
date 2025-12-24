@@ -10,4 +10,4 @@ register attention implementations for the builders.
 """
 
 from .registry import AttentionRegistry, RecurrentAttentionRegistry, RecurrentCrossAttentionRegistry
-from .spec import Spec, Choice, Optional, Int, Float, Bool, Callable, EventDispatcherInstance
+from .spec import Bool, Callable, Choice, EventDispatcherInstance, Float, Int, Optional, Spec

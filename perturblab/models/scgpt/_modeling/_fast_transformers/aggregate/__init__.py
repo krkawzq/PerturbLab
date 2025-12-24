@@ -7,14 +7,14 @@
 
 import torch
 
-from .aggregate_cpu import aggregate as aggregate_cpu, broadcast as broadcast_cpu
+from .aggregate_cpu import aggregate as aggregate_cpu
+from .aggregate_cpu import broadcast as broadcast_cpu
 
 try:
-    from .aggregate_cuda import aggregate as aggregate_gpu, broadcast as broadcast_gpu
-    from .clustered_aggregate_cuda import (
-        clustered_broadcast as clustered_broadcast_gpu,
-        clustered_aggregate as clustered_aggregate_gpu,
-    )
+    from .aggregate_cuda import aggregate as aggregate_gpu
+    from .aggregate_cuda import broadcast as broadcast_gpu
+    from .clustered_aggregate_cuda import clustered_aggregate as clustered_aggregate_gpu
+    from .clustered_aggregate_cuda import clustered_broadcast as clustered_broadcast_gpu
 
 except ImportError:
     pass

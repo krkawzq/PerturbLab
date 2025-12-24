@@ -5,12 +5,11 @@ Provides serialization, validation, and type constraints for model configuration
 
 import inspect
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from dataclasses import dataclass
 
 from typing_extensions import Self
-
 
 # Allowed basic types for config values
 BASIC_TYPES = (int, float, str, bool, type(None))

@@ -8,25 +8,25 @@
 from torch.nn import LayerNorm
 
 from ..attention import AttentionLayer
-from ..transformers import (
-    TransformerEncoder,
-    TransformerEncoderLayer,
-    TransformerDecoder,
-    TransformerDecoderLayer,
-)
 from ..recurrent.attention import RecurrentAttentionLayer, RecurrentCrossAttentionLayer
 from ..recurrent.transformers import (
-    RecurrentTransformerEncoder,
-    RecurrentTransformerEncoderLayer,
     RecurrentTransformerDecoder,
     RecurrentTransformerDecoderLayer,
+    RecurrentTransformerEncoder,
+    RecurrentTransformerEncoderLayer,
 )
-from .base import BaseBuilder
+from ..transformers import (
+    TransformerDecoder,
+    TransformerDecoderLayer,
+    TransformerEncoder,
+    TransformerEncoderLayer,
+)
 from .attention_builders import (
     AttentionBuilder,
     RecurrentAttentionBuilder,
     RecurrentCrossAttentionBuilder,
 )
+from .base import BaseBuilder
 
 
 class BaseTransformerBuilder(BaseBuilder):

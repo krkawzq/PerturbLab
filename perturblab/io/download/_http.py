@@ -17,6 +17,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from perturblab.utils import get_logger
+
 from ._base import BaseDownloader, DownloadError, _prepare_path
 
 # Try to import tqdm

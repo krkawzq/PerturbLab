@@ -23,7 +23,6 @@ from perturblab.utils import DependencyError
 from .config import CellFMConfig
 from .io import CellFMInput, CellFMOutput
 
-
 __all__ = [
     "CellFMConfig",
     "CellFMInput",
@@ -43,14 +42,14 @@ CELLFM_COMPONENTS = CELLFM_REGISTRY.child("components")
 # Register CellFM model with dependency checking
 try:
     from ._modeling import CellFMModel
-    
+
     # Register the main model
     CELLFM_REGISTRY.register("CellFMModel")(CellFMModel)
     CELLFM_REGISTRY.register("default")(CellFMModel)
-    
+
     # Add to __all__ if successfully imported
     __all__.append("CellFMModel")
-    
+
 except (DependencyError, ImportError):
     # Dependencies not satisfied - models won't be available
     pass
@@ -58,38 +57,35 @@ except (DependencyError, ImportError):
 
 # Register components
 try:
-    from ._modeling.components import (
-        # Core Model
-        FinetuneModel,
-        MaskedMSE,
-        BCELoss,
-        # Encoders/Decoders
+    from ._modeling.components import (  # Core Model; Encoders/Decoders; Retention Layers
         FFN,
-        ValueEncoder,
-        ValueDecoder,
+        BCELoss,
         CellwiseDecoder,
-        # Retention Layers
-        SiLU,
+        DropPath,
+        FinetuneModel,
+        GatedLinearUnit,
         Kernel,
         LoraBlock,
-        SRMSNorm,
-        DropPath,
+        MaskedMSE,
         MHRetention,
-        GatedLinearUnit,
         RetentionLayer,
+        SiLU,
+        SRMSNorm,
+        ValueDecoder,
+        ValueEncoder,
     )
-    
+
     # Register core components
     CELLFM_COMPONENTS.register("FinetuneModel")(FinetuneModel)
     CELLFM_COMPONENTS.register("MaskedMSE")(MaskedMSE)
     CELLFM_COMPONENTS.register("BCELoss")(BCELoss)
-    
+
     # Register encoders/decoders
     CELLFM_COMPONENTS.register("FFN")(FFN)
     CELLFM_COMPONENTS.register("ValueEncoder")(ValueEncoder)
     CELLFM_COMPONENTS.register("ValueDecoder")(ValueDecoder)
     CELLFM_COMPONENTS.register("CellwiseDecoder")(CellwiseDecoder)
-    
+
     # Register retention layers
     CELLFM_COMPONENTS.register("SiLU")(SiLU)
     CELLFM_COMPONENTS.register("Kernel")(Kernel)
@@ -99,16 +95,28 @@ try:
     CELLFM_COMPONENTS.register("MHRetention")(MHRetention)
     CELLFM_COMPONENTS.register("GatedLinearUnit")(GatedLinearUnit)
     CELLFM_COMPONENTS.register("RetentionLayer")(RetentionLayer)
-    
+
     # Add components to __all__
-    __all__.extend([
-        "FinetuneModel", "MaskedMSE", "BCELoss",
-        "FFN", "ValueEncoder", "ValueDecoder", "CellwiseDecoder",
-        "SiLU", "Kernel", "LoraBlock", "SRMSNorm", "DropPath",
-        "MHRetention", "GatedLinearUnit", "RetentionLayer",
-    ])
-    
+    __all__.extend(
+        [
+            "FinetuneModel",
+            "MaskedMSE",
+            "BCELoss",
+            "FFN",
+            "ValueEncoder",
+            "ValueDecoder",
+            "CellwiseDecoder",
+            "SiLU",
+            "Kernel",
+            "LoraBlock",
+            "SRMSNorm",
+            "DropPath",
+            "MHRetention",
+            "GatedLinearUnit",
+            "RetentionLayer",
+        ]
+    )
+
 except (DependencyError, ImportError):
     # Components not available
     pass
-

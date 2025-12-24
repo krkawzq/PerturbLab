@@ -34,31 +34,31 @@ class Vocab:
     @staticmethod
     def _check_tokens(tokens: list[str]) -> None:
         """Validate token list with comprehensive checks.
-        
+
         Args:
             tokens (list[str]): Token list to validate.
-            
+
         Raises:
             ValueError: If tokens is invalid (not list, not strings, has duplicates, empty strings).
         """
         if not isinstance(tokens, list):
             raise ValueError(f"tokens must be a list, got {type(tokens)}")
-        
+
         if len(tokens) == 0:
             raise ValueError("tokens list cannot be empty")
-        
+
         for i, token in enumerate(tokens):
             if not isinstance(token, str):
                 raise ValueError(
-                    f"All tokens must be strings. "
-                    f"Token at index {i} is {type(token)}: {token}"
+                    f"All tokens must be strings. " f"Token at index {i} is {type(token)}: {token}"
                 )
             if len(token) == 0:
                 raise ValueError(f"Empty string found at index {i}")
-        
+
         # Check for duplicates
         if len(tokens) != len(set(tokens)):
             from collections import Counter
+
             counts = Counter(tokens)
             duplicates = [tok for tok, count in counts.items() if count > 1]
             raise ValueError(
@@ -90,10 +90,7 @@ class Vocab:
         return lookup_tokens(indices, self.itos, fallback)
 
     def lookup_indices(
-        self, 
-        tokens: Iterable[str], 
-        fallback: int | None = None,
-        warn_unknown: bool = False
+        self, tokens: Iterable[str], fallback: int | None = None, warn_unknown: bool = False
     ) -> list[int]:
         """Map tokens to indices with optional warnings for unknown tokens.
 
@@ -106,7 +103,7 @@ class Vocab:
 
         Returns:
             list[int]: List of indices.
-            
+
         Example:
             >>> vocab = Vocab(['A', 'B', 'C'])
             >>> vocab.lookup_indices(['A', 'D', 'B'], warn_unknown=True)
@@ -118,19 +115,20 @@ class Vocab:
         from perturblab.kernels.mapping import lookup_indices
 
         indices = list(lookup_indices(self.stoi, tokens, fallback))
-        
+
         # Optional warning for unknown tokens
         if warn_unknown:
             token_list = list(tokens) if not isinstance(tokens, list) else tokens
             unknown = [tok for tok, idx in zip(token_list, indices) if idx == fallback]
             if unknown:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.warning(
                     f"{len(unknown)} unknown tokens (returning {fallback}): "
                     f"{unknown[:10]}{'...' if len(unknown) > 10 else ''}"
                 )
-        
+
         return indices
 
     def __getitem__(
@@ -224,20 +222,20 @@ class Vocab:
                 Defaults to True.
         """
         import os
-        
+
         data = {
             "itos": self.itos,
             "default_token": self.default_token,
             "default_index": self.default_index,
         }
-        
+
         if include_metadata:
             data["metadata"] = {
                 "size": len(self.itos),
                 "version": "1.0",
                 "class": self.__class__.__name__,
             }
-        
+
         # Create parent directory if needed
         os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
 
@@ -255,43 +253,44 @@ class Vocab:
 
         Returns:
             Vocab: Loaded vocabulary instance.
-            
+
         Raises:
             FileNotFoundError: If file doesn't exist.
             ValueError: If JSON format is invalid.
             RuntimeError: If metadata indicates incompatible version/class.
         """
         import os
-        
+
         if not os.path.exists(path):
             raise FileNotFoundError(f"Vocabulary file not found: {path}")
-        
+
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON file: {e}")
-        
+
         # Validate required fields
         if "itos" not in data:
             raise ValueError("JSON file missing required field: 'itos'")
-        
+
         if not isinstance(data["itos"], list):
             raise ValueError(f"'itos' must be a list, got {type(data['itos'])}")
-        
+
         # Verify metadata if present and requested
         if verify_metadata and "metadata" in data:
             meta = data["metadata"]
-            
+
             # Check class compatibility
             if "class" in meta and meta["class"] != cls.__name__:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.warning(
                     f"Loading {meta['class']} vocabulary into {cls.__name__}. "
                     f"This may cause compatibility issues."
                 )
-            
+
             # Check size consistency
             if "size" in meta and meta["size"] != len(data["itos"]):
                 raise RuntimeError(

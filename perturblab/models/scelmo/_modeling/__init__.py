@@ -7,4 +7,3 @@ scELMo has no external dependencies beyond PyTorch.
 from .model import scELMoModel
 
 __all__ = ["scELMoModel"]
-

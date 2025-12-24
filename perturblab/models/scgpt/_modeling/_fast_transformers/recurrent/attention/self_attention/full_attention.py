@@ -13,12 +13,12 @@ import torch
 from torch.nn import Dropout, Module
 
 from ....attention_registry import (
-    RecurrentAttentionRegistry,
-    Optional,
-    Float,
     EventDispatcherInstance,
+    Float,
+    Optional,
+    RecurrentAttentionRegistry,
 )
-from ....events import EventDispatcher, AttentionEvent
+from ....events import AttentionEvent, EventDispatcher
 from ..._utils import check_state
 
 

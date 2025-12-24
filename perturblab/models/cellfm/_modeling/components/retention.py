@@ -28,23 +28,26 @@ __all__ = ["RetentionLayer", "SRMSNorm"]
 
 class SiLU(nn.Module):
     """Sigmoid Linear Unit (SiLU) activation."""
+
     def forward(self, x: Tensor) -> Tensor:
         return F.silu(x)
 
 
 class Kernel(nn.Module):
     """Simple ReLU kernel for retention mechanism."""
+
     def forward(self, x: Tensor) -> Tensor:
         return F.relu(x)
 
 
 class LoraBlock(nn.Module):
     """Low-Rank Adaptation (LoRA) block.
-    
+
     Attributes:
         A (nn.Linear): Down-projection.
         B (nn.Linear): Up-projection.
     """
+
     def __init__(self, in_dim: int, out_dim: int, r: int):
         super().__init__()
         self.A = nn.Linear(in_dim, r, bias=False)
@@ -57,10 +60,11 @@ class LoraBlock(nn.Module):
 
 class SRMSNorm(nn.Module):
     """Scaled RMS Normalization.
-    
+
     A variation of RMSNorm that includes a scaling factor based on embedding dimension.
     Ensures numerical stability by computing norm in float32.
     """
+
     def __init__(self, emb_dims: int, eps: float = 1e-7):
         super().__init__()
         self.scale = 1.0 / math.sqrt(emb_dims)
@@ -70,23 +74,24 @@ class SRMSNorm(nn.Module):
         # Compute in float32 to prevent overflow in mixed precision training
         x_dtype = x.dtype
         x_float = x.float()
-        
+
         norm = torch.norm(x_float * self.scale, p=2, dim=-1, keepdim=True)
         norm = torch.clamp(norm, min=1e-12)
-        
+
         return (x_float / norm).to(dtype=x_dtype)
 
 
 class DropPath(nn.Module):
     """Drop paths (Stochastic Depth) per sample."""
-    def __init__(self, dropout: float = 0.):
+
+    def __init__(self, dropout: float = 0.0):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x: Tensor) -> Tensor:
         if not self.training or self.dropout.p == 0.0:
             return x
-        
+
         # Broadcast dropout mask across sequence/channel dims
         B = x.shape[0]
         mask = torch.ones(B, 1, 1, device=x.device, dtype=x.dtype)
@@ -96,11 +101,11 @@ class DropPath(nn.Module):
 
 class MHRetention(nn.Module):
     """Multi-Head Retention Mechanism.
-    
-    Core component of RetNet. Replaces softmax attention with element-wise 
+
+    Core component of RetNet. Replaces softmax attention with element-wise
     gating and group norm.
     """
-    
+
     def __init__(self, emb_dims: int, num_heads: int, lth: Optional[int] = None, lora: int = 0):
         super().__init__()
         self.emb_dims = emb_dims
@@ -108,7 +113,7 @@ class MHRetention(nn.Module):
         self.head_dim = emb_dims // num_heads
         self.scale = math.sqrt(self.head_dim)
         self.lora = lora
-        
+
         # Scaling factor for initialization
         beta = 1.0 if lth is None else (lth * 8) ** -0.25
 
@@ -118,7 +123,7 @@ class MHRetention(nn.Module):
         self.v_proj = nn.Linear(emb_dims, emb_dims, bias=False)
         self.u_proj = nn.Linear(emb_dims, emb_dims, bias=False)
         self.o_proj = nn.Linear(emb_dims, emb_dims, bias=False)
-        
+
         # Init
         nn.init.xavier_normal_(self.q_proj.weight, gain=1.0)
         nn.init.xavier_normal_(self.k_proj.weight, gain=1.0)
@@ -145,12 +150,12 @@ class MHRetention(nn.Module):
             self.lora_o = LoraBlock(emb_dims, emb_dims, lora)
 
     def forward(
-        self, 
-        x: Tensor, 
-        y: Optional[Tensor] = None, 
-        v_pos: Optional[Tensor] = None, 
-        attn_mask: Optional[Tensor] = None, 
-        seq_mask: Optional[Tensor] = None
+        self,
+        x: Tensor,
+        y: Optional[Tensor] = None,
+        v_pos: Optional[Tensor] = None,
+        attn_mask: Optional[Tensor] = None,
+        seq_mask: Optional[Tensor] = None,
     ) -> Tensor:
         """Forward pass for retention.
 
@@ -166,9 +171,9 @@ class MHRetention(nn.Module):
         """
         if y is None:
             y = x
-            
+
         B, L1, D = x.shape
-        
+
         # Linear Projections
         q = self.q_proj(x)
         k = self.k_proj(y)
@@ -214,45 +219,45 @@ class MHRetention(nn.Module):
         # V: [B, H, L, D_h]
         # KV: [B, H, D_h, D_h]
         kv = torch.matmul(k.transpose(-1, -2), v)
-        
+
         # 2. Q @ KV -> [B, H, L, D_h]
         out = torch.matmul(q, kv)
-        
+
         # 3. Normalization and Gating
         out = self.inner_norm(out) * u
 
         # Reshape back: [B, L, D]
         out = out.transpose(1, 2).contiguous().view(B, L1, D)
-        
+
         # Output Projection
         out = self.o_proj(out)
         if self.lora > 0:
             out = out + self.lora_o(out)
-            
+
         return out
 
 
 class GatedLinearUnit(nn.Module):
     """Gated Linear Unit (FFN) with Swish/SiLU activation.
-    
+
     Structure: (U * V) @ O
     Where U = x @ W_u, V = x @ W_v
     """
-    
+
     def __init__(self, emb_dims: int, lth: Optional[int] = None, lora: int = 0):
         super().__init__()
         beta = 1.0 if lth is None else (lth * 8) ** -0.25
-        
+
         self.u_proj = nn.Linear(emb_dims, emb_dims, bias=False)
         self.v_proj = nn.Linear(emb_dims, emb_dims, bias=False)
         self.o_proj = nn.Linear(emb_dims, emb_dims, bias=False)
         self.norm = SRMSNorm(emb_dims)
         self.lora = lora
-        
+
         nn.init.xavier_normal_(self.u_proj.weight, gain=beta)
         nn.init.xavier_normal_(self.v_proj.weight, gain=beta)
         nn.init.xavier_normal_(self.o_proj.weight, gain=beta)
-        
+
         if self.lora > 0:
             self.lora_u = LoraBlock(emb_dims, emb_dims, lora)
             self.lora_v = LoraBlock(emb_dims, emb_dims, lora)
@@ -261,7 +266,7 @@ class GatedLinearUnit(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         B, L, D = x.shape
         x_flat = x.view(-1, D)
-        
+
         u = self.u_proj(x_flat)
         v = self.v_proj(x_flat)
 
@@ -281,28 +286,28 @@ class GatedLinearUnit(nn.Module):
 
 class RetentionLayer(nn.Module):
     """Single layer of the Retention Network (RetNet).
-    
+
     Combines Multi-Head Retention and Gated Linear Unit with residual connections
     and LayerNorms.
     """
-    
+
     def __init__(
-        self, 
-        d_model: int, 
-        nhead: int, 
-        nlayers: int, 
-        dropout: float = 0.0, 
-        lora: int = 0, 
-        recompute: bool = False
+        self,
+        d_model: int,
+        nhead: int,
+        nlayers: int,
+        dropout: float = 0.0,
+        lora: int = 0,
+        recompute: bool = False,
     ):
         super().__init__()
         # Alpha scaling for residual connection stability
         self.alpha = (2 * nlayers) ** 0.25
-        
+
         self.attn = MHRetention(d_model, nhead, nlayers, lora)
         self.ffn = GatedLinearUnit(d_model, nlayers, lora)
         self.dropout = nn.Dropout(p=dropout)
-        
+
         self.post_norm1 = nn.LayerNorm(d_model)
         self.post_norm2 = nn.LayerNorm(d_model)
 
@@ -311,10 +316,10 @@ class RetentionLayer(nn.Module):
         # Residual = x * alpha + Retention(x)
         out = self.dropout(self.attn(x, **kwargs))
         x = self.post_norm1(x * self.alpha + out)
-        
+
         # 2. FFN Block
         # Residual = x * alpha + FFN(x)
         out = self.dropout(self.ffn(x))
         x = self.post_norm2(x * self.alpha + out)
-        
+
         return x

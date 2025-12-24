@@ -13,19 +13,19 @@ import torch.autograd
 from torch.nn import Dropout, Module
 from torch.nn.init import normal_
 
+from ..aggregate import clustered_aggregate, clustered_broadcast
 from ..attention_registry import (
     AttentionRegistry,
-    Optional,
-    Float,
-    Int,
     Bool,
     EventDispatcherInstance,
+    Float,
+    Int,
+    Optional,
 )
-from ..events import EventDispatcher
-from ..masking import FullMask
-from ..aggregate import clustered_aggregate, clustered_broadcast
 from ..clustering.hamming import cluster
+from ..events import EventDispatcher
 from ..hashing import compute_hashes
+from ..masking import FullMask
 
 
 class _GroupQueries(torch.autograd.Function):

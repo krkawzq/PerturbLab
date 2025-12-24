@@ -10,36 +10,35 @@ Components are organized by functionality:
 - misc.py: Utility modules (Similarity, etc.)
 """
 
-from .encoders import (
-    GeneEncoder,
-    PositionalEncoding,
-    ContinuousValueEncoder,
-    CategoryValueEncoder,
-    BatchLabelEncoder,
-)
-from .decoders import (
-    ExprDecoder,
-    MVCDecoder,
-    ClsDecoder,
-    AdversarialDiscriminator,
-)
 from .attention import (
     FastTransformerEncoderWrapper,
     FlashTransformerEncoderLayer,
+)
+from .decoders import (
+    AdversarialDiscriminator,
+    ClsDecoder,
+    ExprDecoder,
+    MVCDecoder,
 )
 from .dsbn import (
     DomainSpecificBatchNorm1d,
     DomainSpecificBatchNorm2d,
 )
+from .encoders import (
+    BatchLabelEncoder,
+    CategoryValueEncoder,
+    ContinuousValueEncoder,
+    GeneEncoder,
+    PositionalEncoding,
+)
 from .grad_reverse import (
-    grad_reverse,
     GradReverse,
+    grad_reverse,
 )
 from .misc import (
     Similarity,
     generate_square_subsequent_mask,
 )
-
 
 __all__ = [
     # Encoders

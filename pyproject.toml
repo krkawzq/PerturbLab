@@ -62,8 +62,11 @@ scgpt = [
 scfoundation = [
     "local-attention",  # Optional: for Performer backend
 ]
+genecompass = [
+    "transformers>=4.30.0",  # Required: HuggingFace transformers for BERT
+]
 all = [
-    "perturblab[accelerate,gears,uce,scgpt,scfoundation]",
+    "perturblab[accelerate,gears,uce,scgpt,scfoundation,genecompass]",
 ]
 
 [project.urls]

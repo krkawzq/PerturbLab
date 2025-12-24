@@ -19,7 +19,6 @@ from perturblab.utils import DependencyError
 from .config import UCEConfig
 from .io import UCEInput, UCEOutput, UCEPredictInput, UCEPredictOutput
 
-
 __all__ = [
     "UCEConfig",
     "UCE_REGISTRY",

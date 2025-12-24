@@ -23,7 +23,6 @@ from perturblab.utils import DependencyError
 from .config import scFoundationConfig
 from .io import scFoundationInput, scFoundationOutput
 
-
 __all__ = [
     "scFoundationConfig",
     "scFoundationInput",
@@ -43,14 +42,14 @@ SCFOUNDATION_COMPONENTS = SCFOUNDATION_REGISTRY.child("components")
 # Register scFoundation models with dependency checking
 try:
     from ._modeling.model import scFoundationModel
-    
+
     # Register the main model
     SCFOUNDATION_REGISTRY.register("scFoundationModel")(scFoundationModel)
     SCFOUNDATION_REGISTRY.register("default")(scFoundationModel)
-    
+
     # Add to __all__ if successfully imported
     __all__.append("scFoundationModel")
-    
+
 except (DependencyError, ImportError):
     # Dependencies not satisfied - models won't be available
     pass
@@ -58,29 +57,28 @@ except (DependencyError, ImportError):
 
 # Register components (embeddings, transformers)
 try:
-    from ._modeling.components import (
-        # Embeddings
+    from ._modeling.components import (  # Embeddings; Transformers
         AutoDiscretizationEmbedding,
         RandomPositionalEmbedding,
-        # Transformers
         Transformer,
     )
-    
+
     # Register embeddings
     SCFOUNDATION_COMPONENTS.register("AutoDiscretizationEmbedding")(AutoDiscretizationEmbedding)
     SCFOUNDATION_COMPONENTS.register("RandomPositionalEmbedding")(RandomPositionalEmbedding)
-    
+
     # Register transformer
     SCFOUNDATION_COMPONENTS.register("Transformer")(Transformer)
-    
+
     # Add components to __all__
-    __all__.extend([
-        "AutoDiscretizationEmbedding",
-        "RandomPositionalEmbedding",
-        "Transformer",
-    ])
-    
+    __all__.extend(
+        [
+            "AutoDiscretizationEmbedding",
+            "RandomPositionalEmbedding",
+            "Transformer",
+        ]
+    )
+
 except (DependencyError, ImportError):
     # Components not available
     pass
-

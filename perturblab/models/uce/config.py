@@ -1,6 +1,7 @@
 """Configuration for UCE (Universal Cell Embeddings) model."""
 
 from dataclasses import dataclass, field
+
 from perturblab.core.config import Config
 
 __all__ = ["UCEConfig", "dependencies"]

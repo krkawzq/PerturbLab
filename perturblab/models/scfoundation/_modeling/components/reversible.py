@@ -5,7 +5,8 @@ Original logic based on: https://github.com/TencentAILabHealthcare/scBERT
 Heavily inspired by: https://github.com/RobinBruegger/RevTorch
 """
 
-from typing import Dict, List, Tuple, Any, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -13,21 +14,23 @@ from torch.autograd.function import Function
 from torch.utils.checkpoint import get_device_states, set_device_states
 
 
-def route_args(router: Dict[str, List[List[bool]]], args: Dict[str, Any], depth: int) -> List[Tuple[Dict[str, Any], Dict[str, Any]]]:
+def route_args(
+    router: Dict[str, List[List[bool]]], args: Dict[str, Any], depth: int
+) -> List[Tuple[Dict[str, Any], Dict[str, Any]]]:
     """
     Routes arguments to specific layers based on a routing map.
-    
+
     Args:
         router: A dictionary mapping argument names to a list of boolean routes.
         args: The dictionary of arguments to route.
         depth: The depth of the network (number of layers).
-        
+
     Returns:
         A list of tuples, where each tuple contains (f_args, g_args) for a layer.
     """
     # Initialize routed arguments: list of (f_args, g_args)
     routed_args = [({}, {}) for _ in range(depth)]
-    
+
     # Filter keys that exist in both args and router
     matched_keys = [key for key in args.keys() if key in router]
 
@@ -37,16 +40,16 @@ def route_args(router: Dict[str, List[List[bool]]], args: Dict[str, Any], depth:
         for layer_idx, routes in enumerate(router[key]):
             if layer_idx >= depth:
                 break
-            
+
             # router[key] is a list of [f_route, g_route] booleans
             # Check if this arg should go to f and/or g
             curr_f_args, curr_g_args = routed_args[layer_idx]
-            
-            if routes[0]: # f_route
+
+            if routes[0]:  # f_route
                 curr_f_args[key] = val
-            if routes[1]: # g_route
+            if routes[1]:  # g_route
                 curr_g_args[key] = val
-                
+
     return routed_args
 
 
@@ -55,6 +58,7 @@ class Deterministic(nn.Module):
     Wrapper module to ensure deterministic execution by saving and restoring RNG states.
     Essential for Reversible Networks to reproduce exact forward pass during backward pass.
     """
+
     def __init__(self, net: nn.Module):
         super().__init__()
         self.net = net
@@ -79,7 +83,7 @@ class Deterministic(nn.Module):
 
         # Restore RNG state
         rng_devices = self.gpu_devices if self.cuda_in_fwd else []
-        
+
         with torch.random.fork_rng(devices=rng_devices, enabled=True):
             torch.set_rng_state(self.cpu_state)
             if self.cuda_in_fwd:
@@ -93,6 +97,7 @@ class ReversibleBlock(nn.Module):
     y1 = x1 + f(x2)
     y2 = x2 + g(y1)
     """
+
     def __init__(self, f: nn.Module, g: nn.Module):
         super().__init__()
         self.f = Deterministic(f)
@@ -101,7 +106,7 @@ class ReversibleBlock(nn.Module):
     def forward(self, x: Tensor, f_args: Dict = {}, g_args: Dict = {}) -> Tensor:
         # Split input into two parts along the channel dimension
         x1, x2 = torch.chunk(x, 2, dim=2)
-        
+
         # Ensure no gradients are tracked during the "forward" pass used in training forward
         # Gradients are calculated manually in backward_pass
         with torch.no_grad():
@@ -112,16 +117,18 @@ class ReversibleBlock(nn.Module):
 
         return torch.cat([y1, y2], dim=2)
 
-    def backward_pass(self, y: Tensor, dy: Tensor, f_args: Dict = {}, g_args: Dict = {}) -> Tuple[Tensor, Tensor]:
+    def backward_pass(
+        self, y: Tensor, dy: Tensor, f_args: Dict = {}, g_args: Dict = {}
+    ) -> Tuple[Tensor, Tensor]:
         """
         Manually computes the backward pass, reconstructing the input x from output y.
         """
         # Split outputs and gradients
         y1, y2 = torch.chunk(y, 2, dim=2)
-        del y # Save memory
-        
+        del y  # Save memory
+
         dy1, dy2 = torch.chunk(dy, 2, dim=2)
-        del dy # Save memory
+        del dy  # Save memory
 
         # 1. Backprop through g: y2 = x2 + g(y1) -> x2 = y2 - g(y1)
         # We need to compute gradients w.r.t g's parameters and w.r.t input y1
@@ -134,7 +141,7 @@ class ReversibleBlock(nn.Module):
         with torch.no_grad():
             x2 = y2 - gy1
             del y2, gy1
-            
+
             # Gradient for x1 so far is just dy1 + grad from g
             dx1 = dy1 + y1.grad
             del dy1
@@ -167,15 +174,16 @@ class _ReversibleFunction(Function):
     """
     Custom autograd function to handle the reversible sequence.
     """
+
     @staticmethod
     def forward(ctx, x: Tensor, blocks: nn.ModuleList, args: List[Dict]):
         ctx.args = args
         ctx.blocks = blocks
-        
+
         # Execute forward pass sequentially
         for block, kwarg in zip(blocks, args):
             x = block(x, **kwarg)
-            
+
         # Save output for backward pass (input reconstruction starts from here)
         ctx.y = x.detach()
         return x
@@ -184,12 +192,12 @@ class _ReversibleFunction(Function):
     def backward(ctx, dy: Tensor):
         y = ctx.y
         args = ctx.args
-        
+
         # Execute backward pass in reverse order
         # Reconstructs input layer by layer while computing gradients
         for block, kwargs in zip(ctx.blocks[::-1], args[::-1]):
             y, dy = block.backward_pass(y, dy, **kwargs)
-            
+
         return dy, None, None
 
 
@@ -198,21 +206,25 @@ class SequentialSequence(nn.Module):
     Standard sequential container that supports routing arguments and attention output.
     Assumes layers are tuples of (Attention, FeedForward) or similar structures.
     """
+
     def __init__(self, layers: nn.ModuleList, args_route: Dict[str, Any] = {}):
         super().__init__()
         # Validate routing depth
         if args_route:
-            assert all(len(route) == len(layers) for route in args_route.values()), \
-                'Each argument route map must have the same depth as the number of sequential layers'
-        
+            assert all(
+                len(route) == len(layers) for route in args_route.values()
+            ), "Each argument route map must have the same depth as the number of sequential layers"
+
         self.layers = layers
         self.args_route = args_route
 
-    def forward(self, x: Tensor, output_attentions: bool = False, **kwargs) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+    def forward(
+        self, x: Tensor, output_attentions: bool = False, **kwargs
+    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
         args = route_args(self.args_route, kwargs, len(self.layers))
-        
+
         attn_weights = []
-        
+
         for (f, g), (f_args, g_args) in zip(self.layers, args):
             # Block Part 1 (e.g., Attention)
             if output_attentions:
@@ -221,7 +233,7 @@ class SequentialSequence(nn.Module):
                 attn_weights.append(out_attn.unsqueeze(0))
             else:
                 x = x + f(x, **f_args)
-            
+
             # Block Part 2 (e.g., FeedForward)
             x = x + g(x, **g_args)
 
@@ -229,7 +241,7 @@ class SequentialSequence(nn.Module):
             # Concatenate attention weights: (layer, batch, head, len, len) -> transpose to (batch, layer, ...)
             attn_weights = torch.cat(attn_weights, dim=0).transpose(0, 1)
             return x, attn_weights
-        
+
         return x
 
 
@@ -237,34 +249,38 @@ class SequentialSequenceGAU(nn.Module):
     """
     Sequential container specific for Gated Attention Unit (GAU) structures.
     """
+
     def __init__(self, layers: nn.ModuleList, args_route: Dict[str, Any] = {}):
         super().__init__()
         if args_route:
-            assert all(len(route) == len(layers) for route in args_route.values()), \
-                'Each argument route map must have the same depth as the number of sequential layers'
+            assert all(
+                len(route) == len(layers) for route in args_route.values()
+            ), "Each argument route map must have the same depth as the number of sequential layers"
         self.layers = layers
         self.args_route = args_route
 
-    def forward(self, x: Tensor, output_attentions: bool = False, ppi_edge: Tensor = None, **kwargs):
+    def forward(
+        self, x: Tensor, output_attentions: bool = False, ppi_edge: Tensor = None, **kwargs
+    ):
         args = route_args(self.args_route, kwargs, len(self.layers))
-        
+
         attn_weights = []
-        
+
         # Assuming layer structure is wrapped in a ModuleList inside the main list
         for layer_wrapper, (f_args, g_args) in zip(self.layers, args):
-            f = layer_wrapper[0] # Extract the main module
-            
+            f = layer_wrapper[0]  # Extract the main module
+
             if output_attentions:
                 out_x, out_attn = f(x, output_attentions=True, ppi_edge=ppi_edge, **f_args)
                 x = x + out_x
                 attn_weights.append(out_attn.unsqueeze(0))
             else:
                 x = x + f(x, ppi_edge=ppi_edge, **f_args)
-                
+
         if output_attentions:
             attn_weights = torch.cat(attn_weights, dim=0).transpose(0, 1)
             return x, attn_weights
-            
+
         return x
 
 
@@ -273,6 +289,7 @@ class ReversibleSequence(nn.Module):
     The main container for a Reversible Network sequence.
     Wraps layers in ReversibleBlocks and executes them via the custom autograd function.
     """
+
     def __init__(self, blocks: List[Tuple[nn.Module, nn.Module]], args_route: Dict[str, Any] = {}):
         super().__init__()
         self.args_route = args_route
@@ -287,14 +304,14 @@ class ReversibleSequence(nn.Module):
 
         blocks = self.blocks
         args = route_args(self.args_route, kwargs, len(blocks))
-        
+
         # Format args for ReversibleBlock signature
-        formatted_args = [{'f_args': a[0], 'g_args': a[1]} for a in args]
+        formatted_args = [{"f_args": a[0], "g_args": a[1]} for a in args]
 
         # Use custom autograd function
         out = _ReversibleFunction.apply(x, blocks, formatted_args)
-        
-        # Merge the split outputs back. 
+
+        # Merge the split outputs back.
         # Standard approach: (y1 + y2) or just one of them depending on architecture.
         # Original code sums them.
         y1, y2 = out.chunk(2, dim=-1)

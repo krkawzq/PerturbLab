@@ -14,8 +14,8 @@ from math import sqrt
 import torch
 from torch.nn import Dropout, Module
 
-from ..attention_registry import AttentionRegistry, Optional, Float, EventDispatcherInstance
-from ..events import EventDispatcher, AttentionEvent
+from ..attention_registry import AttentionRegistry, EventDispatcherInstance, Float, Optional
+from ..events import AttentionEvent, EventDispatcher
 
 
 class FullAttention(Module):

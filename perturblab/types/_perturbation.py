@@ -745,8 +745,9 @@ class PerturbationData(CellData):
         logger.info(f"🧬 Calculating highly variable genes (n_top={n_top_genes})...")
 
         # Use PerturbLab's kernel-level HVG operators (not scanpy wrapper)
-        from perturblab.kernels.statistics import sparse_mean_var
         from scipy.sparse import issparse
+
+        from perturblab.kernels.statistics import sparse_mean_var
 
         # Get data
         if layer is None or layer == "X":

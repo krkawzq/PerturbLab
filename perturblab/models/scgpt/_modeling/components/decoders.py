@@ -13,7 +13,6 @@ from torch import Tensor
 from .dsbn import DomainSpecificBatchNorm1d
 from .grad_reverse import grad_reverse
 
-
 __all__ = [
     "ExprDecoder",
     "MVCDecoder",

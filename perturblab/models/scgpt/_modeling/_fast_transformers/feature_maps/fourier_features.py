@@ -8,8 +8,8 @@
 and the traditional random Fourier features that approximate the RBF kernel.
 """
 
-from math import sqrt, log
 import warnings
+from math import log, sqrt
 
 import torch
 

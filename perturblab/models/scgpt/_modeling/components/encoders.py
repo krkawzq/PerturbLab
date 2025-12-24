@@ -11,7 +11,6 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-
 __all__ = [
     "GeneEncoder",
     "PositionalEncoding",

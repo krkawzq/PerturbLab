@@ -7,21 +7,21 @@ This package contains all building blocks for CellFM models:
 """
 
 # Core model
-from .finetune import FinetuneModel, MaskedMSE, BCELoss
+from .finetune import BCELoss, FinetuneModel, MaskedMSE
 
 # Encoders and Decoders
-from .module import FFN, ValueEncoder, ValueDecoder, CellwiseDecoder
+from .module import FFN, CellwiseDecoder, ValueDecoder, ValueEncoder
 
 # Retention layers and utilities
 from .retention import (
-    SiLU,
+    DropPath,
+    GatedLinearUnit,
     Kernel,
     LoraBlock,
-    SRMSNorm,
-    DropPath,
     MHRetention,
-    GatedLinearUnit,
     RetentionLayer,
+    SiLU,
+    SRMSNorm,
 )
 
 __all__ = [

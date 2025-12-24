@@ -10,7 +10,7 @@ attention depending on the input sequence length."""
 import torch
 from torch.nn import Module
 
-from ..attention_registry import AttentionRegistry, Optional, Int, Float, EventDispatcherInstance
+from ..attention_registry import AttentionRegistry, EventDispatcherInstance, Float, Int, Optional
 from ..events import EventDispatcher
 from .full_attention import FullAttention
 

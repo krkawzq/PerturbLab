@@ -2,7 +2,7 @@
 
 This module defines the configuration dataclass for CellFM models.
 
-CellFM (Cell Foundation Model) uses the Retention mechanism rather than 
+CellFM (Cell Foundation Model) uses the Retention mechanism rather than
 standard self-attention for efficient long-sequence modeling.
 
 Copyright (c) 2023 CellFM Authors
@@ -10,15 +10,17 @@ Licensed under CC BY-NC-ND 4.0
 """
 
 from dataclasses import dataclass
+
 from perturblab.core.config import Config
 
 __all__ = ["CellFMConfig"]
+
 
 @dataclass
 class CellFMConfig(Config):
     """Configuration class for CellFM models.
 
-    This class captures configuration parameters for the Cell Foundation Model (CellFM), 
+    This class captures configuration parameters for the Cell Foundation Model (CellFM),
         which leverages a Retention mechanism for efficient gene expression modeling.
 
     Attributes:
@@ -69,4 +71,3 @@ class CellFMConfig(Config):
             )
         if self.lora < 0:
             raise ValueError(f"lora rank must be >= 0, got {self.lora}")
-

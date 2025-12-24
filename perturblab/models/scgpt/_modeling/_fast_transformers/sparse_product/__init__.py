@@ -7,18 +7,18 @@
 
 import torch
 
+from .sparse_product_cpu import sparse_dot_backward as sparse_dot_backward_cpu
+from .sparse_product_cpu import sparse_dot_product as sparse_dot_product_cpu
+from .sparse_product_cpu import sparse_weighted_average as sparse_weighted_average_cpu
 from .sparse_product_cpu import (
-    sparse_dot_product as sparse_dot_product_cpu,
-    sparse_dot_backward as sparse_dot_backward_cpu,
-    sparse_weighted_average as sparse_weighted_average_cpu,
     sparse_weighted_average_backward as sparse_weighted_average_backward_cpu,
 )
 
 try:
+    from .sparse_product_cuda import sparse_dot_backward as sparse_dot_backward_cuda
+    from .sparse_product_cuda import sparse_dot_product as sparse_dot_product_cuda
+    from .sparse_product_cuda import sparse_weighted_average as sparse_weighted_average_cuda
     from .sparse_product_cuda import (
-        sparse_dot_product as sparse_dot_product_cuda,
-        sparse_dot_backward as sparse_dot_backward_cuda,
-        sparse_weighted_average as sparse_weighted_average_cuda,
         sparse_weighted_average_backward as sparse_weighted_average_backward_cuda,
     )
 except ImportError:
@@ -28,17 +28,29 @@ except ImportError:
     sparse_weighted_average_backward_cuda = None
 
 from .clustered_sparse_product_cpu import (
-    clustered_sparse_dot_product as clustered_sparse_dot_product_cpu,
     clustered_sparse_dot_backward as clustered_sparse_dot_backward_cpu,
+)
+from .clustered_sparse_product_cpu import (
+    clustered_sparse_dot_product as clustered_sparse_dot_product_cpu,
+)
+from .clustered_sparse_product_cpu import (
     clustered_sparse_weighted_average as clustered_sparse_weighted_average_cpu,
+)
+from .clustered_sparse_product_cpu import (
     clustered_sparse_weighted_average_backward as clustered_sparse_weighted_average_backward_cpu,
 )
 
 try:
     from .clustered_sparse_product_cuda import (
-        clustered_sparse_dot_product as clustered_sparse_dot_product_cuda,
         clustered_sparse_dot_backward as clustered_sparse_dot_backward_cuda,
+    )
+    from .clustered_sparse_product_cuda import (
+        clustered_sparse_dot_product as clustered_sparse_dot_product_cuda,
+    )
+    from .clustered_sparse_product_cuda import (
         clustered_sparse_weighted_average as clustered_sparse_weighted_average_cuda,
+    )
+    from .clustered_sparse_product_cuda import (
         clustered_sparse_weighted_average_backward as clustered_sparse_weighted_average_backward_cuda,
     )
 except ImportError:

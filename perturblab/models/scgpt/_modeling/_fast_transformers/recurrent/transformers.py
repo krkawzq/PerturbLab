@@ -18,8 +18,8 @@ attentions.
 import warnings
 
 import torch
-from torch.nn import Dropout, LayerNorm, Linear, Module, ModuleList
 import torch.nn.functional as F
+from torch.nn import Dropout, LayerNorm, Linear, Module, ModuleList
 
 from ..events import EventDispatcher, IntermediateOutput
 from ..masking import LengthMask

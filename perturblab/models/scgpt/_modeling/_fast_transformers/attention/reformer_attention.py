@@ -15,11 +15,11 @@ from torch.nn.init import normal_
 
 from ..attention_registry import (
     AttentionRegistry,
-    Optional,
-    Int,
-    Float,
     Bool,
     EventDispatcherInstance,
+    Float,
+    Int,
+    Optional,
 )
 from ..events import EventDispatcher
 from ..masking import FullMask

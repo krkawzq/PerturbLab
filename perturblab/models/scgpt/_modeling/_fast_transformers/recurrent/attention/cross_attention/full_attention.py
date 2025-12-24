@@ -12,12 +12,12 @@ import torch
 from torch.nn import Dropout, Module
 
 from ....attention_registry import (
-    RecurrentCrossAttentionRegistry,
-    Optional,
-    Float,
     EventDispatcherInstance,
+    Float,
+    Optional,
+    RecurrentCrossAttentionRegistry,
 )
-from ....events import EventDispatcher, AttentionEvent
+from ....events import AttentionEvent, EventDispatcher
 
 
 class RecurrentCrossFullAttention(Module):

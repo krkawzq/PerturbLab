@@ -43,6 +43,7 @@ __all__ = [
 # Helpers
 # =============================================================================
 
+
 def exists(val: Any) -> bool:
     return val is not None
 
@@ -73,12 +74,13 @@ def get_module_device(module: nn.Module) -> torch.device:
         for _, v in module.__dict__.items():
             if torch.is_tensor(v):
                 return v.device
-        return torch.device('cpu')
+        return torch.device("cpu")
 
 
 # =============================================================================
 # Kernel Functions (FAVOR+)
 # =============================================================================
+
 
 def softmax_kernel(
     data: Tensor,
@@ -87,35 +89,33 @@ def softmax_kernel(
     is_query: bool,
     normalize_data: bool = True,
     eps: float = 1e-4,
-    device: Optional[torch.device] = None
+    device: Optional[torch.device] = None,
 ) -> Tensor:
     """Approximates softmax kernel using orthogonal random features."""
     b, h, *_ = data.shape
 
     data_normalizer = (data.shape[-1] ** -0.25) if normalize_data else 1.0
-    ratio = (projection_matrix.shape[0] ** -0.5)
+    ratio = projection_matrix.shape[0] ** -0.5
 
     # projection_matrix: shape (j, d)
     # target shape: (b, h, j, d)
     projection = projection_matrix.unsqueeze(0).unsqueeze(0).expand(b, h, -1, -1)
     projection = projection.type_as(data)
 
-    data_dash = torch.einsum('...id,...jd->...ij', (data_normalizer * data), projection)
+    data_dash = torch.einsum("...id,...jd->...ij", (data_normalizer * data), projection)
 
-    diag_data = data ** 2
+    diag_data = data**2
     diag_data = torch.sum(diag_data, dim=-1)
-    diag_data = (diag_data / 2.0) * (data_normalizer ** 2)
+    diag_data = (diag_data / 2.0) * (data_normalizer**2)
     diag_data = diag_data.unsqueeze(dim=-1)
 
     if is_query:
         data_dash = ratio * (
-            torch.exp(data_dash - diag_data -
-                      torch.max(data_dash, dim=-1, keepdim=True).values) + eps
+            torch.exp(data_dash - diag_data - torch.max(data_dash, dim=-1, keepdim=True).values)
+            + eps
         )
     else:
-        data_dash = ratio * (
-            torch.exp(data_dash - diag_data - torch.max(data_dash)) + eps
-        )
+        data_dash = ratio * (torch.exp(data_dash - diag_data - torch.max(data_dash)) + eps)
 
     return data_dash.type_as(data)
 
@@ -127,7 +127,7 @@ def generalized_kernel(
     kernel_fn: nn.Module = nn.ReLU(),
     kernel_epsilon: float = 0.001,
     normalize_data: bool = True,
-    device: Optional[torch.device] = None
+    device: Optional[torch.device] = None,
 ) -> Tensor:
     """Generalized kernel for non-softmax attention."""
     b, h, *_ = data.shape
@@ -139,7 +139,7 @@ def generalized_kernel(
     projection = projection_matrix.unsqueeze(0).unsqueeze(0).expand(b, h, -1, -1)
     projection = projection.type_as(data)
 
-    data_dash = torch.einsum('...id,...jd->...ij', (data_normalizer * data), projection)
+    data_dash = torch.einsum("...id,...jd->...ij", (data_normalizer * data), projection)
     data_prime = kernel_fn(data_dash) + kernel_epsilon
     return data_prime.type_as(data)
 
@@ -148,17 +148,14 @@ def generalized_kernel(
 def orthogonal_matrix_chunk(cols: int, device: Optional[torch.device] = None) -> Tensor:
     """Generates a chunk of orthogonal matrix via QR decomposition."""
     unstructured_block = torch.randn((cols, cols), device=device)
-    q, r = torch.linalg.qr(unstructured_block.cpu(), mode='reduced')
+    q, r = torch.linalg.qr(unstructured_block.cpu(), mode="reduced")
     q = q.to(device)
     return q.t()
 
 
 @torch.no_grad()
 def gaussian_orthogonal_random_matrix(
-    nb_rows: int,
-    nb_columns: int,
-    scaling: int = 0,
-    device: Optional[torch.device] = None
+    nb_rows: int, nb_columns: int, scaling: int = 0, device: Optional[torch.device] = None
 ) -> Tensor:
     """Generates Gaussian Orthogonal Random Matrix for FAVOR+."""
     nb_full_blocks = int(nb_rows / nb_columns)
@@ -180,7 +177,7 @@ def gaussian_orthogonal_random_matrix(
     elif scaling == 1:
         multiplier = math.sqrt((float(nb_columns))) * torch.ones((nb_rows,), device=device)
     else:
-        raise ValueError(f'Invalid scaling {scaling}')
+        raise ValueError(f"Invalid scaling {scaling}")
 
     return torch.diag(multiplier) @ final_matrix
 
@@ -189,12 +186,13 @@ def gaussian_orthogonal_random_matrix(
 # Attention Implementations
 # =============================================================================
 
+
 def linear_attention(q: Tensor, k: Tensor, v: Tensor) -> Tensor:
     """Standard linear attention (O(N) complexity)."""
     k_cumsum = k.sum(dim=-2)
-    D_inv = 1. / torch.einsum('...nd,...d->...n', q, k_cumsum.type_as(q))
-    context = torch.einsum('...nd,...ne->...de', k, v)
-    out = torch.einsum('...de,...nd,...n->...ne', context, q, D_inv)
+    D_inv = 1.0 / torch.einsum("...nd,...d->...n", q, k_cumsum.type_as(q))
+    context = torch.einsum("...nd,...ne->...de", k, v)
+    out = torch.einsum("...de,...nd,...n->...ne", context, q, D_inv)
     return out
 
 
@@ -208,24 +206,30 @@ def causal_linear_attention(q: Tensor, k: Tensor, v: Tensor, eps: float = 1e-6) 
 
     # Note: Apex dependence removed in favor of PyTorch native AMP
     autocast_enabled = torch.is_autocast_enabled()
-    
+
     # Handle autocast context manually if needed for the kernel
     # In PyTorch 2.0+, many of these kernels might need checking
-    cuda_context = null_context if not autocast_enabled else partial(torch.amp.autocast, device_type='cuda', enabled=False)
+    cuda_context = (
+        null_context
+        if not autocast_enabled
+        else partial(torch.amp.autocast, device_type="cuda", enabled=False)
+    )
 
     k_cumsum = k.cumsum(dim=-2) + eps
-    D_inv = 1. / torch.einsum('...nd,...nd->...n', q, k_cumsum.type_as(q))
+    D_inv = 1.0 / torch.einsum("...nd,...nd->...n", q, k_cumsum.type_as(q))
 
     with cuda_context():
         if autocast_enabled:
             q, k, v = map(lambda t: t.float(), (q, k, v))
         out = CausalDotProduct.apply(q, k, v)
 
-    out = torch.einsum('...nd,...n->...nd', out, D_inv)
+    out = torch.einsum("...nd,...n->...nd", out, D_inv)
     return out
 
 
-def causal_linear_attention_noncuda(q: Tensor, k: Tensor, v: Tensor, chunk_size: int = 128) -> Tensor:
+def causal_linear_attention_noncuda(
+    q: Tensor, k: Tensor, v: Tensor, chunk_size: int = 128
+) -> Tensor:
     """Pure PyTorch implementation of causal linear attention (slower, memory efficient)."""
     last_k_cumsum = 0
     last_context_cumsum = 0
@@ -234,10 +238,10 @@ def causal_linear_attention_noncuda(q: Tensor, k: Tensor, v: Tensor, chunk_size:
     for q_chunk, k_chunk, v_chunk in zip(*map(lambda t: t.chunk(chunk_size, dim=-2), (q, k, v))):
         k_cumsum = last_k_cumsum + k_chunk.cumsum(dim=-2)
 
-        D_inv = 1. / torch.einsum('...nd,...nd->...n', q_chunk, k_cumsum.type_as(q_chunk))
-        context = torch.einsum('...nd,...ne->...nde', k_chunk, v_chunk)
+        D_inv = 1.0 / torch.einsum("...nd,...nd->...n", q_chunk, k_cumsum.type_as(q_chunk))
+        context = torch.einsum("...nd,...ne->...nde", k_chunk, v_chunk)
         context_cumsum = last_context_cumsum + context.cumsum(dim=-3)
-        out = torch.einsum('...nde,...nd,...n->...ne', context_cumsum, q_chunk, D_inv)
+        out = torch.einsum("...nde,...nd,...n->...ne", context_cumsum, q_chunk, D_inv)
 
         last_k_cumsum = k_cumsum[:, :, -1:]
         last_context_cumsum = context_cumsum[:, :, -1:]
@@ -248,7 +252,7 @@ def causal_linear_attention_noncuda(q: Tensor, k: Tensor, v: Tensor, chunk_size:
 
 class FastAttention(nn.Module):
     """Fast Attention Module implementing FAVOR+."""
-    
+
     def __init__(
         self,
         dim_heads: int,
@@ -257,7 +261,7 @@ class FastAttention(nn.Module):
         causal: bool = False,
         generalized_attention: bool = False,
         kernel_fn: nn.Module = nn.ReLU(),
-        no_projection: bool = False
+        no_projection: bool = False,
     ):
         super().__init__()
         nb_features = default(nb_features, int(dim_heads * math.log(dim_heads)))
@@ -270,10 +274,10 @@ class FastAttention(nn.Module):
             gaussian_orthogonal_random_matrix,
             nb_rows=self.nb_features,
             nb_columns=dim_heads,
-            scaling=ortho_scaling
+            scaling=ortho_scaling,
         )
         projection_matrix = self.create_projection()
-        self.register_buffer('projection_matrix', projection_matrix)
+        self.register_buffer("projection_matrix", projection_matrix)
 
         self.generalized_attention = generalized_attention
         self.kernel_fn = kernel_fn
@@ -284,6 +288,7 @@ class FastAttention(nn.Module):
             # Check for CUDA extension availability
             try:
                 import fast_transformers.causal_product.causal_product_cuda
+
                 self.causal_linear_fn = causal_linear_attention
             except ImportError:
                 warnings.warn(
@@ -300,7 +305,7 @@ class FastAttention(nn.Module):
 
     def forward(self, q: Tensor, k: Tensor, v: Tensor, output_attentions: bool = False):
         device = q.device
-        
+
         if self.no_projection:
             q = q.softmax(dim=-1)
             k = torch.exp(k) if self.causal else k.softmax(dim=-2)
@@ -309,48 +314,46 @@ class FastAttention(nn.Module):
                 generalized_kernel,
                 kernel_fn=self.kernel_fn,
                 projection_matrix=self.projection_matrix,
-                device=device
+                device=device,
             )
             q, k = map(create_kernel, (q, k))
         else:
             create_kernel = partial(
-                softmax_kernel,
-                projection_matrix=self.projection_matrix,
-                device=device
+                softmax_kernel, projection_matrix=self.projection_matrix, device=device
             )
             q = create_kernel(q, is_query=True)
             k = create_kernel(k, is_query=False)
 
         attn_fn = linear_attention if not self.causal else self.causal_linear_fn
         out = attn_fn(q, k, v)
-        
+
         if output_attentions:
             # Approximate attention weights calculation (expensive)
             v_diag = torch.eye(v.shape[-2], device=device)
             v_diag = v_diag.unsqueeze(0).unsqueeze(0).repeat(v.shape[0], v.shape[1], 1, 1)
             # Use float16 on CPU to save memory for visualization matrices
             attn_weights = torch.zeros(
-                1, q.shape[1], q.shape[2], q.shape[2], 
-                device='cpu', dtype=torch.float16
+                1, q.shape[1], q.shape[2], q.shape[2], device="cpu", dtype=torch.float16
             )
-            
+
             for head_dim in range(q.shape[1]):
                 q_h = q[:, head_dim].to(torch.float16)
                 k_h = k[:, head_dim].to(torch.float16)
                 v_h = v_diag[:, head_dim].to(torch.float16)
-                
+
                 weights_h = attn_fn(q_h, k_h, v_h).detach().cpu()
                 attn_weights[0, head_dim] = weights_h
-                
+
             attn_weights /= q.shape[1]
             return out, attn_weights
-        
+
         return out
 
 
 # =============================================================================
 # Helper Layers (Normalization & FeedForward)
 # =============================================================================
+
 
 class ReZero(nn.Module):
     def __init__(self, fn: nn.Module):
@@ -404,9 +407,9 @@ class FeedForward(nn.Module):
         self,
         dim: int,
         mult: int = 4,
-        dropout: float = 0.,
+        dropout: float = 0.0,
         activation: Optional[Callable] = None,
-        glu: bool = False
+        glu: bool = False,
     ):
         super().__init__()
         activation = default(activation, nn.GELU)
@@ -433,6 +436,7 @@ class FeedForward(nn.Module):
 # Self Attention & Positional Embeddings
 # =============================================================================
 
+
 class SelfAttention(nn.Module):
     def __init__(
         self,
@@ -446,32 +450,38 @@ class SelfAttention(nn.Module):
         feature_redraw_interval: int = 1000,
         generalized_attention: bool = False,
         kernel_fn: nn.Module = nn.ReLU(),
-        dropout: float = 0.,
+        dropout: float = 0.0,
         no_projection: bool = False,
-        qkv_bias: bool = False
+        qkv_bias: bool = False,
     ):
         super().__init__()
-        assert dim % heads == 0, 'dimension must be divisible by number of heads'
+        assert dim % heads == 0, "dimension must be divisible by number of heads"
         dim_head = default(dim_head, dim // heads)
         inner_dim = dim_head * heads
-        
+
         self.fast_attention = FastAttention(
-            dim_head, nb_features, causal=causal,
+            dim_head,
+            nb_features,
+            causal=causal,
             generalized_attention=generalized_attention,
-            kernel_fn=kernel_fn, no_projection=no_projection
+            kernel_fn=kernel_fn,
+            no_projection=no_projection,
         )
 
         self.heads = heads
         self.global_heads = heads - local_heads
-        
+
         self.local_attn = None
         if local_heads > 0:
             if LocalAttention is None:
                 raise ImportError("local_attention package is required for local_heads > 0")
             self.local_attn = LocalAttention(
-                window_size=local_window_size, causal=causal, autopad=True,
-                dropout=dropout, look_forward=int(not causal),
-                rel_pos_emb_config=(dim_head, local_heads)
+                window_size=local_window_size,
+                causal=causal,
+                autopad=True,
+                dropout=dropout,
+                look_forward=int(not causal),
+                rel_pos_emb_config=(dim_head, local_heads),
             )
 
         self.to_q = nn.Linear(dim, inner_dim, bias=qkv_bias)
@@ -488,9 +498,9 @@ class SelfAttention(nn.Module):
         mask: Optional[Tensor] = None,
         context_mask: Optional[Tensor] = None,
         output_attentions: bool = False,
-        **kwargs
+        **kwargs,
     ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
-        
+
         b, n = x.shape[0], x.shape[1]
         h = self.heads
         gh = self.global_heads
@@ -503,9 +513,9 @@ class SelfAttention(nn.Module):
 
         # Split heads: original einops: 'b n (h d) -> b h n d'
         d = q.shape[-1] // h
-        q = q.view(b, n, h, d).transpose(1,2)  # (b, h, n, d)
-        k = k.view(b, n, h, d).transpose(1,2)
-        v = v.view(b, n, h, d).transpose(1,2)
+        q = q.view(b, n, h, d).transpose(1, 2)  # (b, h, n, d)
+        k = k.view(b, n, h, d).transpose(1, 2)
+        v = v.view(b, n, h, d).transpose(1, 2)
 
         # Split into global and local: (q, lq), (k, lk), (v, lv)
         q, lq = q[:, :gh], q[:, gh:]
@@ -519,7 +529,7 @@ class SelfAttention(nn.Module):
         if not empty(q):
             if exists(context_mask):
                 global_mask = context_mask[:, None, :, None]
-                v.masked_fill_(~global_mask, 0.)
+                v.masked_fill_(~global_mask, 0.0)
 
             if exists(pos_emb) and not cross_attend:
                 q, k = apply_rotary_pos_emb(q, k, pos_emb)
@@ -532,7 +542,7 @@ class SelfAttention(nn.Module):
 
         # Local Window Attention
         if not empty(lq):
-            assert not cross_attend, 'local attention is not compatible with cross attention'
+            assert not cross_attend, "local attention is not compatible with cross attention"
             out = self.local_attn(lq, lk, lv, input_mask=mask)
             attn_outs.append(out)
 
@@ -541,18 +551,19 @@ class SelfAttention(nn.Module):
         # Rearrange 'b h n d -> b n (h d)'
         bh, hn, d = out.shape[0], out.shape[2], out.shape[3]
         h_total = out.shape[1]
-        out = out.transpose(1,2).contiguous().view(bh, hn, h_total*d)
+        out = out.transpose(1, 2).contiguous().view(bh, hn, h_total * d)
         out = self.to_out(out)
-        
+
         if output_attentions:
             return self.dropout(out), attn_weights
-        
+
         return self.dropout(out)
 
 
 # -----------------------------------------------------------------------------
 # Positional Embeddings
 # -----------------------------------------------------------------------------
+
 
 def rotate_every_two(x: Tensor) -> Tensor:
     # x: (..., last_dim)
@@ -577,8 +588,8 @@ def apply_rotary_pos_emb(q: Tensor, k: Tensor, sinu_pos: Tensor) -> Tuple[Tensor
     sinu_pos = sinu_pos[0]
     d_half = d_sinu // 2
     sinu_pos = sinu_pos.view(n, 2, d_half)
-    sin = sinu_pos[:, 0, :]   # (n, d//2)
-    cos = sinu_pos[:, 1, :]   # (n, d//2)
+    sin = sinu_pos[:, 0, :]  # (n, d//2)
+    cos = sinu_pos[:, 1, :]  # (n, d//2)
 
     # repeat 'b n -> b (n j)' with j=2: out shape (b, n * 2)
     def rotary_repeat(tensor, b):
@@ -605,6 +616,7 @@ def apply_rotary_pos_emb(q: Tensor, k: Tensor, sinu_pos: Tensor) -> Tuple[Tensor
         out2 = x1 * sin + x2 * cos
         x_rot = torch.stack([out1, out2], dim=-1)
         return x_rot.reshape(b, h, n, d)
+
     q_out = apply_one(q, sin, cos)
     k_out = apply_one(k, sin, cos)
     return q_out, k_out
@@ -623,25 +635,28 @@ class AbsolutePositionalEmbedding(nn.Module):
 class Gene2VecPositionalEmbedding(nn.Module):
     """
     Positional embedding initialized with pretrained gene2vec weights.
-    
+
     Refactored to accept weights or path via constructor, avoiding hardcoded paths.
     """
+
     def __init__(
-        self, 
-        dim: int, 
-        max_seq_len: int, 
+        self,
+        dim: int,
+        max_seq_len: int,
         weights_path: Optional[str] = None,
-        pretrained_weights: Optional[np.ndarray] = None
+        pretrained_weights: Optional[np.ndarray] = None,
     ):
         super().__init__()
-        
+
         if pretrained_weights is not None:
             weights = pretrained_weights
         elif weights_path is not None:
             try:
                 weights = np.load(weights_path)
             except FileNotFoundError:
-                warnings.warn(f"Gene2Vec weights not found at {weights_path}. Initializing randomly.")
+                warnings.warn(
+                    f"Gene2Vec weights not found at {weights_path}. Initializing randomly."
+                )
                 weights = np.random.rand(max_seq_len - 1, dim)
         else:
             weights = np.random.rand(max_seq_len - 1, dim)
@@ -654,7 +669,7 @@ class Gene2VecPositionalEmbedding(nn.Module):
 
         padding_row = np.zeros((1, weights.shape[1]))
         weights = np.concatenate((weights, padding_row), axis=0)
-        
+
         weight_tensor = torch.from_numpy(weights).float()
         self.emb = nn.Embedding.from_pretrained(weight_tensor, freeze=False)
 
@@ -669,7 +684,7 @@ class RandomPositionalEmbedding(nn.Module):
         weights = np.random.rand(max_seq_len - 1, dim)
         padding_row = np.zeros((1, dim))
         weights = np.concatenate((weights, padding_row), axis=0)
-        
+
         weight_tensor = torch.from_numpy(weights).float()
         self.emb = nn.Embedding.from_pretrained(weight_tensor, freeze=False)
 
@@ -682,12 +697,14 @@ class RandomPositionalEmbedding(nn.Module):
 # Performer Model
 # =============================================================================
 
+
 class Performer(nn.Module):
     """
     Performer Transformer Encoder.
-    
+
     Uses efficient linear attention (FAVOR+) to approximate standard self-attention.
     """
+
     def __init__(
         self,
         dim: int,
@@ -707,19 +724,23 @@ class Performer(nn.Module):
         use_scalenorm: bool = False,
         use_rezero: bool = False,
         ff_glu: bool = False,
-        ff_dropout: float = 0.,
-        attn_dropout: float = 0.,
+        ff_dropout: float = 0.0,
+        attn_dropout: float = 0.0,
         cross_attend: bool = False,
         no_projection: bool = False,
         auto_check_redraw: bool = True,
-        qkv_bias: bool = True
+        qkv_bias: bool = True,
     ):
         super().__init__()
         layers = nn.ModuleList([])
-        
+
         local_attn_heads = cast_tuple(local_attn_heads)
-        local_attn_heads = local_attn_heads * depth if len(local_attn_heads) == 1 else local_attn_heads
-        assert len(local_attn_heads) == depth, 'Local attention heads config length must match depth'
+        local_attn_heads = (
+            local_attn_heads * depth if len(local_attn_heads) == 1 else local_attn_heads
+        )
+        assert (
+            len(local_attn_heads) == depth
+        ), "Local attention heads config length must match depth"
 
         if use_scalenorm:
             wrapper_fn = partial(PreScaleNorm, dim)
@@ -729,52 +750,74 @@ class Performer(nn.Module):
             wrapper_fn = partial(PreLayerNorm, dim)
 
         for _, local_heads in zip(range(depth), local_attn_heads):
-            attn_layer = wrapper_fn(SelfAttention(
-                dim, causal=causal, heads=heads, dim_head=dim_head,
-                local_heads=local_heads, local_window_size=local_window_size,
-                nb_features=nb_features, generalized_attention=generalized_attention,
-                kernel_fn=kernel_fn, dropout=attn_dropout,
-                no_projection=no_projection, qkv_bias=qkv_bias
-            ))
-            
-            ff_layer = wrapper_fn(Chunk(
-                ff_chunks,
-                FeedForward(dim, mult=ff_mult, dropout=ff_dropout, glu=ff_glu),
-                along_dim=1
-            ))
-            
+            attn_layer = wrapper_fn(
+                SelfAttention(
+                    dim,
+                    causal=causal,
+                    heads=heads,
+                    dim_head=dim_head,
+                    local_heads=local_heads,
+                    local_window_size=local_window_size,
+                    nb_features=nb_features,
+                    generalized_attention=generalized_attention,
+                    kernel_fn=kernel_fn,
+                    dropout=attn_dropout,
+                    no_projection=no_projection,
+                    qkv_bias=qkv_bias,
+                )
+            )
+
+            ff_layer = wrapper_fn(
+                Chunk(
+                    ff_chunks,
+                    FeedForward(dim, mult=ff_mult, dropout=ff_dropout, glu=ff_glu),
+                    along_dim=1,
+                )
+            )
+
             layers.append(nn.ModuleList([attn_layer, ff_layer]))
 
             if not cross_attend:
                 continue
-                
-            cross_attn_layer = wrapper_fn(SelfAttention(
-                dim, heads=heads, dim_head=dim_head, nb_features=nb_features,
-                generalized_attention=generalized_attention, kernel_fn=kernel_fn,
-                dropout=attn_dropout, no_projection=no_projection
-            ))
-            
-            cross_ff_layer = wrapper_fn(Chunk(
-                ff_chunks,
-                FeedForward(dim, mult=ff_mult, dropout=ff_dropout, glu=ff_glu),
-                along_dim=1
-            ))
-            
+
+            cross_attn_layer = wrapper_fn(
+                SelfAttention(
+                    dim,
+                    heads=heads,
+                    dim_head=dim_head,
+                    nb_features=nb_features,
+                    generalized_attention=generalized_attention,
+                    kernel_fn=kernel_fn,
+                    dropout=attn_dropout,
+                    no_projection=no_projection,
+                )
+            )
+
+            cross_ff_layer = wrapper_fn(
+                Chunk(
+                    ff_chunks,
+                    FeedForward(dim, mult=ff_mult, dropout=ff_dropout, glu=ff_glu),
+                    along_dim=1,
+                )
+            )
+
             layers.append(nn.ModuleList([cross_attn_layer, cross_ff_layer]))
 
         execute_type = ReversibleSequence if reversible else SequentialSequence
 
         route_attn = ((True, False),) * depth * (2 if cross_attend else 1)
         route_context = ((False, False), (True, False)) * depth
-        
-        attn_route_map = {'mask': route_attn, 'pos_emb': route_attn}
-        context_route_map = {'context': route_context, 'context_mask': route_context} if cross_attend else {}
-        
+
+        attn_route_map = {"mask": route_attn, "pos_emb": route_attn}
+        context_route_map = (
+            {"context": route_context, "context_mask": route_context} if cross_attend else {}
+        )
+
         self.net = execute_type(layers, args_route={**attn_route_map, **context_route_map})
 
         self.auto_check_redraw = auto_check_redraw
         self.feature_redraw_interval = feature_redraw_interval
-        self.register_buffer('calls_since_last_redraw', torch.tensor(0))
+        self.register_buffer("calls_since_last_redraw", torch.tensor(0))
 
     def fix_projection_matrices_(self):
         self.feature_redraw_interval = None
@@ -783,7 +826,10 @@ class Performer(nn.Module):
         if not self.training:
             return
 
-        if exists(self.feature_redraw_interval) and self.calls_since_last_redraw >= self.feature_redraw_interval:
+        if (
+            exists(self.feature_redraw_interval)
+            and self.calls_since_last_redraw >= self.feature_redraw_interval
+        ):
             device = get_module_device(self)
             fast_attentions = [m for m in self.modules() if isinstance(m, FastAttention)]
             for fast_attention in fast_attentions:
@@ -804,6 +850,7 @@ class PerformerModule(nn.Module):
     """
     Wrapper module combining Performer encoder with final normalization.
     """
+
     def __init__(
         self,
         max_seq_len: int,
@@ -820,8 +867,8 @@ class PerformerModule(nn.Module):
         reversible: bool = False,
         ff_chunks: int = 1,
         ff_glu: bool = False,
-        ff_dropout: float = 0.,
-        attn_dropout: float = 0.,
+        ff_dropout: float = 0.0,
+        attn_dropout: float = 0.0,
         generalized_attention: bool = False,
         kernel_fn: nn.Module = nn.ReLU(),
         use_scalenorm: bool = False,
@@ -829,17 +876,35 @@ class PerformerModule(nn.Module):
         cross_attend: bool = False,
         no_projection: bool = False,
         auto_check_redraw: bool = True,
-        qkv_bias: bool = True
+        qkv_bias: bool = True,
     ):
         super().__init__()
         self.max_seq_len = max_seq_len
 
         self.performer = Performer(
-            dim, depth, heads, dim_head, local_attn_heads, local_window_size,
-            causal, ff_mult, nb_features, feature_redraw_interval, reversible,
-            ff_chunks, generalized_attention, kernel_fn, use_scalenorm,
-            use_rezero, ff_glu, ff_dropout, attn_dropout, cross_attend,
-            no_projection, auto_check_redraw, qkv_bias
+            dim,
+            depth,
+            heads,
+            dim_head,
+            local_attn_heads,
+            local_window_size,
+            causal,
+            ff_mult,
+            nb_features,
+            feature_redraw_interval,
+            reversible,
+            ff_chunks,
+            generalized_attention,
+            kernel_fn,
+            use_scalenorm,
+            use_rezero,
+            ff_glu,
+            ff_dropout,
+            attn_dropout,
+            cross_attend,
+            no_projection,
+            auto_check_redraw,
+            qkv_bias,
         )
         self.norm = nn.LayerNorm(dim)
 
@@ -849,9 +914,13 @@ class PerformerModule(nn.Module):
     def fix_projection_matrices_(self):
         self.performer.fix_projection_matrices_()
 
-    def forward(self, x: Tensor, output_attentions: bool = False, **kwargs) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+    def forward(
+        self, x: Tensor, output_attentions: bool = False, **kwargs
+    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
         b, n, _, device = *x.shape, x.device
-        assert n <= self.max_seq_len, f'Sequence length {n} must be <= max sequence length {self.max_seq_len}'
+        assert (
+            n <= self.max_seq_len
+        ), f"Sequence length {n} must be <= max sequence length {self.max_seq_len}"
 
         if output_attentions:
             x, attn_weights = self.performer(x, output_attentions=output_attentions, **kwargs)

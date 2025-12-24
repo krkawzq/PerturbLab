@@ -20,13 +20,13 @@ __all__ = ["Transformer"]
 
 class Transformer(nn.Module):
     """Standard PyTorch Transformer encoder module.
-    
+
     A clean wrapper around a stack of `nn.TransformerEncoderLayer` with
-    final layer normalization. 
-    
+    final layer normalization.
+
     NOTE: This implementation manually stacks layers in a ModuleList rather than
     using `nn.TransformerEncoder` to maintain state_dict compatibility with
-    original checkpoints (which expect keys like `transformer_encoder.0...` 
+    original checkpoints (which expect keys like `transformer_encoder.0...`
     instead of `transformer_encoder.layers.0...`).
 
     Attributes:
@@ -35,7 +35,7 @@ class Transformer(nn.Module):
         transformer_encoder (nn.ModuleList): The stack of encoder layers.
         norm (nn.LayerNorm): Final layer normalization.
     """
-    
+
     def __init__(
         self,
         max_seq_len: int,
@@ -59,19 +59,21 @@ class Transformer(nn.Module):
 
         self.max_seq_len = max_seq_len
         self.depth = depth
-        
+
         # We use a ModuleList to replicate the exact structure of the original code
         # for weight compatibility.
-        self.transformer_encoder = nn.ModuleList([
-            nn.TransformerEncoderLayer(
-                d_model=dim,
-                nhead=heads,
-                dim_feedforward=dim * ff_mult,
-                batch_first=True,
-                norm_first=norm_first,
-            )
-            for _ in range(depth)
-        ])
+        self.transformer_encoder = nn.ModuleList(
+            [
+                nn.TransformerEncoderLayer(
+                    d_model=dim,
+                    nhead=heads,
+                    dim_feedforward=dim * ff_mult,
+                    batch_first=True,
+                    norm_first=norm_first,
+                )
+                for _ in range(depth)
+            ]
+        )
 
         self.norm = nn.LayerNorm(dim)
 
@@ -90,7 +92,7 @@ class Transformer(nn.Module):
                 Shape: [batch_size, seq_len, dim]
         """
         seq_len = x.size(1)
-        
+
         if seq_len > self.max_seq_len:
             raise ValueError(
                 f"Sequence length {seq_len} exceeds maximum allowed {self.max_seq_len}"
@@ -101,7 +103,7 @@ class Transformer(nn.Module):
         # where True = padding/ignore.
         for layer in self.transformer_encoder:
             x = layer(x, src_key_padding_mask=padding_mask)
-        
+
         # Apply final normalization
         x = self.norm(x)
 

@@ -18,7 +18,6 @@ from perturblab.utils import DependencyError
 from .config import scELMoConfig
 from .io import scELMoInput, scELMoOutput
 
-
 __all__ = [
     "scELMoConfig",
     "scELMoInput",
@@ -34,16 +33,16 @@ SCELMO_REGISTRY = MODELS.child("scELMo")
 # Register scELMo model (no dependencies, pure Python)
 try:
     from ._modeling import scELMoModel
-    
+
     # Register the main model
     SCELMO_REGISTRY.register("scELMoModel")(scELMoModel)
     SCELMO_REGISTRY.register("default")(scELMoModel)
-    
+
     # Add to __all__ if successfully imported
     __all__.append("scELMoModel")
-    
+
 except (DependencyError, ImportError) as e:
     # Should not happen as scELMo has no special dependencies
     import warnings
-    warnings.warn(f"Failed to import scELMoModel: {e}")
 
+    warnings.warn(f"Failed to import scELMoModel: {e}")

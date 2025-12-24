@@ -5,7 +5,7 @@ and generative tasks.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 from perturblab.core.config import Config
 

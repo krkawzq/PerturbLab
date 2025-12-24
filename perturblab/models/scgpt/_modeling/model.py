@@ -120,21 +120,21 @@ from tqdm import trange
 
 from perturblab.models.scgpt.config import scGPTConfig
 from perturblab.models.scgpt.io import scGPTInput, scGPTOutput
+
 from .components import (
-    GeneEncoder,
-    ContinuousValueEncoder,
-    CategoryValueEncoder,
-    BatchLabelEncoder,
-    Similarity,
-    ExprDecoder,
-    MVCDecoder,
-    ClsDecoder,
     AdversarialDiscriminator,
+    BatchLabelEncoder,
+    CategoryValueEncoder,
+    ClsDecoder,
+    ContinuousValueEncoder,
+    DomainSpecificBatchNorm1d,
+    ExprDecoder,
     FastTransformerEncoderWrapper,
     FlashTransformerEncoderLayer,
-    DomainSpecificBatchNorm1d,
+    GeneEncoder,
+    MVCDecoder,
+    Similarity,
 )
-
 
 __all__ = [
     "scGPTBaseModel",

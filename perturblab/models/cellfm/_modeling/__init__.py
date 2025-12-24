@@ -15,7 +15,7 @@ except (ImportError, AttributeError):
 
 # Define lazy loading module map
 _LAZY_MODULES = {
-    'CellFMModel': '.model',
+    "CellFMModel": ".model",
 }
 
 # Create lazy loader
@@ -23,8 +23,7 @@ __getattr__, __dir__ = create_lazy_loader(
     dependencies=dependencies,
     lazy_modules=_LAZY_MODULES,
     package_name=__package__,
-    install_hint="pip install perturblab[cellfm]"
+    install_hint="pip install perturblab[cellfm]",
 )
 
 __all__ = list(_LAZY_MODULES.keys())
-

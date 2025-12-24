@@ -1,6 +1,8 @@
-import torch
+from typing import List, Mapping, Optional, Union
+
 import numpy as np
-from typing import Mapping, Optional, List, Union
+import torch
+
 from perturblab.utils import get_logger
 
 logger = get_logger(__name__)

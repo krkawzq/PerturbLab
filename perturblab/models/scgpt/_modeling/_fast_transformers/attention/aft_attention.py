@@ -9,7 +9,7 @@
 import torch
 from torch.nn import Module
 
-from ..attention_registry import AttentionRegistry, Optional, Int, EventDispatcherInstance
+from ..attention_registry import AttentionRegistry, EventDispatcherInstance, Int, Optional
 from ..events import EventDispatcher
 
 

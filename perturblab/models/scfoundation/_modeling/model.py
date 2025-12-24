@@ -19,7 +19,7 @@ The scFoundation model follows a Masked Autoencoder architecture:
    - Auto-Discretization Embedding: Learns soft binning of expression values
    - Positional Embedding: Encodes gene position information
    - Transformer Encoder: Processes masked gene expression patterns
-   
+
 2. **Decoder Branch**:
    - Linear Projection: Projects encoder outputs to decoder dimension
    - Transformer Decoder: Reconstructs masked gene expressions
@@ -37,13 +37,13 @@ Key Innovations
      adaptively bin expression values using a 2-layer MLP
    - Soft binning via softmax enables gradient flow
    - Handles special tokens (mask, padding) explicitly
-   
+
 2. **Flexible Transformer Backends**:
    - Supports multiple transformer architectures:
      * Standard PyTorch Transformer (memory efficient, slower)
      * Performer (linear attention, faster for long sequences)
      * Reversible Transformer (gradient checkpointing for memory)
-   
+
 3. **Gene-Level Masking**:
    - Masks individual genes rather than tokens
    - Enables learning of gene-gene interactions
@@ -178,6 +178,7 @@ if TYPE_CHECKING:
 
 __all__ = ["scFoundationModel"]
 
+
 def exists(val):
     """Checks if a value is not None.
 
@@ -188,6 +189,7 @@ def exists(val):
         bool: True if value is not None, otherwise False.
     """
     return val is not None
+
 
 class scFoundationModel(nn.Module):
     """scFoundation Masked Autoencoder with Auto-Binning.
@@ -249,11 +251,7 @@ class scFoundationModel(nn.Module):
         self._build_backbone(config)
 
         # Build decoder components
-        self.decoder_embed = nn.Linear(
-            config.embed_dim,
-            config.decoder_embed_dim,
-            bias=True
-        )
+        self.decoder_embed = nn.Linear(config.embed_dim, config.decoder_embed_dim, bias=True)
         self.norm = nn.LayerNorm(config.decoder_embed_dim)
         self.to_final = nn.Linear(config.decoder_embed_dim, 1)
 
@@ -420,10 +418,12 @@ class scFoundationModel(nn.Module):
         # Handle both dataclass and dict inputs for backward compatibility
         if isinstance(inputs, dict):
             from ..io import scFoundationInput
+
             inputs = scFoundationInput(**inputs, **kwargs)
         elif kwargs:
             # Update inputs with kwargs if provided
             from dataclasses import replace
+
             inputs = replace(inputs, **kwargs)
 
         # Extract inputs
@@ -440,9 +440,9 @@ class scFoundationModel(nn.Module):
         # Validate input shapes
         b, n = x.shape
         device = x.device
-        assert n <= self.max_seq_len, (
-            f"Sequence length {n} exceeds maximum allowed {self.max_seq_len}"
-        )
+        assert (
+            n <= self.max_seq_len
+        ), f"Sequence length {n} exceeds maximum allowed {self.max_seq_len}"
 
         # === Encoder Forward Pass ===
 
@@ -472,8 +472,7 @@ class scFoundationModel(nn.Module):
         # 3. Handle gene name masking (optional, currently not implemented)
         if mask_gene_name:
             raise NotImplementedError(
-                "Gene name masking is not yet implemented. "
-                "Please set mask_gene_name=False."
+                "Gene name masking is not yet implemented. " "Please set mask_gene_name=False."
             )
 
         # 4. Inject encoder outputs into decoder inputs at masked positions

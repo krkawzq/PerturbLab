@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import copy
 from abc import ABC
-from dataclasses import dataclass, fields, replace, asdict
-from typing import Any, Dict, Iterator, Type, TypeVar, Union, Optional
+from dataclasses import asdict, dataclass, fields, replace
+from typing import Any, Dict, Iterator, Optional, Type, TypeVar, Union
 
 import torch
 

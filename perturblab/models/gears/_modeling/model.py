@@ -135,7 +135,7 @@ Adapted for PerturbLab with config-based API and modular design.
 from __future__ import annotations
 
 import warnings
-from typing import Any, Dict, List, Optional, Union, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
