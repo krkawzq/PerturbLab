@@ -12,7 +12,7 @@ from perturblab.core import ResourceRegistry
 from perturblab.utils import get_logger
 
 # Always export resource implementations
-from ._resources import File, Files, h5adFile
+from ._type import File, Files, h5adFile
 
 logger = get_logger()
 
