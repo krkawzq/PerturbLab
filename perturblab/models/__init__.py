@@ -25,7 +25,6 @@ Global Override:
 import os
 import sys
 import importlib
-import pkgutil
 from pathlib import Path
 
 from perturblab.core import ModelRegistry
