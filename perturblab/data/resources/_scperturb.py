@@ -5,7 +5,7 @@ Single-cell perturbation datasets from the scPerturb repository.
 Citation: Peidli et al. (2023). scPerturb: harmonized single-cell perturbation data.
           Nature Methods. https://doi.org/10.1038/s41592-023-02144-y
 
-Data: https://zenodo.org/record/13350497
+Data: https://zenodo.org/records/13350497
 """
 
 from perturblab.data.resources import h5adFile
@@ -55,11 +55,7 @@ SCPERTURB_DATASETS = [
     # ========================================================================
     # Norman et al. - Large-scale CRISPRi
     # ========================================================================
-    _create_scperturb_resource(
-        key="norman_2019",
-        filename="NormanWeissman2019.h5ad",
-        description="Large-scale CRISPRi screen in K562 cells (105,942 cells, 2.3GB)",
-    ),
+    # Note: NormanWeissman2019.h5ad is not available in Zenodo, only filtered version
     _create_scperturb_resource(
         key="norman_2019_filtered",
         filename="NormanWeissman2019_filtered.h5ad",
