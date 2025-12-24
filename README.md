@@ -1,16 +1,16 @@
 # PerturbLab
 
-> **A high-performance Python library for single-cell perturbation analysis**
+> **A unified Python library for single-cell perturbation analysis and foundation models**
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-PerturbLab is a modular and high-performance library for single-cell perturbation analysis, featuring:
-- 🚀 **High-performance kernels** - C++/Cython accelerated statistical operators (2-15x faster)
-- 🎯 **Smart model registry** - Hierarchical model management with lazy loading
+PerturbLab is a modular and high-performance library for single-cell analysis, featuring:
+- 🚀 **High-performance kernels** - C++/Cython accelerated statistical operators
+- 🎯 **Unified model registry** - 6 foundation models with consistent interface
 - 🧬 **GEARS integration** - Graph-based perturbation prediction
-- 🛠️ **Flexible preprocessing** - Compatible with scanpy workflows
-- 📦 **Minimal dependencies** - Only numpy, scipy, torch, and requests required
+- 📊 **Complete analysis toolkit** - Preprocessing, DE, HVG with optimized kernels
+- 📦 **Minimal core dependencies** - Only numpy, scipy, torch required
 
 ---
 
@@ -18,7 +18,7 @@ PerturbLab is a modular and high-performance library for single-cell perturbatio
 
 ### 🔥 High-Performance Statistical Kernels
 
-Accelerated implementations with automatic backend selection:
+Accelerated implementations with automatic backend selection (C++ > Cython > Numba > Python):
 
 ```python
 import perturblab.preprocessing as pp
@@ -28,52 +28,66 @@ import anndata as ad
 adata = ad.read_h5ad('data.h5ad')
 
 # High-performance preprocessing (auto-selects fastest backend)
-pp.normalize_total(adata, target_sum=1e4)  # C++/Cython accelerated
-pp.scale(adata, max_value=10)              # OpenMP parallelized
+pp.normalize_total(adata, target_sum=1e4)  # C++ accelerated
+pp.scale(adata, max_value=10)              # Cython/OpenMP optimized
 
 # Backend hierarchy: C++ > Cython > Numba > Python
 ```
 
-**Performance**: 2-15x faster than pure Python/NumPy implementations
+**Performance**: Significantly faster than pure Python/NumPy implementations
 
-### 🎯 Smart Model Registry
+### 🎯 Unified Model Registry
 
-Hierarchical model management with intelligent lazy loading:
+6 foundation models with intelligent lazy loading and hierarchical organization:
 
 ```python
 from perturblab.models import MODELS
 
-# Dot notation access (IDE-friendly)
-model = MODELS.GEARS.gnn(hidden_dim=128)
+# Access models via registry (multiple styles supported)
+model = MODELS.GEARS.GEARSModel(config, ...)          # Dot notation
+model = MODELS['scGPT']['scGPTModel'](config, vocab)  # Dict style
+model = MODELS.build("UCE.UCEModel", config)          # Config-driven
 
-# Dictionary access (dynamic)
-model = MODELS['GEARS']['gnn'](hidden_dim=128)
+# Only loads model dependencies when accessed - fast startup!
+```
 
-# Config-driven
-model = MODELS.build("GEARS.gnn", hidden_dim=128)
+**Available Models**:
+- **GEARS**: Graph-based perturbation prediction
+- **UCE**: Universal cell embeddings (Transformer)
+- **scGPT**: Generative pretrained transformer (3 variants)
+- **scFoundation**: Large-scale MAE with auto-binning
+- **CellFM**: Retention-based foundation model
+- **scELMo**: Non-parametric LLM embeddings
 
-# Only loads GEARS modules on first access - fast startup!
+### 📊 Complete Analysis Toolkit
+
+```python
+from perturblab.analysis import highly_variable_genes, rank_genes_groups
+
+# HVG detection with C++ kernels (optimized)
+highly_variable_genes(adata, n_top_genes=2000, flavor="seurat_v3")
+
+# Differential expression with optimized kernels
+rank_genes_groups(adata, groupby='perturbation', method='wilcoxon')
 ```
 
 ### 🧬 GEARS Perturbation Prediction
 
-Integrated GEARS method for genetic perturbation analysis:
-
 ```python
 from perturblab.methods import gears
-import numpy as np
+from perturblab.models import MODELS
 
 # Build perturbation graph from GO annotations
-gene_list = ['TP53', 'KRAS', 'MYC', 'EGFR', 'BRCA1']
+gene_list = adata.var_names
 pert_graph = gears.build_perturbation_graph(
     gene_list,
     similarity='jaccard',
     threshold=0.1
 )
 
-# Access graph
-print(f"Nodes: {pert_graph.n_nodes}")
-print(f"Edges: {pert_graph.n_unique_edges}")
+# Load GEARS model
+config = gears.GEARSConfig(num_genes=5000, num_perts=100)
+model = MODELS.GEARS.GEARSModel(config, G_coexpress=..., G_go=...)
 ```
 
 ---
@@ -83,7 +97,7 @@ print(f"Edges: {pert_graph.n_unique_edges}")
 ### Requirements
 
 - Python ≥ 3.11
-- Core: numpy, scipy, torch, requests
+- Core: numpy, scipy, torch, anndata, scikit-learn
 
 ### Quick Install
 
@@ -91,18 +105,20 @@ print(f"Edges: {pert_graph.n_unique_edges}")
 pip install perturblab
 ```
 
-### Install with Acceleration (Optional)
-
-For maximum performance, install with Cython/Numba:
+### Install with Specific Models
 
 ```bash
+# Install with GEARS support
+pip install perturblab[gears]
+
+# Install with all foundation models
+pip install perturblab[scgpt,uce,scfoundation,cellfm]
+
+# Install with acceleration
 pip install perturblab[accelerate]
-```
 
-Then compile C++ extensions:
-
-```bash
-python setup.py build_ext --inplace
+# Install everything
+pip install perturblab[all]
 ```
 
 ### Development Install
@@ -117,7 +133,7 @@ pip install -e .
 
 ## 🚀 Quick Start
 
-### 1. Preprocessing with High-Performance Kernels
+### 1. High-Performance Preprocessing
 
 ```python
 import perturblab.preprocessing as pp
@@ -126,170 +142,203 @@ import anndata as ad
 # Load data
 adata = ad.read_h5ad('data.h5ad')
 
-# Normalize (C++ accelerated)
-pp.normalize_total(adata, target_sum=1e4)
+# High-performance preprocessing
+pp.normalize_total(adata, target_sum=1e4)  # C++ kernel
+pp.scale(adata, max_value=10)              # Cython kernel
 
-# Scale (Cython/OpenMP accelerated)
-pp.scale(adata, max_value=10)
-
-# Works seamlessly with scanpy
+# Seamlessly compatible with scanpy
 import scanpy as sc
 sc.pp.log1p(adata)
 sc.pp.highly_variable_genes(adata)
 ```
 
-### 2. GEARS Perturbation Graph
-
-```python
-from perturblab.methods import gears
-
-# Build gene similarity network from GO annotations
-pert_graph = gears.build_perturbation_graph(
-    gene_vocab=adata.var_names,
-    similarity='jaccard',  # or 'overlap', 'cosine'
-    threshold=0.1,
-    num_workers=4  # parallel computation
-)
-
-# Export to PyTorch Geometric format
-edge_df = gears.weighted_graph_to_dataframe(pert_graph)
-
-# Filter perturbations
-valid_perts = gears.filter_perturbations_in_go(
-    perturbations=['TP53', 'KRAS', 'TP53+KRAS'],
-    go_genes=pert_graph.node_names
-)
-```
-
-### 3. Model Registry
+### 2. Foundation Models
 
 ```python
 from perturblab.models import MODELS
 
-# Register custom models
-@MODELS.register("MyModel")
-class MyModel:
-    def __init__(self, hidden_dim):
-        self.hidden_dim = hidden_dim
+# List available models
+print(MODELS.list_keys(recursive=True))
+# ['GEARS.GEARSModel', 'UCE.UCEModel', 'scGPT.scGPTModel', ...]
 
-# Create sub-registries for methods
-MYMETHOD = MODELS.child("MYMETHOD")
+# Create model via registry
+from perturblab.models.uce import UCEConfig, UCEInput
+config = UCEConfig(token_dim=512, d_model=1280, nlayers=4)
+model = MODELS.UCE.UCEModel(config)
 
-@MYMETHOD.register("backbone")
-class MyBackbone:
-    pass
+# Forward pass with typed I/O
+inputs = UCEInput(src=tokens, mask=padding_mask)
+outputs = model(inputs)
+embeddings = outputs.cell_embedding  # Type-safe access
+```
 
-# Access models flexibly
-model = MODELS.MyModel(hidden_dim=64)
-model = MODELS.MYMETHOD.backbone()
-model = MODELS.build("MYMETHOD.backbone")
+### 3. GEARS Perturbation Prediction
+
+```python
+from perturblab.methods import gears
+from perturblab.models.gears import GEARSConfig, GEARSInput
+
+# Build gene similarity graph
+pert_graph = gears.build_perturbation_graph(
+    gene_vocab=adata.var_names,
+    similarity='jaccard',
+    threshold=0.1,
+    num_workers=4  # parallel computation
+)
+
+# Create and use model
+config = GEARSConfig(num_genes=5000, num_perts=100)
+model = MODELS.GEARS.default(config, G_coexpress=..., G_go=...)
+
+inputs = GEARSInput(
+    gene_expression=expr,
+    pert_idx=[[0, 1], [2]],  # Multi-gene perturbations
+    graph_batch_indices=batch
+)
+outputs = model(inputs)
+predictions = outputs.predictions  # Type-safe
+```
+
+### 4. Highly Variable Genes
+
+```python
+from perturblab.analysis import highly_variable_genes
+
+# Using PerturbLab's optimized kernels (2-5x faster)
+highly_variable_genes(
+    adata, 
+    n_top_genes=2000,
+    flavor="seurat_v3",
+    batch_key="batch"
+)
+
+# Or use as method on PerturbationData
+from perturblab.types import PerturbationData
+dataset = PerturbationData(adata, perturbation_col='condition')
+hvg_genes = dataset.calculate_hvg(n_top_genes=2000)
 ```
 
 ---
 
-## 🏗️ Project Structure
+## 🏗️ Architecture
 
 ```
 PerturbLab/
 ├── perturblab/
-│   ├── core/                 # Core abstractions
-│   │   ├── dataset.py       # Dataset base classes
-│   │   ├── resource.py      # Resource management
-│   │   ├── resource_registry.py
-│   │   └── model_registry.py
-│   ├── models/               # Model registry with smart loading
-│   │   └── __init__.py      # MODELS instance
+│   ├── core/                 # Core infrastructure
+│   │   ├── config.py        # Config base class
+│   │   ├── model_io.py      # ModelIO base class
+│   │   ├── model_registry.py # Model registry
+│   │   └── dataset.py       # Dataset base classes
+│   ├── models/               # Foundation models (6 models)
+│   │   ├── gears/           # Graph-based perturbation prediction
+│   │   ├── uce/             # Universal cell embeddings
+│   │   ├── scgpt/           # Generative pretrained transformer
+│   │   ├── scfoundation/    # Large-scale MAE
+│   │   ├── cellfm/          # Retention-based model
+│   │   └── scelmo/          # LLM-based embeddings
 │   ├── methods/              # Analysis methods
-│   │   └── gears/           # GEARS implementation
-│   │       ├── utils.py     # Graph construction, utilities
-│   │       └── ...
+│   │   └── gears/           # GEARS utilities
 │   ├── kernels/              # High-performance kernels
-│   │   ├── statistics/      # Statistical operators
-│   │   │   ├── backends/
-│   │   │   │   ├── cpp/     # C++ implementations
-│   │   │   │   ├── cython/  # Cython implementations
-│   │   │   │   └── python/  # Numba/Python fallbacks
+│   │   ├── statistics/      # Statistical operators (C++/Cython)
+│   │   │   ├── backends/    # C++, Cython, Python implementations
 │   │   │   └── ops/         # Unified operator interface
 │   │   └── mapping/         # Mapping kernels
 │   ├── preprocessing/        # Preprocessing functions
 │   │   ├── _normalization.py
 │   │   └── _scale.py
-│   ├── tools/                # General-purpose tools
-│   │   ├── _bipartite.py    # Bipartite graph projection
-│   │   ├── _gene_similarity.py
-│   │   ├── _split_cell.py   # Data splitting
-│   │   └── _split_perturbation.py
-│   ├── types/                # Type definitions
-│   │   ├── _gene_vocab.py   # Gene vocabulary
-│   │   ├── _perturbation.py
-│   │   └── math/            # Math types (Graph, etc.)
-│   ├── data/                 # Data loading
-│   │   ├── datasets/        # Dataset loaders
-│   │   └── resources/       # Resource registry
-│   ├── io/                   # I/O utilities
-│   │   └── download/        # Download utilities
 │   ├── analysis/             # Analysis tools
-│   ├── metrics/              # Evaluation metrics
-│   ├── engine/               # Training engines
+│   │   ├── _de.py           # Differential expression
+│   │   └── _hvg.py          # Highly variable genes
+│   ├── tools/                # General-purpose tools
+│   │   ├── _bipartite.py    # Graph projection
+│   │   ├── _gene_similarity.py
+│   │   └── _split_*.py      # Data splitting
+│   ├── types/                # Type definitions
+│   │   ├── _vocab.py        # Generic vocabulary
+│   │   ├── _gene_vocab.py   # Gene-specific vocabulary
+│   │   ├── _cell.py         # Cell dataset
+│   │   ├── _perturbation.py # Perturbation dataset
+│   │   └── math/            # Graph types
 │   └── utils/                # Utilities
-├── setup.py                  # Build configuration
-├── CMakeLists.txt           # C++ build
-└── pyproject.toml           # Project metadata
+├── forks/                    # Original implementations (reference)
+├── pyproject.toml
+└── README.md
 ```
 
 ---
 
-## 📊 Performance Benchmarks
+## ⚡ Performance Features
 
-### Preprocessing Speed (1M cells × 2000 genes)
+### Optimized Kernels
 
-| Operation | Pure Python | Numba | Cython | C++ | Speedup |
-|-----------|------------|-------|--------|-----|---------|
-| `normalize_total` | 5.2s | 1.8s | 0.8s | **0.3s** | **17x** |
-| `scale` | 3.1s | 1.2s | 0.5s | **0.2s** | **15x** |
+PerturbLab includes high-performance statistical kernels with automatic backend selection:
 
-### Model Loading
+- **C++ Backend**: SIMD vectorization + OpenMP parallelization
+- **Cython Backend**: Compiled Python extensions
+- **Numba Backend**: JIT compilation (fallback)
+- **Python Backend**: Pure NumPy (universal fallback)
 
-| Strategy | Cold Start | Description |
-|----------|-----------|-------------|
-| **Eager** (load all) | 2.5s | Load all methods on import |
-| **Lazy** (PerturbLab) | 0.1s | Scan directory, load on access |
-| **Targeted** | 0.3s | Load only accessed method |
+The library automatically selects the fastest available backend at import time.
+
+### Lazy Model Loading
+
+PerturbLab uses intelligent lazy loading to minimize startup time:
+
+- **Scan Phase**: Lightweight directory scan (no imports)
+- **Load Phase**: Only loads models when accessed
+- **Cache Phase**: Subsequent access is instant
+
+This enables fast startup even with many models registered.
 
 ---
 
 ## 🎓 Advanced Usage
 
-### Custom Backend Selection
+### Model Registry Access Patterns
 
 ```python
-# Check available backends
-from perturblab.kernels.statistics import ops
+from perturblab.models import MODELS
 
-print(f"C++ available: {ops.cpp_available}")
-print(f"Cython available: {ops.cython_available}")
-print(f"Numba available: {ops.numba_available}")
+# Dot notation (IDE-friendly)
+model = MODELS.scGPT.scGPTModel(config, vocab)
+
+# Dictionary access (dynamic)
+model = MODELS['scFoundation']['scFoundationModel'](config)
+
+# Config-driven
+config_dict = {"model": "GEARS.GEARSModel", "params": {...}}
+model = MODELS.build(config_dict["model"], **config_dict["params"])
+
+# Access components
+encoder = MODELS.scGPT.components.GeneEncoder(vocab_size, dim)
+```
+
+### Custom Preprocessing Pipeline
+
+```python
+import perturblab.preprocessing as pp
+
+def preprocess_pipeline(adata):
+    # High-performance kernels
+    pp.normalize_total(adata, target_sum=1e4)
+    pp.scale(adata, max_value=10)
+    
+    # Analysis
+    from perturblab.analysis import highly_variable_genes
+    highly_variable_genes(adata, n_top_genes=2000)
+    
+    return adata
+
+adata = preprocess_pipeline(adata)
 ```
 
 ### Bipartite Graph Projection
 
 ```python
-from perturblab.tools import project_bipartite_graph, compute_gene_similarity_from_go
-from perturblab.types import BipartiteGraph
+from perturblab.tools import compute_gene_similarity_from_go
 
-# Create gene-GO term bipartite graph
-edges = [(0, 0), (0, 1), (1, 1), (1, 2)]  # gene -> GO term
-bg = BipartiteGraph(edges)
-
-# Project to gene-gene similarity
-similarity_df = project_bipartite_graph(
-    bg,
-    source_names=['TP53', 'KRAS'],
-    similarity='jaccard',
-    threshold=0.1
-)
-
-# Or directly from gene2go mapping
+# Build gene-gene similarity from GO annotations
 gene2go = {
     'TP53': {'GO:0001', 'GO:0002'},
     'KRAS': {'GO:0002', 'GO:0003'},
@@ -302,28 +351,37 @@ similarity_df = compute_gene_similarity_from_go(
 )
 ```
 
-### Data Splitting
+---
 
-```python
-from perturblab.tools import split_cells, split_perturbations_simple
-import anndata as ad
+## 📚 API Reference
 
-# Split cells
-adata = ad.read_h5ad('data.h5ad')
-train_idx, val_idx, test_idx = split_cells(
-    adata,
-    split_ratio=(0.7, 0.15, 0.15),
-    seed=42
-)
+### Preprocessing
 
-# Split perturbations
-perturbations = ['TP53', 'KRAS', 'TP53+KRAS', 'MYC']
-train_perts, val_perts, test_perts = split_perturbations_simple(
-    perturbations,
-    split_ratio=(0.7, 0.15, 0.15),
-    seed=42
-)
-```
+- `perturblab.preprocessing.normalize_total(adata, target_sum)` - Normalize counts per cell
+- `perturblab.preprocessing.scale(adata, max_value)` - Scale to unit variance
+
+### Analysis
+
+- `perturblab.analysis.highly_variable_genes(adata, n_top_genes, flavor)` - HVG detection
+- `perturblab.analysis.rank_genes_groups(adata, groupby, method)` - Differential expression
+
+### GEARS Methods
+
+- `perturblab.methods.gears.build_perturbation_graph(genes, similarity, threshold)` - Build GO-based gene graph
+- `perturblab.methods.gears.filter_perturbations_in_go(perturbations, go_genes)` - Filter valid perturbations
+
+### Tools
+
+- `perturblab.tools.project_bipartite_graph(graph, similarity)` - Project bipartite graph
+- `perturblab.tools.split_cells(adata, split_ratio)` - Split cells for train/val/test
+- `perturblab.tools.split_perturbations_simple(perturbations, split_ratio)` - Split perturbations
+
+### Model Registry
+
+- `MODELS.{Model}.{Variant}(config, ...)` - Create model from registry
+- `MODELS.build(key, **params)` - Build model from config
+- `MODELS.list_keys(recursive)` - List available models
+- `MODELS.{Model}.components.{Component}(...)` - Access model components
 
 ---
 
@@ -332,8 +390,8 @@ train_perts, val_perts, test_perts = split_perturbations_simple(
 ### Logging
 
 ```python
-# Set log level
 import os
+# Set log level
 os.environ['PERTURBLAB_LOG_LEVEL'] = 'DEBUG'  # or 'INFO', 'WARNING'
 
 # Or programmatically
@@ -354,38 +412,24 @@ perturblab._disable_auto_load = True
 
 ---
 
-## 📚 API Reference
+## 📝 Supported Models
 
-### Preprocessing
+| Model | Type | Architecture | Dependencies |
+|-------|------|--------------|--------------|
+| **GEARS** | Perturbation | Graph Neural Network | torch-geometric |
+| **UCE** | Embedding | Transformer | accelerate |
+| **scGPT** | Foundation | GPT-style Transformer | - |
+| **scFoundation** | Foundation | MAE + Auto-binning | local-attention* |
+| **CellFM** | Foundation | Retention mechanism | - |
+| **scELMo** | Embedding | Non-parametric | - |
 
-- `perturblab.preprocessing.normalize_total(adata, target_sum)` - Normalize counts per cell
-- `perturblab.preprocessing.scale(adata, max_value)` - Scale data to unit variance
-
-### GEARS Methods
-
-- `perturblab.methods.gears.build_perturbation_graph(genes, similarity, threshold)` - Build GO-based gene similarity network
-- `perturblab.methods.gears.filter_perturbations_in_go(perturbations, go_genes)` - Filter valid perturbations
-- `perturblab.methods.gears.get_perturbation_genes(perturbations)` - Extract genes from perturbations
-
-### Tools
-
-- `perturblab.tools.project_bipartite_graph(graph, similarity)` - Project bipartite graph
-- `perturblab.tools.compute_gene_similarity_from_go(gene2go)` - Compute gene similarity
-- `perturblab.tools.split_cells(adata, split_ratio)` - Split cells for train/val/test
-- `perturblab.tools.split_perturbations_simple(perturbations, split_ratio)` - Split perturbations
-
-### Model Registry
-
-- `MODELS.register(name)` - Decorator to register models
-- `MODELS.child(name)` - Create sub-registry
-- `MODELS.build(key, **params)` - Instantiate model from config
-- `MODELS.list_keys(recursive)` - List available models
+\* Optional dependency
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please:
+We welcome contributions! Please:
 
 1. Fork the repository
 2. Create a feature branch
@@ -407,6 +451,12 @@ pip install -e ".[accelerate]"
 
 This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
+Individual models may have their own licenses:
+- scGPT: MIT License
+- scFoundation: MIT License
+- CellFM: CC BY-NC-ND 4.0
+- See respective forks/ directories for details
+
 ---
 
 ## 🙏 Acknowledgments
@@ -414,9 +464,15 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 PerturbLab builds upon excellent work from:
 
 - **GEARS**: [Roohani et al., Nature Biotechnology 2023](https://www.nature.com/articles/s41587-023-01905-6)
-- **scanpy**: [Wolf et al., Genome Biology 2018](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1382-0)
-- **Highway**: Google's SIMD library for vectorization
-- **OpenMMLab**: For registry design inspiration
+- **scGPT**: [Cui et al., Nature Methods 2024](https://doi.org/10.1038/s41592-024-02201-0)
+- **UCE**: [Rosen et al., bioRxiv 2023](https://doi.org/10.1101/2023.11.28.568918)
+- **scFoundation**: [Wang et al., bioRxiv 2023](https://doi.org/10.1101/2023.05.29.542705v3)
+- **CellFM**: CellFM Authors
+
+Special thanks to:
+- OpenMMLab for registry design inspiration
+- scanpy/anndata for single-cell ecosystem
+- PyTorch and NumPy communities
 
 ---
 
