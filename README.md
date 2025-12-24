@@ -133,7 +133,82 @@ pip install -e .
 
 ## 🚀 Quick Start
 
-### 1. High-Performance Preprocessing
+### 1. Download Datasets
+
+PerturbLab provides easy access to benchmark datasets with automatic caching:
+
+```python
+from perturblab.data.resources import load_dataset, list_datasets
+import anndata as ad
+
+# List available datasets
+print(list_datasets())
+# ['go/go_basic', 'scperturb/norman_2019', 'scperturb/dixit_2016', ...]
+
+# Download and load scPerturb benchmark dataset
+h5ad_path = load_dataset('scperturb/norman_2019')
+adata = ad.read_h5ad(h5ad_path)
+print(f"Loaded dataset: {adata.shape}")
+
+# Download GO ontology file
+go_path = load_dataset('go/go_basic')
+# File is automatically cached - subsequent calls are instant
+```
+
+**Available Datasets**:
+- **scPerturb**: 55+ benchmark datasets from Zenodo
+- **GO**: Gene Ontology files (basic, full)
+
+All datasets are automatically cached in `~/.cache/perturblab/` for fast subsequent access.
+
+### 2. Load Models
+
+PerturbLab provides multiple ways to load models with intelligent dependency management:
+
+#### Method 1: Using `Model()` Function (Recommended)
+
+```python
+from perturblab.models import Model
+from perturblab.models.gears import GEARSConfig
+
+# URL-style path with case-insensitive matching
+model = Model("GEARS/default")(
+    config=GEARSConfig(num_genes=1000, num_perts=50),
+    G_coexpress=coexpress_graph,
+    G_go=go_graph
+)
+
+# Access nested components
+encoder = Model("scGPT/components/GeneEncoder")(vocab_size=5000, dim=512)
+
+# Get model class directly
+model_class = Model("UCE/default").class_
+model = model_class(config=UCEConfig(token_dim=512))
+```
+
+#### Method 2: Using `MODELS` Registry
+
+```python
+from perturblab.models import MODELS
+from perturblab.models.uce import UCEConfig
+
+# Dot notation (IDE-friendly)
+config = UCEConfig(token_dim=512, d_model=1280, nlayers=4)
+model = MODELS.UCE.UCEModel(config)
+
+# Dictionary-style access
+model = MODELS['scGPT']['scGPTModel'](config, vocab)
+
+# Build from config dict
+model = MODELS.build("GEARS.default", num_genes=1000, num_perts=50)
+```
+
+**Dependency Management**:
+- Required dependencies (`requirements`) are checked and raise `DependencyError` if missing
+- Optional dependencies (`dependencies`) log info messages recommending installation
+- Install missing dependencies: `pip install perturblab[model_name]`
+
+### 3. High-Performance Preprocessing
 
 ```python
 import perturblab.preprocessing as pp
@@ -152,18 +227,21 @@ sc.pp.log1p(adata)
 sc.pp.highly_variable_genes(adata)
 ```
 
-### 2. Foundation Models
+### 4. Foundation Models
 
 ```python
-from perturblab.models import MODELS
+from perturblab.models import Model, MODELS
 
 # List available models
 print(MODELS.list_keys(recursive=True))
 # ['GEARS.GEARSModel', 'UCE.UCEModel', 'scGPT.scGPTModel', ...]
 
-# Create model via registry
+# Method 1: Using Model() function (recommended)
 from perturblab.models.uce import UCEConfig, UCEInput
 config = UCEConfig(token_dim=512, d_model=1280, nlayers=4)
+model = Model("UCE/default")(config)
+
+# Method 2: Using MODELS registry
 model = MODELS.UCE.UCEModel(config)
 
 # Forward pass with typed I/O
@@ -172,7 +250,7 @@ outputs = model(inputs)
 embeddings = outputs.cell_embedding  # Type-safe access
 ```
 
-### 3. GEARS Perturbation Prediction
+### 5. GEARS Perturbation Prediction
 
 ```python
 from perturblab.methods import gears
@@ -199,7 +277,7 @@ outputs = model(inputs)
 predictions = outputs.predictions  # Type-safe
 ```
 
-### 4. Highly Variable Genes
+### 6. Highly Variable Genes
 
 ```python
 from perturblab.analysis import highly_variable_genes
@@ -295,23 +373,52 @@ This enables fast startup even with many models registered.
 
 ## 🎓 Advanced Usage
 
-### Model Registry Access Patterns
+### Model Loading Patterns
 
 ```python
-from perturblab.models import MODELS
+from perturblab.models import Model, MODELS
 
-# Dot notation (IDE-friendly)
+# Method 1: Model() function (URL-style, case-insensitive)
+model = Model("GEARS/default")(config=GEARSConfig(...), G_coexpress=..., G_go=...)
+model = Model("scGPT/default")(config=scGPTConfig(...), vocab=vocab)
+model = Model("gears/default")  # Case-insensitive
+
+# Method 2: MODELS registry (dot notation, IDE-friendly)
 model = MODELS.scGPT.scGPTModel(config, vocab)
 
-# Dictionary access (dynamic)
+# Method 3: Dictionary access (dynamic)
 model = MODELS['scFoundation']['scFoundationModel'](config)
 
-# Config-driven
-config_dict = {"model": "GEARS.GEARSModel", "params": {...}}
-model = MODELS.build(config_dict["model"], **config_dict["params"])
+# Method 4: Build from config
+model = MODELS.build("GEARS.default", num_genes=1000, num_perts=50)
 
 # Access components
+encoder = Model("scGPT/components/GeneEncoder")(vocab_size=5000, dim=512)
 encoder = MODELS.scGPT.components.GeneEncoder(vocab_size, dim)
+```
+
+### Dataset Download Patterns
+
+```python
+from perturblab.data.resources import load_dataset, get_dataset, list_datasets
+
+# List all available datasets
+datasets = list_datasets()
+print(f"Available datasets: {len(datasets)}")
+
+# Download dataset (returns Path, downloads if needed)
+h5ad_path = load_dataset('scperturb/norman_2019')
+import anndata as ad
+adata = ad.read_h5ad(h5ad_path)
+
+# Get dataset resource object (for metadata)
+resource = get_dataset('scperturb/norman_2019')
+print(f"Resource key: {resource.key}")
+print(f"Has remote: {resource._remote_config is not None}")
+
+# All datasets are cached automatically
+# Second call is instant (uses cache)
+h5ad_path_2 = load_dataset('scperturb/norman_2019')  # Fast!
 ```
 
 ### Custom Preprocessing Pipeline
@@ -376,12 +483,24 @@ similarity_df = compute_gene_similarity_from_go(
 - `perturblab.tools.split_cells(adata, split_ratio)` - Split cells for train/val/test
 - `perturblab.tools.split_perturbations_simple(perturbations, split_ratio)` - Split perturbations
 
-### Model Registry
+### Model Loading
 
-- `MODELS.{Model}.{Variant}(config, ...)` - Create model from registry
-- `MODELS.build(key, **params)` - Build model from config
+- `Model(key)` - Load model using URL-style path (e.g., `"GEARS/default"`)
+  - Case-insensitive matching
+  - Supports nested paths (e.g., `"scGPT/components/GeneEncoder"`)
+  - Returns `ModelBuilder` with `.build()`, `.class_`, and `__call__()` methods
+- `MODELS.{Model}.{Variant}(config, ...)` - Create model from registry (dot notation)
+- `MODELS.build(key, **params)` - Build model from config string
 - `MODELS.list_keys(recursive)` - List available models
 - `MODELS.{Model}.components.{Component}(...)` - Access model components
+
+### Dataset Resources
+
+- `load_dataset(path)` - Download and return Path to dataset file
+  - Automatically caches in `~/.cache/perturblab/`
+  - Supports paths like `'scperturb/norman_2019'`, `'go/go_basic'`
+- `get_dataset(path)` - Get dataset resource object (for metadata)
+- `list_datasets()` - List all available datasets
 
 ---
 

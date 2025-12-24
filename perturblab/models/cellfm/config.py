@@ -11,7 +11,13 @@ Licensed under CC BY-NC-ND 4.0
 
 from perturblab.core.config import Config
 
-__all__ = ["CellFMConfig"]
+__all__ = ["CellFMConfig", "requirements", "dependencies"]
+
+# Required dependencies (mandatory)
+requirements = []
+
+# Optional dependencies (for enhanced functionality)
+dependencies = []
 
 
 class CellFMConfig(Config):

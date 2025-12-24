@@ -2,7 +2,13 @@
 
 from perturblab.core.config import Config
 
-__all__ = ["GEARSConfig"]
+__all__ = ["GEARSConfig", "requirements", "dependencies"]
+
+# Required dependencies (mandatory)
+requirements = ["torch_geometric"]
+
+# Optional dependencies (for enhanced functionality)
+dependencies = []
 
 
 class GEARSConfig(Config):

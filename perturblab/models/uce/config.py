@@ -2,7 +2,13 @@
 
 from perturblab.core.config import Config
 
-__all__ = ["UCEConfig"]
+__all__ = ["UCEConfig", "requirements", "dependencies"]
+
+# Required dependencies (mandatory)
+requirements = []
+
+# Optional dependencies (for enhanced functionality)
+dependencies = ["accelerate"]
 
 
 class UCEConfig(Config):

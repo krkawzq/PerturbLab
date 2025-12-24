@@ -7,8 +7,7 @@ Current Status: Infrastructure ready, model implementation pending.
 
 from perturblab.utils import create_lazy_loader
 
-dependencies = []
-
+from perturblab.models.cellfm.config import requirements, dependencies
 
 # Define lazy loading module map
 _LAZY_MODULES = {
@@ -17,6 +16,7 @@ _LAZY_MODULES = {
 
 # Create lazy loader
 __getattr__, __dir__ = create_lazy_loader(
+    requirements=requirements,
     dependencies=dependencies,
     lazy_modules=_LAZY_MODULES,
     package_name=__package__,

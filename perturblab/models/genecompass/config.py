@@ -10,12 +10,15 @@ from dataclasses import dataclass
 
 from perturblab.core.config import ModelConfig
 
-__all__ = ["GeneCompassConfig", "dependencies"]
+__all__ = ["GeneCompassConfig", "requirements", "dependencies"]
 
-# Required dependencies for GeneCompass.
-dependencies = [
+# Required dependencies for GeneCompass (mandatory).
+requirements = [
     "transformers",
 ]
+
+# Optional dependencies for GeneCompass (for enhanced functionality).
+dependencies = []
 
 
 @dataclass

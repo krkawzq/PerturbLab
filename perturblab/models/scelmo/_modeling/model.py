@@ -439,7 +439,7 @@ class scELMoModel(nn.Module):
             embeddings = torch.from_numpy(embeddings)
 
         # Create config
-        from ..config import scELMoConfig
+        from perturblab.models.scelmo.config import scELMoConfig
 
         config = scELMoConfig(
             gene_names=gene_list,

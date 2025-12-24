@@ -69,7 +69,7 @@ from perturblab.models import MODELS
 from perturblab.utils import create_lazy_loader
 
 # Import configuration and IO schemas
-from .config import GeneCompassConfig, dependencies
+from .config import GeneCompassConfig, requirements, dependencies
 from .io import GeneCompassInput, GeneCompassOutput, MaskedLMOutputBoth
 
 # Mapping for lazy loading core model module.
@@ -79,6 +79,7 @@ _LAZY_MODULES = {
 
 # Setup lazy loading for the core GeneCompassModel
 __getattr__, __dir__ = create_lazy_loader(
+    requirements=requirements,
     dependencies=dependencies,
     lazy_modules=_LAZY_MODULES,
     package_name=__package__,

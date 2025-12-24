@@ -10,7 +10,14 @@ from typing import Literal, Optional
 
 from perturblab.core.config import Config
 
-__all__ = ["scFoundationConfig"]
+__all__ = ["scFoundationConfig", "requirements", "dependencies"]
+
+# Required dependencies (mandatory)
+requirements = []
+
+# Optional dependencies (for enhanced functionality)
+# local-attention is optional, used for Performer backend
+dependencies = ["local_attention"]
 
 
 class scFoundationConfig(Config):

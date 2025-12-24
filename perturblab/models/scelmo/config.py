@@ -5,7 +5,14 @@ from typing import List, Literal, Optional
 
 from perturblab.core.config import Config
 
-__all__ = ["scELMoConfig"]
+__all__ = ["scELMoConfig", "requirements", "dependencies"]
+
+# Required dependencies (mandatory)
+# scELMo has no external dependencies beyond PyTorch (which is a core dependency)
+requirements = []
+
+# Optional dependencies (for enhanced functionality)
+dependencies = []
 
 
 class scELMoConfig(Config):

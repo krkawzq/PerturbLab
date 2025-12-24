@@ -57,9 +57,10 @@ def check_dependencies(dependencies: list[str]) -> tuple[bool, list[str]]:
 
 
 def create_lazy_loader(
-    dependencies: list[str],
-    lazy_modules: dict[str, str],
-    package_name: str,
+    requirements: list[str] | None = None,
+    dependencies: list[str] | None = None,
+    lazy_modules: dict[str, str] | None = None,
+    package_name: str | None = None,
     install_hint: str | None = None,
 ) -> tuple[Callable[[str], Any], Callable[[], list[str]]]:
     """Create lazy loading functions for a module.
@@ -69,13 +70,15 @@ def create_lazy_loader(
 
     Parameters
     ----------
-    dependencies : list[str]
-        List of required package names.
+    requirements : list[str], optional
+        List of required (mandatory) package names. If missing, raises DependencyError.
+    dependencies : list[str], optional
+        List of optional package names. If missing, logs info message recommending installation.
     lazy_modules : dict[str, str]
         Mapping from attribute names to module paths.
         Example: {'Model': '.model', 'Config': '.config'}
-    package_name : str
-        Name of the package (for error messages).
+    package_name : str, optional
+        Name of the package (for error messages). If None, uses "unknown".
     install_hint : str, optional
         Custom installation hint. If None, generates a default hint.
 
@@ -86,34 +89,75 @@ def create_lazy_loader(
 
     Examples
     --------
-    >>> # In your __init__.py:
-    >>> dependencies = ['torch_geometric']
-    >>> lazy_modules = {'Model': '.model', 'Config': '.config'}
+    >>> # Separate requirements (mandatory) and dependencies (optional)
+    >>> requirements = ['torch_geometric']  # Mandatory
+    >>> dependencies = ['accelerate']  # Optional
+    >>> lazy_modules = {'Model': '.model'}
     >>> __getattr__, __dir__ = create_lazy_loader(
-    ...     dependencies, lazy_modules, __package__
+    ...     requirements=requirements,
+    ...     dependencies=dependencies,
+    ...     lazy_modules=lazy_modules,
+    ...     package_name=__package__,
+    ...     install_hint="pip install perturblab[gears]"
     ... )
     """
+    # Normalize to lists
+    requirements = requirements or []
+    dependencies = dependencies or []
+    lazy_modules = lazy_modules or {}
+    package_name = package_name or "unknown"
+
     # Cache dependency check result
-    _cache = {"checked": False, "satisfied": False, "missing": []}
+    _cache = {
+        "requirements_checked": False,
+        "requirements_satisfied": False,
+        "requirements_missing": [],
+        "dependencies_checked": False,
+        "dependencies_satisfied": False,
+        "dependencies_missing": [],
+    }
 
-    def _ensure_dependencies():
-        """Ensure dependencies are satisfied, raise DependencyError if not."""
-        if not _cache["checked"]:
-            _cache["satisfied"], _cache["missing"] = check_dependencies(dependencies)
-            _cache["checked"] = True
+    def _ensure_requirements():
+        """Ensure required dependencies are satisfied, raise DependencyError if not."""
+        if not _cache["requirements_checked"]:
+            _cache["requirements_satisfied"], _cache["requirements_missing"] = check_dependencies(
+                requirements
+            )
+            _cache["requirements_checked"] = True
 
-        if not _cache["satisfied"]:
+        if not _cache["requirements_satisfied"]:
             if install_hint:
                 hint = install_hint
             else:
                 # Generate default hint
-                dep_str = " ".join(_cache["missing"])
+                dep_str = " ".join(_cache["requirements_missing"])
                 hint = f"pip install {dep_str}"
 
             raise DependencyError(
                 f"{package_name} requires the following packages that are not installed: "
-                f"{', '.join(_cache['missing'])}.\n"
+                f"{', '.join(_cache['requirements_missing'])}.\n"
                 f"Install them with: {hint}"
+            )
+
+    def _check_optional_dependencies():
+        """Check optional dependencies and log recommendation if missing."""
+        if not _cache["dependencies_checked"]:
+            _cache["dependencies_satisfied"], _cache["dependencies_missing"] = check_dependencies(
+                dependencies
+            )
+            _cache["dependencies_checked"] = True
+
+        if not _cache["dependencies_satisfied"] and _cache["dependencies_missing"]:
+            if install_hint:
+                hint = install_hint
+            else:
+                dep_str = " ".join(_cache["dependencies_missing"])
+                hint = f"pip install {dep_str}"
+
+            logger.info(
+                f"[{package_name}] Optional dependencies are not installed: "
+                f"{', '.join(_cache['dependencies_missing'])}. "
+                f"For enhanced functionality, install with: {hint}"
             )
 
     def __getattr__(name: str) -> Any:
@@ -137,8 +181,11 @@ def create_lazy_loader(
             If the attribute doesn't exist.
         """
         if name in lazy_modules:
-            # Check dependencies before loading
-            _ensure_dependencies()
+            # Check required dependencies before loading (raises if missing)
+            _ensure_requirements()
+
+            # Check optional dependencies (logs recommendation if missing)
+            _check_optional_dependencies()
 
             # Import the module
             module_path = lazy_modules[name]
