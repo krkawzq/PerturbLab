@@ -6,7 +6,8 @@ This module provides `CellDataset`, a wrapper around AnnData with enhanced featu
 - Efficient data loading and transformation
 """
 
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import Any, Literal, Union
 
 import anndata as ad
 import numpy as np
@@ -34,7 +35,7 @@ class _VirtualViewBackedArray:
         base_X,
         gene_indices: np.ndarray,
         target_genes: pd.Index,
-        virtual_genes: Dict[str, float],
+        virtual_genes: dict[str, float],
         n_cells: int,
     ):
         self.base_X = base_X
@@ -45,7 +46,7 @@ class _VirtualViewBackedArray:
         self._dtype = base_X.dtype if hasattr(base_X, "dtype") else np.float32
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         """Shape of the virtual array."""
         return self._shape
 
@@ -284,9 +285,9 @@ class CellData:
     def __init__(
         self,
         adata: ad.AnnData,
-        cell_type_col: Optional[str] = None,
-        gene_name_col: Optional[str] = None,
-        cell_id_col: Optional[str] = None,
+        cell_type_col: str | None = None,
+        gene_name_col: str | None = None,
+        cell_id_col: str | None = None,
         duplicated_gene_policy: DuplicatedGenePolicy = "error",
     ):
         """Initialize CellDataset from AnnData object.
@@ -313,20 +314,20 @@ class CellData:
 
         # Configuration
         self._duplicated_policy = duplicated_gene_policy
-        self._layer_name: Optional[str] = None
+        self._layer_name: str | None = None
 
         # Label encoding
-        self.type_to_idx: Optional[Dict[str, int]] = None
+        self.type_to_idx: dict[str, int] | None = None
 
         # Virtual view metadata (internal)
         self._is_virtual_view = False
-        self._target_genes: Optional[pd.Index] = None
-        self._virtual_genes: Optional[Dict[str, float]] = None
-        self._gene_indices: Optional[np.ndarray] = None
+        self._target_genes: pd.Index | None = None
+        self._virtual_genes: dict[str, float] | None = None
+        self._gene_indices: np.ndarray | None = None
 
         # Cache for optimized DataLoader access (internal)
         self._cache_enabled = False
-        self._cached_X: Optional[np.ndarray] = None
+        self._cached_X: np.ndarray | None = None
 
         # Process duplicates
         self.adata = self._process_duplicates(adata, duplicated_gene_policy)
@@ -372,7 +373,7 @@ class CellData:
     # ====================================================================================
 
     def align_genes(
-        self, target_genes: Union[List[str], pd.Index], fill_value: float = 0.0
+        self, target_genes: list[str] | pd.Index, fill_value: float = 0.0
     ) -> "CellData":
         """Align dataset to target gene list (lazy virtual view).
 
@@ -465,12 +466,12 @@ class CellData:
     def split(
         self,
         test_size: float = 0.2,
-        stratify: Union[bool, str] = True,
+        stratify: bool | str = True,
         random_state: int = 42,
         shuffle: bool = True,
         dry_run: bool = False,
         split_col: str = "split",
-    ) -> Union[Dict[str, "CellData"], "CellData"]:
+    ) -> Union[dict[str, "CellData"], "CellData"]:
         """Split dataset into train and test sets.
 
         Args:
@@ -551,11 +552,11 @@ class CellData:
 
     def sample(
         self,
-        n: Optional[int] = None,
-        frac: Optional[float] = None,
+        n: int | None = None,
+        frac: float | None = None,
         by_cell_type: bool = False,
         balance: bool = False,
-        sampler: Optional[Callable[[pd.DataFrame], np.ndarray]] = None,
+        sampler: Callable[[pd.DataFrame], np.ndarray] | None = None,
         random_state: int = 42,
         replace: bool = False,
     ) -> "CellData":
@@ -644,8 +645,8 @@ class CellData:
     # ====================================================================================
 
     def to_tensor(
-        self, idx: Union[slice, np.ndarray, None] = None, sparse: bool = False
-    ) -> Union[torch.Tensor, torch.sparse.Tensor]:
+        self, idx: slice | np.ndarray | None = None, sparse: bool = False
+    ) -> torch.Tensor | torch.sparse.Tensor:
         """Convert to PyTorch tensor.
 
         Args:
@@ -815,7 +816,7 @@ class CellData:
         """Path to backing file (if backed)."""
         return self.adata.filename if self.isbacked else None
 
-    def use_layer(self, layer_name: Optional[str] = None) -> "CellData":
+    def use_layer(self, layer_name: str | None = None) -> "CellData":
         """Switch to a different layer for X access.
 
         WARNING: Switching layers automatically CLEARS the cache to prevent
@@ -841,7 +842,7 @@ class CellData:
             raise KeyError(
                 f"Layer '{layer_name}' not found in adata.layers. " f"Available layers: {available}"
             )
-        
+
         # Only clear cache if layer actually changes
         if layer_name != self._layer_name:
             if self._cache_enabled:
@@ -850,9 +851,9 @@ class CellData:
                     f"Clearing cache to prevent data misalignment."
                 )
                 self.clear_cache(verbose=False)
-            
+
             self._layer_name = layer_name
-        
+
         return self
 
     @property
@@ -913,14 +914,14 @@ class CellData:
         return None
 
     @property
-    def idx_to_type(self) -> Dict[int, str]:
+    def idx_to_type(self) -> dict[int, str]:
         """Reverse mapping from index to cell type."""
         if self.type_to_idx:
             return {v: k for k, v in self.type_to_idx.items()}
         return {}
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         """Get shape (n_cells, n_genes)."""
         if self._is_virtual_view:
             return (self.adata.n_obs, len(self._target_genes))
@@ -979,8 +980,8 @@ class CellData:
         self,
         target_genes: pd.Index,
         gene_indices: np.ndarray,
-        virtual_genes: Dict[str, float],
-        adata: Optional[ad.AnnData] = None,
+        virtual_genes: dict[str, float],
+        adata: ad.AnnData | None = None,
     ) -> "CellData":
         """Create virtual view with virtual genes.
 
@@ -1123,27 +1124,35 @@ class CellData:
             # Slice cached array
             if isinstance(index, int):
                 # Keep 2D shape (1, n_genes) for consistency
-                cached_slice = self._cached_X[index:index+1]
+                cached_slice = self._cached_X[index : index + 1]
             elif isinstance(index, slice):
                 cached_slice = self._cached_X[index]
             elif isinstance(index, (list, np.ndarray)):
                 cached_slice = self._cached_X[index]
             else:
                 cached_slice = self._cached_X[index]
-            
+
             # Slice metadata from adata (creates View)
             sliced_adata_view = self.adata[index]
-            
+
             # CRITICAL FIX: Cannot assign to View.X directly
             # Solution: Create a new AnnData with cached data
             # Since cached_slice is already in memory, copy() overhead is acceptable
             new_adata = ad.AnnData(
                 X=cached_slice,
-                obs=sliced_adata_view.obs.copy() if hasattr(sliced_adata_view.obs, 'copy') else sliced_adata_view.obs,
-                var=sliced_adata_view.var.copy() if hasattr(sliced_adata_view.var, 'copy') else sliced_adata_view.var,
+                obs=(
+                    sliced_adata_view.obs.copy()
+                    if hasattr(sliced_adata_view.obs, "copy")
+                    else sliced_adata_view.obs
+                ),
+                var=(
+                    sliced_adata_view.var.copy()
+                    if hasattr(sliced_adata_view.var, "copy")
+                    else sliced_adata_view.var
+                ),
                 uns=sliced_adata_view.uns,
             )
-            
+
             instance = self._create_from_existing(new_adata)
             # Sliced views don't inherit cache (they have concrete data)
             instance._cache_enabled = False
@@ -1230,7 +1239,7 @@ class CellData:
         Notes:
             Memory usage: O(n_cells * n_genes * 4 bytes) for float32.
             For 10k cells × 20k genes: ~800MB.
-            
+
             Performance: ~5-10x speedup for DataLoader with sparse matrices.
         """
         if self._cache_enabled:
@@ -1247,7 +1256,7 @@ class CellData:
         # Convert to dense
         if scipy.sparse.issparse(X):
             self._cached_X = X.toarray()
-        elif hasattr(X, 'toarray'):
+        elif hasattr(X, "toarray"):
             # Virtual view backed array
             self._cached_X = X.toarray()
         else:
@@ -1283,9 +1292,9 @@ class CellData:
             if verbose:
                 mem_mb = self._cached_X.nbytes / (1024 * 1024)
                 logger.info(f"🗑️  Clearing cache: {mem_mb:.1f} MB freed")
-            
+
             self._cached_X = None
-        
+
         self._cache_enabled = False
 
     def refresh_cache(self, verbose: bool = True):
@@ -1314,10 +1323,10 @@ class CellData:
                 logger.warning("Cache not enabled, enabling fresh cache...")
             self.enable_cache(verbose=verbose)
             return
-        
+
         if verbose:
             logger.info("♻️  Refreshing cache from current data state...")
-        
+
         self.clear_cache(verbose=False)
         self.enable_cache(verbose=verbose)
 
@@ -1331,7 +1340,7 @@ class CellData:
     # ====================================================================================
 
     @staticmethod
-    def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+    def collate_fn(batch: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
         """Collate function for torch DataLoader.
 
         Args:

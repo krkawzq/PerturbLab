@@ -63,7 +63,7 @@ try:
     ]
     _lib.dense_standardize_capi.restype = None
 
-except (OSError, AttributeError) as e:
+except (OSError, AttributeError):
     _lib = None
 
 

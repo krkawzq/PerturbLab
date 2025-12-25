@@ -4,7 +4,7 @@
 #
 
 
-class Event(object):
+class Event:
     """The Event is the base class for all events that are dispatched from any
     transformer module.
 

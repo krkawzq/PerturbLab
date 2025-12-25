@@ -43,10 +43,10 @@ class TTestResults(ctypes.Structure):
 # Load C++ Library
 # =============================================================================
 
-_lib: Optional[ctypes.CDLL] = None
+_lib: ctypes.CDLL | None = None
 
 
-def _find_library() -> Optional[Path]:
+def _find_library() -> Path | None:
     """Find the compiled C++ library (shared with mannwhitneyu)."""
     module_dir = Path(__file__).parent
 
@@ -64,7 +64,7 @@ def _find_library() -> Optional[Path]:
     return None
 
 
-def _load_library() -> Optional[ctypes.CDLL]:
+def _load_library() -> ctypes.CDLL | None:
     """Load the C++ library and configure function signatures."""
     lib_path = _find_library()
 
@@ -147,7 +147,7 @@ def _extract_ttest_results(
     result_ptr: ctypes.POINTER(TTestResults),
     n_targets: int,
     n_cols: int,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Extract results from C structure."""
     result = result_ptr.contents
     size = result.size
@@ -179,7 +179,7 @@ def student_ttest_cpp(
     group_id: np.ndarray,
     n_targets: int,
     threads: int = -1,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Student's t-test using C++ backend."""
     if _lib is None:
         raise RuntimeError("C++ backend not available")
@@ -225,7 +225,7 @@ def welch_ttest_cpp(
     group_id: np.ndarray,
     n_targets: int,
     threads: int = -1,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Welch's t-test using C++ backend."""
     if _lib is None:
         raise RuntimeError("C++ backend not available")
@@ -272,7 +272,7 @@ def log_fold_change_cpp(
     n_targets: int,
     pseudocount: float = 1e-9,
     threads: int = -1,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Log fold change using C++ backend."""
     if _lib is None:
         raise RuntimeError("C++ backend not available")

@@ -6,7 +6,7 @@ topological properties.
 """
 
 from collections import defaultdict, deque
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from perturblab.utils import get_logger
 
@@ -47,7 +47,7 @@ class DAG:
 
     def __init__(
         self,
-        edges: List[Tuple[Any, Any]],
+        edges: list[tuple[Any, Any]],
         validate: bool = True,
     ):
         """Initialize DAG from edge list.
@@ -67,14 +67,14 @@ class DAG:
         self.edges = edges
 
         # Extract all nodes
-        self.nodes: Set[Any] = set()
+        self.nodes: set[Any] = set()
         for parent, child in edges:
             self.nodes.add(parent)
             self.nodes.add(child)
 
         # Build adjacency lists
-        self._parents: Dict[Any, Set[Any]] = defaultdict(set)
-        self._children: Dict[Any, Set[Any]] = defaultdict(set)
+        self._parents: dict[Any, set[Any]] = defaultdict(set)
+        self._children: dict[Any, set[Any]] = defaultdict(set)
 
         for parent, child in edges:
             self._parents[child].add(parent)
@@ -86,8 +86,8 @@ class DAG:
                 raise ValueError("Graph contains cycles and is not a valid DAG")
 
         # Compute topological properties
-        self._level: Dict[Any, int] = {}
-        self._depth: Dict[Any, int] = {}
+        self._level: dict[Any, int] = {}
+        self._depth: dict[Any, int] = {}
         self._compute_topological_properties()
 
         logger.debug(f"DAG initialized: {len(self.nodes)} nodes, {len(edges)} edges")
@@ -190,7 +190,7 @@ class DAG:
             if node not in self._depth:
                 compute_depth(node)
 
-    def get_parents(self, node: Any) -> Set[Any]:
+    def get_parents(self, node: Any) -> set[Any]:
         """Get direct parents of a node.
 
         Args:
@@ -204,7 +204,7 @@ class DAG:
         """
         return self._parents.get(node, set()).copy()
 
-    def get_children(self, node: Any) -> Set[Any]:
+    def get_children(self, node: Any) -> set[Any]:
         """Get direct children of a node.
 
         Args:
@@ -218,7 +218,7 @@ class DAG:
         """
         return self._children.get(node, set()).copy()
 
-    def get_all_ancestors(self, node: Any) -> Set[Any]:
+    def get_all_ancestors(self, node: Any) -> set[Any]:
         """Get all ancestors of a node (transitive closure of parents).
 
         Args:
@@ -247,7 +247,7 @@ class DAG:
 
         return ancestors
 
-    def get_all_descendants(self, node: Any) -> Set[Any]:
+    def get_all_descendants(self, node: Any) -> set[Any]:
         """Get all descendants of a node (transitive closure of children).
 
         Args:
@@ -291,7 +291,7 @@ class DAG:
         """
         return target in self.get_all_descendants(source)
 
-    def get_level(self, node: Any) -> Optional[int]:
+    def get_level(self, node: Any) -> int | None:
         """Get the level of a node (shortest distance from root).
 
         Args:
@@ -306,7 +306,7 @@ class DAG:
         """
         return self._level.get(node)
 
-    def get_depth(self, node: Any) -> Optional[int]:
+    def get_depth(self, node: Any) -> int | None:
         """Get the depth of a node (longest distance from root).
 
         Args:
@@ -321,7 +321,7 @@ class DAG:
         """
         return self._depth.get(node)
 
-    def get_roots(self) -> Set[Any]:
+    def get_roots(self) -> set[Any]:
         """Get all root nodes (nodes with no parents).
 
         Returns:
@@ -332,7 +332,7 @@ class DAG:
         """
         return {node for node in self.nodes if not self._parents.get(node)}
 
-    def get_leaves(self) -> Set[Any]:
+    def get_leaves(self) -> set[Any]:
         """Get all leaf nodes (nodes with no children).
 
         Returns:
@@ -343,7 +343,7 @@ class DAG:
         """
         return {node for node in self.nodes if not self._children.get(node)}
 
-    def get_nodes_at_level(self, level: int) -> Set[Any]:
+    def get_nodes_at_level(self, level: int) -> set[Any]:
         """Get all nodes at a specific level.
 
         Args:
@@ -357,7 +357,7 @@ class DAG:
         """
         return {node for node, node_level in self._level.items() if node_level == level}
 
-    def get_topological_sort(self) -> List[Any]:
+    def get_topological_sort(self) -> list[Any]:
         """Get a topological sorting of the DAG.
 
         Returns:
@@ -386,7 +386,7 @@ class DAG:
 
         return result
 
-    def subgraph(self, nodes: Set[Any]) -> "DAG":
+    def subgraph(self, nodes: set[Any]) -> "DAG":
         """Create a subgraph containing only specified nodes.
 
         Args:
@@ -405,7 +405,7 @@ class DAG:
 
         return DAG(sub_edges, validate=False)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get statistics about the DAG.
 
         Returns:

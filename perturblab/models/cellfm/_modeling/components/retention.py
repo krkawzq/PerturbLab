@@ -16,7 +16,6 @@ Original source: https://github.com/biomed-AI/CellFM
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -106,7 +105,7 @@ class MHRetention(nn.Module):
     gating and group norm.
     """
 
-    def __init__(self, emb_dims: int, num_heads: int, lth: Optional[int] = None, lora: int = 0):
+    def __init__(self, emb_dims: int, num_heads: int, lth: int | None = None, lora: int = 0):
         super().__init__()
         self.emb_dims = emb_dims
         self.num_heads = num_heads
@@ -152,10 +151,10 @@ class MHRetention(nn.Module):
     def forward(
         self,
         x: Tensor,
-        y: Optional[Tensor] = None,
-        v_pos: Optional[Tensor] = None,
-        attn_mask: Optional[Tensor] = None,
-        seq_mask: Optional[Tensor] = None,
+        y: Tensor | None = None,
+        v_pos: Tensor | None = None,
+        attn_mask: Tensor | None = None,
+        seq_mask: Tensor | None = None,
     ) -> Tensor:
         """Forward pass for retention.
 
@@ -244,7 +243,7 @@ class GatedLinearUnit(nn.Module):
     Where U = x @ W_u, V = x @ W_v
     """
 
-    def __init__(self, emb_dims: int, lth: Optional[int] = None, lora: int = 0):
+    def __init__(self, emb_dims: int, lth: int | None = None, lora: int = 0):
         super().__init__()
         beta = 1.0 if lth is None else (lth * 8) ** -0.25
 

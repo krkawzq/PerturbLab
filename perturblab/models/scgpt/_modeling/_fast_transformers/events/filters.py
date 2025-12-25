@@ -10,7 +10,7 @@ import weakref
 from .event import Event
 
 
-class EventFilter(object):
+class EventFilter:
     """EventFilter instances are predicates (ie functions that return True or
     False) to be used with an event dispatcher for filtering event
     instances.

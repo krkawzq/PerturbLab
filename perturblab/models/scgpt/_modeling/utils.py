@@ -1,4 +1,3 @@
-from typing import Union
 
 import numpy as np
 import torch
@@ -20,9 +19,9 @@ def tensorlist2tensor(tensorlist, pad_value):
 
 
 def map_raw_id_to_vocab_id(
-    raw_ids: Union[np.ndarray, torch.Tensor],
+    raw_ids: np.ndarray | torch.Tensor,
     gene_ids: np.ndarray,
-) -> Union[np.ndarray, torch.Tensor]:
+) -> np.ndarray | torch.Tensor:
     """
     Map raw gene indices to vocab indices.
 
@@ -53,7 +52,7 @@ def map_raw_id_to_vocab_id(
     return mapped_ids.astype(dtype)
 
 
-def binning(row: Union[np.ndarray, torch.Tensor], n_bins: int) -> Union[np.ndarray, torch.Tensor]:
+def binning(row: np.ndarray | torch.Tensor, n_bins: int) -> np.ndarray | torch.Tensor:
     """Binning the row into n_bins."""
     dtype = row.dtype
     return_np = False if isinstance(row, torch.Tensor) else True

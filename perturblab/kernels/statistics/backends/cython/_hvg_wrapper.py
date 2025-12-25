@@ -1,7 +1,6 @@
 """Python wrapper for Cython HVG operators."""
 
 import logging
-from typing import Optional, Tuple
 
 import numpy as np
 import scipy.sparse
@@ -50,7 +49,7 @@ def has_cython_backend() -> bool:
 def sparse_clipped_moments_cy(
     X: scipy.sparse.csc_matrix,
     clip_vals: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute clipped moments (Cython backend)."""
     if not _has_cython:
         raise RuntimeError("Cython backend not available")
@@ -67,7 +66,7 @@ def sparse_clipped_moments_cy(
 def sparse_mean_var_cy(
     X: scipy.sparse.csc_matrix,
     include_zeros: bool = True,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute mean and variance (Cython backend)."""
     if not _has_cython:
         raise RuntimeError("Cython backend not available")
@@ -102,9 +101,9 @@ def polynomial_fit_cy(
     x: np.ndarray,
     y: np.ndarray,
     degree: int = 2,
-    weights: Optional[np.ndarray] = None,
+    weights: np.ndarray | None = None,
     return_coeffs: bool = False,
-) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+) -> tuple[np.ndarray, np.ndarray | None]:
     """Fit polynomial regression (Cython backend)."""
     if not _has_cython:
         raise RuntimeError("Cython backend not available")
@@ -162,7 +161,7 @@ def group_mean_var_cy(
     group_id: np.ndarray,
     n_groups: int,
     include_zeros: bool = True,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute group-wise mean and variance (Cython backend)."""
     if not _has_cython:
         raise RuntimeError("Cython backend not available")

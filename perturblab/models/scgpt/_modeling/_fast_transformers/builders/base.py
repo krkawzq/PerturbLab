@@ -7,7 +7,7 @@
 """Provide a class for the others to inherit some useful functionality."""
 
 
-class BaseBuilder(object):
+class BaseBuilder:
     @classmethod
     def from_kwargs(cls, **kwargs):
         """Construct a builder and set all the keyword arguments as parameters.
@@ -60,7 +60,7 @@ class BaseBuilder(object):
                 setattr(builder, k, v)
             except AttributeError:
                 if strict:
-                    raise ValueError(("The builder has no " "parameter {!r}").format(k))
+                    raise ValueError("The builder has no " f"parameter {k!r}")
                 else:
                     continue
         return builder

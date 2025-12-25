@@ -36,6 +36,7 @@ dependencies = ["flash_attn", "fast_transformers"]
 def _get_models_registry():
     """Lazily imports MODELS to avoid circular dependency."""
     from perturblab.models import MODELS
+
     return MODELS
 
 
@@ -59,7 +60,27 @@ register_lazy_models(
 # Register all components from _modeling
 from perturblab.models.scgpt._modeling import __all__ as scgpt_components
 
-component_models = {name: name for name in scgpt_components if name.startswith(('Gene', 'Expr', 'MVC', 'Cls', 'Positional', 'Continuous', 'Category', 'Batch', 'Fast', 'Flash', 'Domain', 'Adversarial', 'Similarity'))}
+component_models = {
+    name: name
+    for name in scgpt_components
+    if name.startswith(
+        (
+            "Gene",
+            "Expr",
+            "MVC",
+            "Cls",
+            "Positional",
+            "Continuous",
+            "Category",
+            "Batch",
+            "Fast",
+            "Flash",
+            "Domain",
+            "Adversarial",
+            "Similarity",
+        )
+    )
+}
 
 register_lazy_models(
     registry=SCGPT_COMPONENTS,

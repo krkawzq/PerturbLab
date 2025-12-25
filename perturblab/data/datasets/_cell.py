@@ -5,8 +5,6 @@ Provides PyTorch-compatible dataset interface for CellData objects.
 
 from __future__ import annotations
 
-from typing import Dict, List, Union
-
 import numpy as np
 import scipy.sparse
 import torch
@@ -124,7 +122,7 @@ class CellDataset(TorchDataset[CellData]):
         """
         return len(self._cell_data)
 
-    def __getitem__(self, index: int | slice) -> Dict[str, Union[torch.Tensor, str, int, List]]:
+    def __getitem__(self, index: int | slice) -> dict[str, torch.Tensor | str | int | list]:
         """Get cell(s) by index.
 
         Parameters
@@ -234,7 +232,7 @@ class CellDataset(TorchDataset[CellData]):
         return result
 
     @property
-    def gene_names(self) -> List[str]:
+    def gene_names(self) -> list[str]:
         """Get gene names from the dataset.
 
         Returns
@@ -267,7 +265,7 @@ class CellDataset(TorchDataset[CellData]):
         return len(self._cell_data)
 
     @property
-    def cell_types(self) -> List[str] | None:
+    def cell_types(self) -> list[str] | None:
         """Get unique cell types.
 
         Returns
@@ -290,10 +288,10 @@ class CellDataset(TorchDataset[CellData]):
         force_compute: bool = False,
         compute_only: bool = False,
         test_size: float = 0.2,
-        stratify: Union[bool, str] = True,
+        stratify: bool | str = True,
         random_state: int = 42,
         shuffle: bool = True,
-    ) -> Dict[str, "CellDataset"]:
+    ) -> dict[str, CellDataset]:
         """Split dataset into train/test subsets.
 
         This method supports multiple modes:

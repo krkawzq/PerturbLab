@@ -37,13 +37,11 @@ Examples:
 
 from .ops._hvg import (
     clip_matrix,
-)
-from .ops._hvg import get_backend as get_hvg_backend
-from .ops._hvg import has_cpp_backend as has_hvg_cpp_backend
-from .ops._hvg import (
     sparse_clipped_moments,
     sparse_mean_var,
 )
+from .ops._hvg import get_backend as get_hvg_backend
+from .ops._hvg import has_cpp_backend as has_hvg_cpp_backend
 
 # Import from ops modules (no ops/__init__.py needed)
 from .ops._mannwhitneyu import group_mean, mannwhitneyu

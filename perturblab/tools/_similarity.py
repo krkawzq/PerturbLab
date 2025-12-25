@@ -7,7 +7,7 @@ various analysis tasks including graph construction, clustering, and comparison.
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
@@ -36,10 +36,10 @@ def jaccard_similarity(set1: set, set2: set) -> float:
     Examples:
         >>> jaccard_similarity({1, 2, 3}, {2, 3, 4})
         0.5
-        
+
         >>> jaccard_similarity({'TP53', 'KRAS'}, {'KRAS', 'MYC'})
         0.3333333333333333
-        
+
         >>> jaccard_similarity(set(), {1, 2})
         0.0
 
@@ -77,10 +77,10 @@ def overlap_coefficient(set1: set, set2: set) -> float:
     Examples:
         >>> overlap_coefficient({1, 2, 3}, {2, 3, 4, 5})
         0.6666666666666666
-        
+
         >>> overlap_coefficient({1, 2}, {1, 2, 3, 4})
         1.0  # First set is subset of second
-        
+
         >>> overlap_coefficient(set(), {1, 2})
         0.0
 
@@ -118,10 +118,10 @@ def cosine_similarity_sets(set1: set, set2: set) -> float:
     Examples:
         >>> cosine_similarity_sets({1, 2, 3}, {2, 3, 4})
         0.6666666666666666
-        
+
         >>> cosine_similarity_sets({'TP53', 'KRAS'}, {'KRAS', 'MYC'})
         0.5
-        
+
         >>> cosine_similarity_sets(set(), {1, 2})
         0.0
 
@@ -161,7 +161,7 @@ def cosine_similarity_vectors(vec1: np.ndarray, vec2: np.ndarray) -> float:
         >>> vec2 = np.array([2, 4, 6])
         >>> cosine_similarity_vectors(vec1, vec2)
         1.0  # Parallel vectors
-        
+
         >>> vec1 = np.array([1, 0, 0])
         >>> vec2 = np.array([0, 1, 0])
         >>> cosine_similarity_vectors(vec1, vec2)
@@ -243,4 +243,3 @@ def pairwise_similarities(
             edge_list.append((node_idx, other_idx, similarity))
 
     return edge_list
-

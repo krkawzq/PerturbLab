@@ -7,7 +7,6 @@ and dictionary-like access patterns.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from torch import Tensor
 
@@ -49,7 +48,7 @@ class scGPTInput(ModelIO):
         Whether to compute Elastic Cell Similarity loss.
     do_sample : bool, default=False
         Whether to sample from the output distribution (for MVC/MLM) instead of taking the mean.
-    
+
     Note
     ----
     All fields must be specified as keyword arguments due to dataclass inheritance constraints.
@@ -60,11 +59,11 @@ class scGPTInput(ModelIO):
     src: Tensor
     values: Tensor
     src_key_padding_mask: Tensor
-    
+
     # Optional Data Tensors
-    batch_labels: Optional[Tensor] = None
-    mod_types: Optional[Tensor] = None
-    pert_flags: Optional[Tensor] = None
+    batch_labels: Tensor | None = None
+    mod_types: Tensor | None = None
+    pert_flags: Tensor | None = None
 
     # Task Flags
     CLS: bool = False
@@ -101,7 +100,7 @@ class scGPTOutput(ModelIO):
         Zero-inflation probability for MLM.
     mvc_zero_probs : Optional[Tensor]
         Zero-inflation probability for MVC.
-    
+
     Note
     ----
     All fields must be specified as keyword arguments due to dataclass inheritance constraints.
@@ -109,18 +108,18 @@ class scGPTOutput(ModelIO):
     """
 
     # Primary Outputs
-    mlm_output: Optional[Tensor] = None
-    cell_emb: Optional[Tensor] = None
+    mlm_output: Tensor | None = None
+    cell_emb: Tensor | None = None
 
     # Task-Specific Outputs
-    cls_output: Optional[Tensor] = None
-    mvc_output: Optional[Tensor] = None
+    cls_output: Tensor | None = None
+    mvc_output: Tensor | None = None
 
     # Losses
-    loss_cce: Optional[Tensor] = None
-    loss_ecs: Optional[Tensor] = None
+    loss_cce: Tensor | None = None
+    loss_ecs: Tensor | None = None
 
     # Advanced / Internal Outputs
-    dab_output: Optional[Tensor] = None
-    mlm_zero_probs: Optional[Tensor] = None
-    mvc_zero_probs: Optional[Tensor] = None
+    dab_output: Tensor | None = None
+    mlm_zero_probs: Tensor | None = None
+    mvc_zero_probs: Tensor | None = None

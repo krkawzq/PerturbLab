@@ -9,13 +9,11 @@ from __future__ import annotations
 
 import pickle
 from pathlib import Path
-from typing import List, Literal, Optional
-
-import numpy as np
-import pandas as pd
-import scipy.sparse as sp
+from typing import Literal
 
 import anndata as ad
+import numpy as np
+import scipy.sparse as sp
 
 from perturblab.data.resources import load_dataset
 from perturblab.tools import compute_gene_similarity_from_go
@@ -50,8 +48,9 @@ def compute_pearson_correlation(X: np.ndarray) -> np.ndarray:
 
     # Compute correlation
     numer = X_centered.T @ X_centered
-    denom = np.sqrt((X_centered ** 2).sum(axis=0, keepdims=True).T @
-                    (X_centered ** 2).sum(axis=0, keepdims=True))
+    denom = np.sqrt(
+        (X_centered**2).sum(axis=0, keepdims=True).T @ (X_centered**2).sum(axis=0, keepdims=True)
+    )
 
     # Avoid division by zero
     denom = np.where(denom == 0, 1e-10, denom)
@@ -64,12 +63,12 @@ def compute_pearson_correlation(X: np.ndarray) -> np.ndarray:
 
 
 def build_go_similarity_graph(
-    gene_vocab: Optional[GeneVocab | List[str] | np.ndarray] = None,
+    gene_vocab: GeneVocab | list[str] | np.ndarray | None = None,
     *,
-    go_annotation_file: Optional[str | Path] = None,
+    go_annotation_file: str | Path | None = None,
     similarity_metric: Literal["jaccard", "overlap", "cosine"] = "jaccard",
     threshold: float = 0.1,
-    k: Optional[int] = None,
+    k: int | None = None,
     num_workers: int = 1,
     show_progress: bool = True,
 ) -> GeneGraph:
@@ -134,7 +133,7 @@ def build_go_similarity_graph(
     Notes:
         The GO annotation file is automatically cached by the resource system
         at `~/.cache/perturblab/`. Subsequent calls will use the cached version.
-        
+
         The similarity metric measures overlap between GO term sets:
         - Jaccard: |A ∩ B| / |A ∪ B|
         - Overlap: |A ∩ B| / min(|A|, |B|)
@@ -170,11 +169,11 @@ def build_go_similarity_graph(
             genes = list(gene_vocab) if isinstance(gene_vocab, np.ndarray) else gene_vocab
             logger.info(f"🧬 Building GO similarity graph from gene list: {len(genes)} genes")
             vocab = GeneVocab(genes)
-        
+
         # Filter GO data to only include requested genes
         genes_set = set(genes)
         gene2go = {g: go for g, go in gene2go_all.items() if g in genes_set}
-        
+
         genes_found_count = len(gene2go)
         logger.info(f"✓ Found GO terms for {genes_found_count:,} / {len(genes):,} genes")
 
@@ -189,8 +188,7 @@ def build_go_similarity_graph(
         if missing_genes:
             sample_missing = list(missing_genes)[:5]
             logger.warning(
-                f"⚠️  {len(missing_genes)} genes not in GO database. "
-                f"Sample: {sample_missing}"
+                f"⚠️  {len(missing_genes)} genes not in GO database. " f"Sample: {sample_missing}"
             )
 
     # 4. Compute gene similarity using optimized tool
@@ -213,30 +211,31 @@ def build_go_similarity_graph(
     # 5. Apply top-k filtering if requested
     if k is not None:
         logger.info(f"🔧 Filtering to top-{k} edges per gene...")
-        
+
         # Get edges as array
         edges = graph.edges
-        
+
         # Build adjacency structure for filtering
         from collections import defaultdict
+
         node_edges = defaultdict(list)
-        
+
         for source, target, weight in edges:
             node_edges[int(target)].append((int(source), int(target), weight))
-        
+
         # Keep top-k edges per target node
         filtered_edges = []
         for target_idx, edge_list in node_edges.items():
             # Sort by weight descending and keep top-k
             edge_list_sorted = sorted(edge_list, key=lambda x: x[2], reverse=True)
             filtered_edges.extend(edge_list_sorted[:k])
-        
+
         # Recreate weighted graph with filtered edges
         filtered_weighted_graph = WeightedGraph(filtered_edges, n_nodes=graph.n_nodes)
-        
+
         # Recreate GeneGraph
         graph = GeneGraph(filtered_weighted_graph, vocab)
-        
+
         logger.info(f"   Kept {graph.graph.n_unique_edges} edges after top-{k} filtering")
 
     logger.info(
@@ -251,7 +250,7 @@ def build_coexpression_graph(
     data: ad.AnnData | CellData | PerturbationData,
     threshold: float = 0.4,
     k: int = 20,
-    vocab: Optional[GeneVocab] = None,
+    vocab: GeneVocab | None = None,
     use_control_only: bool = True,
 ) -> GeneGraph:
     """Builds gene co-expression network from expression data.
@@ -356,7 +355,7 @@ def build_coexpression_graph(
     # Get gene names and create/use vocab
     gene_names = adata.var_names.tolist()
     n_genes = len(gene_names)
-    
+
     if vocab is None:
         vocab = GeneVocab(gene_names)
     else:
@@ -374,7 +373,7 @@ def build_coexpression_graph(
     edges = []
     for i in range(n_genes):
         # Get top-k+1 genes (includes self)
-        top_k_indices = np.argsort(corr_abs[i])[:-(k + 1):-1]
+        top_k_indices = np.argsort(corr_abs[i])[: -(k + 1) : -1]
         top_k_values = corr_abs[i, top_k_indices]
 
         for j, val in zip(top_k_indices, top_k_values):

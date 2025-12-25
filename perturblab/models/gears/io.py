@@ -7,7 +7,6 @@ gradient detachment, and dictionary-like access.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from torch import Tensor
 
@@ -47,7 +46,7 @@ class GEARSInput(ModelIO):
 
     gene_expression: Tensor
     pert_idx: list | Tensor
-    graph_batch_indices: Optional[Tensor] = None
+    graph_batch_indices: Tensor | None = None
 
 
 @dataclass(kw_only=True)
@@ -71,4 +70,4 @@ class GEARSOutput(ModelIO):
     """
 
     predictions: Tensor
-    log_variance: Optional[Tensor] = None
+    log_variance: Tensor | None = None

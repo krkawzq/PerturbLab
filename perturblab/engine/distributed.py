@@ -9,11 +9,10 @@ from __future__ import annotations
 import inspect
 import os
 from pathlib import Path
-from typing import Dict, Optional, Union
 
 import torch
-import torch.nn as nn
 import torch.distributed as dist
+import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, DistributedSampler
 
@@ -81,7 +80,7 @@ class DistributedTrainer(Trainer):
     def __init__(
         self,
         *args,
-        local_rank: Optional[int] = None,
+        local_rank: int | None = None,
         find_unused_parameters: bool = False,
         sync_batchnorm: bool = False,
         **kwargs,
@@ -90,7 +89,7 @@ class DistributedTrainer(Trainer):
         self._setup_distributed(local_rank)
 
         # Override device to use local_rank
-        kwargs['device'] = f"cuda:{self.local_rank}"
+        kwargs["device"] = f"cuda:{self.local_rank}"
 
         # Initialize base trainer
         super().__init__(*args, **kwargs)
@@ -115,7 +114,7 @@ class DistributedTrainer(Trainer):
         if self.is_main_process:
             logger.info(f"✓ Model wrapped with DDP (world_size={self.world_size})")
 
-    def _setup_distributed(self, local_rank: Optional[int]):
+    def _setup_distributed(self, local_rank: int | None):
         """Initializes the distributed process group.
 
         Args:
@@ -151,7 +150,7 @@ class DistributedTrainer(Trainer):
         """Returns True if this is the main process (rank 0)."""
         return self.global_rank == 0
 
-    def _detect_input_class(self) -> Optional[type]:
+    def _detect_input_class(self) -> type | None:
         """Detects Input class, handling DDP wrapper.
 
         DDP wraps the model, so we need to access model.module for attributes.
@@ -160,17 +159,17 @@ class DistributedTrainer(Trainer):
         model_to_inspect = self.model.module if isinstance(self.model, DDP) else self.model
 
         # Check for input_class attribute
-        if hasattr(model_to_inspect, 'input_class'):
+        if hasattr(model_to_inspect, "input_class"):
             return model_to_inspect.input_class
 
-        if hasattr(model_to_inspect, 'InputClass'):
+        if hasattr(model_to_inspect, "InputClass"):
             return model_to_inspect.InputClass
 
         # Check forward signature
         try:
             sig = inspect.signature(model_to_inspect.forward)
             for param_name, param in sig.parameters.items():
-                if param_name == 'self':
+                if param_name == "self":
                     continue
                 if param.annotation != inspect.Parameter.empty:
                     return param.annotation
@@ -179,7 +178,7 @@ class DistributedTrainer(Trainer):
 
         return None
 
-    def _reduce_metrics(self, metrics: Dict[str, float]) -> Dict[str, float]:
+    def _reduce_metrics(self, metrics: dict[str, float]) -> dict[str, float]:
         """Aggregates metrics across all processes via all_reduce.
 
         Args:
@@ -198,11 +197,11 @@ class DistributedTrainer(Trainer):
             dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
 
             # Average
-            reduced_metrics[key] = (tensor.item() / self.world_size)
+            reduced_metrics[key] = tensor.item() / self.world_size
 
         return reduced_metrics
 
-    def train_epoch(self, train_loader: DataLoader, **loss_kwargs) -> Dict[str, float]:
+    def train_epoch(self, train_loader: DataLoader, **loss_kwargs) -> dict[str, float]:
         """Trains for one epoch with DistributedSampler epoch setting.
 
         Args:
@@ -213,7 +212,9 @@ class DistributedTrainer(Trainer):
             Dictionary with averaged training metrics across all processes.
         """
         # Set epoch for DistributedSampler (crucial for proper shuffling)
-        if hasattr(train_loader, 'sampler') and isinstance(train_loader.sampler, DistributedSampler):
+        if hasattr(train_loader, "sampler") and isinstance(
+            train_loader.sampler, DistributedSampler
+        ):
             train_loader.sampler.set_epoch(self.current_epoch)
 
         # Run local training
@@ -224,13 +225,13 @@ class DistributedTrainer(Trainer):
             global_metrics = self._reduce_metrics(local_metrics)
         else:
             # If base trainer returns float (just loss)
-            global_metrics = self._reduce_metrics({'loss': local_metrics})
-            global_metrics = global_metrics['loss']
+            global_metrics = self._reduce_metrics({"loss": local_metrics})
+            global_metrics = global_metrics["loss"]
 
         return global_metrics
 
     @torch.no_grad()
-    def validate(self, val_loader: DataLoader, **loss_kwargs) -> Dict[str, float]:
+    def validate(self, val_loader: DataLoader, **loss_kwargs) -> dict[str, float]:
         """Validates with metric synchronization across processes.
 
         Args:
@@ -247,8 +248,8 @@ class DistributedTrainer(Trainer):
         if isinstance(local_metrics, dict):
             global_metrics = self._reduce_metrics(local_metrics)
         else:
-            global_metrics = self._reduce_metrics({'loss': local_metrics})
-            global_metrics = global_metrics['loss']
+            global_metrics = self._reduce_metrics({"loss": local_metrics})
+            global_metrics = global_metrics["loss"]
 
         return global_metrics
 
@@ -266,18 +267,18 @@ class DistributedTrainer(Trainer):
 
         # Save unwrapped model state (model.module for DDP)
         checkpoint = {
-            'epoch': self.current_epoch,
-            'model_state_dict': self.model.module.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
+            "epoch": self.current_epoch,
+            "model_state_dict": self.model.module.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
         }
 
         # Save scheduler if exists
-        if hasattr(self, 'scheduler') and self.scheduler is not None:
-            checkpoint['scheduler_state_dict'] = self.scheduler.state_dict()
+        if hasattr(self, "scheduler") and self.scheduler is not None:
+            checkpoint["scheduler_state_dict"] = self.scheduler.state_dict()
 
         # Save scaler if using AMP
-        if hasattr(self, 'scaler') and self.scaler is not None:
-            checkpoint['scaler_state_dict'] = self.scaler.state_dict()
+        if hasattr(self, "scaler") and self.scaler is not None:
+            checkpoint["scaler_state_dict"] = self.scaler.state_dict()
 
         torch.save(checkpoint, path)
         logger.info(f"💾 Checkpoint saved to {path}")
@@ -296,19 +297,19 @@ class DistributedTrainer(Trainer):
         checkpoint = torch.load(path, map_location=self.device)
 
         # Load into unwrapped model
-        self.model.module.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.model.module.load_state_dict(checkpoint["model_state_dict"])
+        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
         # Restore training state
-        if hasattr(self, 'current_epoch'):
-            self.current_epoch = checkpoint.get('epoch', 0) + 1
+        if hasattr(self, "current_epoch"):
+            self.current_epoch = checkpoint.get("epoch", 0) + 1
 
         # Load scheduler and scaler if exist
-        if hasattr(self, 'scheduler') and 'scheduler_state_dict' in checkpoint:
-            self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        if hasattr(self, "scheduler") and "scheduler_state_dict" in checkpoint:
+            self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
-        if hasattr(self, 'scaler') and 'scaler_state_dict' in checkpoint:
-            self.scaler.load_state_dict(checkpoint['scaler_state_dict'])
+        if hasattr(self, "scaler") and "scaler_state_dict" in checkpoint:
+            self.scaler.load_state_dict(checkpoint["scaler_state_dict"])
 
         if self.is_main_process:
             logger.info(f"📂 Checkpoint loaded from {path}")
@@ -318,11 +319,7 @@ class DistributedTrainer(Trainer):
 
     @staticmethod
     def create_distributed_loader(
-        dataset,
-        batch_size: int,
-        is_train: bool = True,
-        num_workers: int = 0,
-        **loader_kwargs
+        dataset, batch_size: int, is_train: bool = True, num_workers: int = 0, **loader_kwargs
     ) -> DataLoader:
         """Creates a DataLoader with DistributedSampler.
 
@@ -367,7 +364,7 @@ class DistributedTrainer(Trainer):
             sampler=sampler,
             shuffle=False,  # Sampler handles shuffling
             num_workers=num_workers,
-            **loader_kwargs
+            **loader_kwargs,
         )
 
     def cleanup(self):
@@ -386,4 +383,3 @@ class DistributedTrainer(Trainer):
             dist.destroy_process_group()
             if self.is_main_process:
                 logger.info("🔒 Distributed process group destroyed")
-

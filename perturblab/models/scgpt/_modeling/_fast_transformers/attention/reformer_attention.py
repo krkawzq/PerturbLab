@@ -141,7 +141,7 @@ class ReformerAttention(Module):
         # Create the mask
         mask = key_lengths.additive_matrix.unsqueeze(1).expand(N, L, L)
         if self.masked:
-            mask = mask + torch.eye(L, device=queries.device).unsqueeze(0) * float(-1e9)
+            mask = mask + torch.eye(L, device=queries.device).unsqueeze(0) * -1e9
 
         if not attn_mask.all_ones:
             mask = mask + attn_mask.additive_matrix.unsqueeze(0)

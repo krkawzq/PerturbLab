@@ -59,7 +59,7 @@ class LinearAttention(Module):
         # Apply the key padding mask and make sure that the attn_mask is
         # all_ones
         if not attn_mask.all_ones:
-            raise RuntimeError(("LinearAttention does not support arbitrary " "attention masks"))
+            raise RuntimeError("LinearAttention does not support arbitrary " "attention masks")
         K = K * key_lengths.float_matrix[:, :, None, None]
 
         # Compute the KV matrix, namely the dot product of keys and values so

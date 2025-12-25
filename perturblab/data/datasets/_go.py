@@ -7,7 +7,6 @@ GO ontology hierarchy.
 
 import pickle
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
 
 from perturblab.core import Dataset
 from perturblab.data.resources import load_dataset
@@ -20,7 +19,7 @@ logger = get_logger()
 __all__ = ["GODataset", "load_go_from_gears"]
 
 
-class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
+class GODataset(Dataset[tuple[BipartiteGraph, DAG | None]]):
     """Gene Ontology dataset with bipartite graph structure.
 
     Inherits from `Dataset[Tuple[BipartiteGraph, Optional[DAG]]]`, providing
@@ -79,17 +78,17 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
     def __init__(self):
         """Private constructor. Use factory methods to create instances."""
         # Internal data structures (private)
-        self._gene_vocab: Optional[GeneVocab] = None
-        self._go_vocab: Optional[Vocab] = None
-        self._gene_to_go: Optional[BipartiteGraph] = None
-        self._go_to_gene_inverse: Optional[Dict[int, List[int]]] = None
+        self._gene_vocab: GeneVocab | None = None
+        self._go_vocab: Vocab | None = None
+        self._gene_to_go: BipartiteGraph | None = None
+        self._go_to_gene_inverse: dict[int, list[int]] | None = None
 
         # Public attributes
-        self.ontology_terms: Optional[Dict[str, Dict]] = None
-        self.ontology_dag: Optional[DAG] = None
+        self.ontology_terms: dict[str, dict] | None = None
+        self.ontology_dag: DAG | None = None
 
     @property
-    def data(self) -> Tuple[BipartiteGraph, Optional[DAG]]:
+    def data(self) -> tuple[BipartiteGraph, DAG | None]:
         """Get the underlying data (bipartite graph + ontology DAG).
 
         Returns:
@@ -113,7 +112,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
     @classmethod
     def from_gene2go(
         cls,
-        gene2go: Dict[str, List[str] | Set[str]],
+        gene2go: dict[str, list[str] | set[str]],
     ) -> "GODataset":
         """Create GODataset from gene-to-GO mapping.
 
@@ -145,7 +144,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
     @classmethod
     def from_go2gene(
         cls,
-        go2gene: Dict[str, List[str] | Set[str]],
+        go2gene: dict[str, list[str] | set[str]],
     ) -> "GODataset":
         """Create GODataset from GO-to-gene mapping.
 
@@ -177,7 +176,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
     @classmethod
     def from_ontology(
         cls,
-        obo_path: Optional[str | Path] = None,
+        obo_path: str | Path | None = None,
         download: bool = True,
         load_obsolete: bool = False,
     ) -> "GODataset":
@@ -254,7 +253,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
 
         return instance
 
-    def _build_from_gene2go(self, gene2go: Dict[str, List[str] | Set[str]]):
+    def _build_from_gene2go(self, gene2go: dict[str, list[str] | set[str]]):
         """Build internal structures from gene2go dictionary.
 
         Args:
@@ -285,7 +284,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
             shape=(len(self._gene_vocab), len(self._go_vocab)),
         )
 
-    def _build_from_go2gene(self, go2gene: Dict[str, List[str] | Set[str]]):
+    def _build_from_go2gene(self, go2gene: dict[str, list[str] | set[str]]):
         """Build internal structures from go2gene dictionary.
 
         Args:
@@ -316,7 +315,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
             shape=(len(self._gene_vocab), len(self._go_vocab)),
         )
 
-    def go_terms(self, gene: str) -> List[str]:
+    def go_terms(self, gene: str) -> list[str]:
         """Get GO terms annotated to a gene.
 
         Args:
@@ -343,7 +342,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
         # Convert indices to GO term IDs
         return [self._go_vocab[int(idx)] for idx in go_indices]
 
-    def related_genes(self, go_term: str) -> List[str]:
+    def related_genes(self, go_term: str) -> list[str]:
         """Get genes annotated with a specific GO term.
 
         Args:
@@ -374,7 +373,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
         # Convert indices to gene names
         return [self._gene_vocab[idx] for idx in gene_indices]
 
-    def query(self, go_term: str) -> Optional[Dict]:
+    def query(self, go_term: str) -> dict | None:
         """Query GO term information from ontology.
 
         Returns GO term metadata including name, namespace, definition,
@@ -423,7 +422,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
 
         return term_info
 
-    def to_gene2go(self) -> Dict[str, List[str]]:
+    def to_gene2go(self) -> dict[str, list[str]]:
         """Export dataset as gene-to-GO mapping dictionary.
 
         Returns:
@@ -445,7 +444,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
 
         return gene2go
 
-    def to_go2gene(self) -> Dict[str, List[str]]:
+    def to_go2gene(self) -> dict[str, list[str]]:
         """Export dataset as GO-to-gene mapping dictionary.
 
         Returns:
@@ -511,12 +510,12 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
         return self._gene_to_go.n_edges if self._gene_to_go else 0
 
     @property
-    def genes(self) -> List[str]:
+    def genes(self) -> list[str]:
         """List of all genes in the dataset."""
         return list(self._gene_vocab.itos) if self._gene_vocab else []
 
     @property
-    def go_term_ids(self) -> List[str]:
+    def go_term_ids(self) -> list[str]:
         """List of all GO term IDs in the dataset."""
         return list(self._go_vocab.itos) if self._go_vocab else []
 
@@ -533,7 +532,7 @@ class GODataset(Dataset[Tuple[BipartiteGraph, Optional[DAG]]]):
         return self.n_genes
 
 
-def load_go_from_gears(gears_provided_file_path: Optional[str] = None) -> GODataset:
+def load_go_from_gears(gears_provided_file_path: str | None = None) -> GODataset:
     """Load GO dataset from GEARS gene2go pickle file.
 
     Args:
@@ -563,7 +562,7 @@ def load_go_from_gears(gears_provided_file_path: Optional[str] = None) -> GOData
         pkl_path = load_dataset("go/gene2go_gears")
 
         with open(pkl_path, "rb") as f:
-            gene2go_dict: Dict[str, List[str]] = pickle.load(f)
+            gene2go_dict: dict[str, list[str]] = pickle.load(f)
     else:
         # Load from provided file path
         pkl_path = Path(gears_provided_file_path)
@@ -572,7 +571,7 @@ def load_go_from_gears(gears_provided_file_path: Optional[str] = None) -> GOData
 
         logger.info(f"Loading pickle file from {pkl_path}...")
         with open(pkl_path, "rb") as f:
-            gene2go_dict: Dict[str, List[str]] = pickle.load(f)
+            gene2go_dict: dict[str, list[str]] = pickle.load(f)
 
     logger.info(f"Loaded {len(gene2go_dict)} genes from GEARS")
 

@@ -32,6 +32,7 @@ dependencies = []
 def _get_models_registry():
     """Lazily imports MODELS to avoid circular dependency."""
     from perturblab.models import MODELS
+
     return MODELS
 
 

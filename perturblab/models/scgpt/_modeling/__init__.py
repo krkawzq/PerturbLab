@@ -1,35 +1,29 @@
 """scGPT model implementations."""
 
+from .components import (  # Encoders; Decoders; Attention; Normalization; Gradient reversal; Misc
+    AdversarialDiscriminator,
+    BatchLabelEncoder,
+    CategoryValueEncoder,
+    ClsDecoder,
+    ContinuousValueEncoder,
+    DomainSpecificBatchNorm1d,
+    DomainSpecificBatchNorm2d,
+    ExprDecoder,
+    FastTransformerEncoderWrapper,
+    FlashTransformerEncoderLayer,
+    GeneEncoder,
+    GradReverse,
+    MVCDecoder,
+    PositionalEncoding,
+    Similarity,
+    generate_square_subsequent_mask,
+    grad_reverse,
+)
 from .model import (
     scGPTBaseModel,
     scGPTModel,
     scGPTMultiOmicModel,
     scGPTPerturbationModel,
-)
-from .components import (
-    # Encoders
-    GeneEncoder,
-    PositionalEncoding,
-    ContinuousValueEncoder,
-    CategoryValueEncoder,
-    BatchLabelEncoder,
-    # Decoders
-    ExprDecoder,
-    MVCDecoder,
-    ClsDecoder,
-    AdversarialDiscriminator,
-    # Attention
-    FastTransformerEncoderWrapper,
-    FlashTransformerEncoderLayer,
-    # Normalization
-    DomainSpecificBatchNorm1d,
-    DomainSpecificBatchNorm2d,
-    # Gradient reversal
-    grad_reverse,
-    GradReverse,
-    # Misc
-    Similarity,
-    generate_square_subsequent_mask,
 )
 
 __all__ = [

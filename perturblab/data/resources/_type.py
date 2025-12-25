@@ -398,7 +398,7 @@ class h5adFile(Resource[Path]):
             return self.key
         return f"{self.key}.h5ad"
 
-    def load_adata(self) -> "AnnData":  # type: ignore
+    def load_adata(self) -> AnnData:  # type: ignore
         """Convenience method to directly load as AnnData object.
 
         Returns

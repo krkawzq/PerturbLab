@@ -9,7 +9,7 @@ parameters."""
 from ..events import EventDispatcher
 
 
-class Spec(object):
+class Spec:
     """Describe and validate a parameter type.
 
     Arguments
@@ -54,10 +54,10 @@ class Choice(Spec):
     def get(self, x):
         if x in self._choices:
             return x
-        raise ValueError("{!r} is not in {!r}".format(x, self._choices))
+        raise ValueError(f"{x!r} is not in {self._choices!r}")
 
     def __repr__(self):
-        return "Choice({!r})".format(self._choices)
+        return f"Choice({self._choices!r})"
 
     def __eq__(self, x):
         if isinstance(x, Choice):
@@ -72,7 +72,7 @@ class _Callable(Spec):
     def get(self, x):
         if callable(x):
             return x
-        raise ValueError("{!r} is not a callable".format(x))
+        raise ValueError(f"{x!r} is not a callable")
 
 
 class _EventDispatcherInstance(Spec):
@@ -87,7 +87,7 @@ class _EventDispatcherInstance(Spec):
             return x
         if isinstance(x, EventDispatcher):
             return x
-        raise ValueError("{!r} is not an event dispatcher".format(x))
+        raise ValueError(f"{x!r} is not an event dispatcher")
 
 
 class Optional(Spec):
@@ -105,7 +105,7 @@ class Optional(Spec):
         self._default = default
 
     def __repr__(self):
-        return "Optional[{!r}, {!r}]".format(self._other_spec, self._default)
+        return f"Optional[{self._other_spec!r}, {self._default!r}]"
 
     def get(self, x):
         if x is None:

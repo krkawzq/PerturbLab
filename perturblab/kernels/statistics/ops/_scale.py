@@ -7,7 +7,6 @@ Copyright (c) 2017 F. Alexander Wolf, P. Angerer, Theis Lab
 Licensed under BSD 3-Clause License
 """
 
-from typing import Union
 
 import numpy as np
 import scipy.sparse
@@ -145,14 +144,14 @@ if not _has_cpp and not _has_cython and not _has_numba:
 
 
 def standardize(
-    X: Union[np.ndarray, scipy.sparse.spmatrix],
+    X: np.ndarray | scipy.sparse.spmatrix,
     means: np.ndarray,
     stds: np.ndarray,
     zero_center: bool = True,
     max_value: float = 0.0,
     n_threads: int = 0,
-) -> Union[np.ndarray, scipy.sparse.spmatrix]:
-    """Standardize matrix by columns (z-score normalization).
+) -> np.ndarray | scipy.sparse.spmatrix:
+    f"""Standardize matrix by columns (z-score normalization).
     
     Performs in-place standardization: X[:, j] = (X[:, j] - mean[j]) / std[j]
     Optionally clips values to [-max_value, max_value].
@@ -169,7 +168,7 @@ def standardize(
         Standardized matrix (same object as X, modified in-place)
     
     Backend:
-        Auto-selected at import time: {backend}
+        Auto-selected at import time: {_backend_name}
     
     Examples:
         >>> import numpy as np
@@ -178,9 +177,7 @@ def standardize(
         >>> means = X.mean(axis=0)
         >>> stds = X.std(axis=0, ddof=1)
         >>> X_scaled = standardize(X, means, stds, zero_center=True, max_value=10)
-    """.format(
-        backend=_backend_name
-    )
+    """
 
     means = np.asarray(means, dtype=np.float64)
     stds = np.asarray(stds, dtype=np.float64)

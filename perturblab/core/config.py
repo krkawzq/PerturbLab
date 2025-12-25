@@ -7,9 +7,7 @@ import inspect
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
-
-from typing_extensions import Self
+from typing import Any, Self
 
 # Allowed basic types for config values
 BASIC_TYPES = (int, float, str, bool, type(None))
@@ -179,13 +177,13 @@ class Config:
         # If update mode and file exists, merge with existing data
         if update and path.exists():
             try:
-                with open(path, "r", encoding="utf-8") as f:
+                with open(path, encoding="utf-8") as f:
                     existing_dict = json.load(f)
 
                 # Merge: existing keys are preserved, new keys are added/updated
                 existing_dict.update(config_dict)
                 config_dict = existing_dict
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 # If file is corrupt or unreadable, just save current config
                 pass
 
@@ -271,7 +269,7 @@ class Config:
         # Create instance
         try:
             return cls(**init_kwargs)
-        except TypeError as e:
+        except TypeError:
             if strict:
                 raise
             # Fallback: create empty instance and set attributes
@@ -333,7 +331,7 @@ class Config:
         if not path.exists():
             raise FileNotFoundError(f"Config file not found: {path}")
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             config_dict = json.load(f)
 
         return cls.from_dict(config_dict, strict=strict)

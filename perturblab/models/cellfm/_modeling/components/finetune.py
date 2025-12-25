@@ -15,7 +15,7 @@ Adapted for PerturbLab.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple, Union
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -38,11 +38,11 @@ class MaskedMSE(nn.Module):
         tag (str): Optional tag for identifying the loss instance.
     """
 
-    def __init__(self, tag: Optional[str] = None):
+    def __init__(self, tag: str | None = None):
         super().__init__()
         self.tag = tag or ""
 
-    def forward(self, pred: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
+    def forward(self, pred: Tensor, target: Tensor, mask: Tensor | None = None) -> Tensor:
         """Computes masked MSE loss.
 
         Args:
@@ -85,7 +85,7 @@ class BCELoss(nn.Module):
         self.tag = tag
         self.eps = 1e-12
 
-    def forward(self, pred: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
+    def forward(self, pred: Tensor, target: Tensor, mask: Tensor | None = None) -> Tensor:
         """Computes masked BCE loss.
 
         Args:
@@ -227,8 +227,8 @@ class FinetuneModel(nn.Module):
 
     @torch.no_grad()
     def embedding_infer(
-        self, expr: Tensor, gene: Tensor, ST_feat: Optional[Tensor], zero_idx: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+        self, expr: Tensor, gene: Tensor, ST_feat: Tensor | None, zero_idx: Tensor
+    ) -> tuple[Tensor, Tensor]:
         """Inference-only embedding generation.
 
         Args:
@@ -298,7 +298,7 @@ class FinetuneModel(nn.Module):
     @torch.no_grad()
     def decode_infer(
         self, cls_token: Tensor, gene_emb: Tensor, expr_emb: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> tuple[Tensor, Tensor]:
         """Decodes embeddings to predictions during inference.
 
         Args:
@@ -325,12 +325,12 @@ class FinetuneModel(nn.Module):
         self,
         raw_nzdata: Tensor,
         dw_nzdata: Tensor,
-        ST_feat: Optional[Tensor],
+        ST_feat: Tensor | None,
         nonz_gene: Tensor,
         mask_gene: Tensor,
         zero_idx: Tensor,
-        base_mask: Optional[Tensor] = None,
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+        base_mask: Tensor | None = None,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Full inference pipeline computing losses.
 
         Args:
@@ -364,8 +364,8 @@ class FinetuneModel(nn.Module):
         return expr_emb, gw_pred, cw_pred, loss1, nonz_gene_loss, gene_loss, total_loss
 
     def encode(
-        self, expr: Tensor, gene: Tensor, ST_feat: Optional[Tensor], zero_idx: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+        self, expr: Tensor, gene: Tensor, ST_feat: Tensor | None, zero_idx: Tensor
+    ) -> tuple[Tensor, Tensor]:
         """Main encoding logic used during training.
 
         Args:
@@ -435,12 +435,12 @@ class FinetuneModel(nn.Module):
         self,
         raw_nzdata: Tensor,
         dw_nzdata: Tensor,
-        ST_feat: Optional[Tensor],
+        ST_feat: Tensor | None,
         nonz_gene: Tensor,
         mask_gene: Tensor,
         zero_idx: Tensor,
         *args,
-    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+    ) -> Tensor | tuple[Tensor, Tensor]:
         """Forward pass for training.
 
         Args:

@@ -14,17 +14,23 @@ Available Submodules:
 # Bipartite graph projection tools
 from ._bipartite import project_bipartite_graph
 
-# Similarity metrics
-from ._similarity import (
-    pairwise_similarities,
-    cosine_similarity_sets,
-    cosine_similarity_vectors,
-    jaccard_similarity,
-    overlap_coefficient,
+# DataFrame and graph conversion tools
+from ._df_graph_converting import (
+    dataframe_to_weighted_graph,
+    weighted_graph_to_dataframe,
 )
 
 # Gene similarity computation tools
 from ._gene_similarity import compute_gene_similarity_from_go
+
+# Similarity metrics
+from ._similarity import (
+    cosine_similarity_sets,
+    cosine_similarity_vectors,
+    jaccard_similarity,
+    overlap_coefficient,
+    pairwise_similarities,
+)
 
 # Cell splitting tools
 from ._split_cell import (
@@ -42,12 +48,6 @@ from ._split_perturbation import (
     split_perturbations_no_test,
     split_perturbations_simple,
     split_perturbations_simulation,
-)
-
-# DataFrame and graph conversion tools
-from ._df_graph_converting import (
-    dataframe_to_weighted_graph,
-    weighted_graph_to_dataframe,
 )
 
 __all__ = [

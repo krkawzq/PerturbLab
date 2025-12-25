@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Generic, Optional, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 from perturblab.io.cache import CacheManager, get_default_cache_manager
 from perturblab.utils import get_logger
@@ -41,10 +41,10 @@ class Resource(ABC, Generic[T]):
         self,
         key: str,
         *,
-        local_path: Union[str, Path, None] = None,
-        remote_config: Optional[Dict[str, Any]] = None,
+        local_path: str | Path | None = None,
+        remote_config: dict[str, Any] | None = None,
         is_directory: bool = False,
-        cache_manager: Optional[CacheManager] = None,
+        cache_manager: CacheManager | None = None,
     ):
         """
         Initialize the resource descriptor.
@@ -68,7 +68,7 @@ class Resource(ABC, Generic[T]):
             raise ValueError(f"Resource '{key}' must have either a local_path or a remote_config.")
 
         # Internal state
-        self._data: Optional[T] = None
+        self._data: T | None = None
 
     # =========================================================================
     # Public Properties
@@ -252,7 +252,7 @@ class Resource(ABC, Generic[T]):
     # =========================================================================
 
     @abstractmethod
-    def _fetch_remote(self, config: Dict[str, Any], target_path: Path) -> None:
+    def _fetch_remote(self, config: dict[str, Any], target_path: Path) -> None:
         """
         Logic to download the resource.
 

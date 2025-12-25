@@ -6,7 +6,7 @@ using various ranking and significance thresholds.
 
 from __future__ import annotations
 
-from typing import Dict, List, Literal
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -207,14 +207,14 @@ def deg_overlap_fdr(
 def compute_deg_overlap_metrics(
     pred_degs: pd.DataFrame,
     true_degs: pd.DataFrame,
-    top_n_list: List[int] = [20, 50, 100, 200],
-    p_thresholds: List[float] = [0.05, 0.01],
-    fdr_thresholds: List[float] = [0.05, 0.01],
+    top_n_list: list[int] = [20, 50, 100, 200],
+    p_thresholds: list[float] = [0.05, 0.01],
+    fdr_thresholds: list[float] = [0.05, 0.01],
     gene_col: str = "feature",
     pval_col: str = "p_value",
     fdr_col: str = "fdr",
     sort_by: Literal["p_value", "fdr", "abs_logfc"] = "p_value",
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Compute all DEG overlap metrics.
 
     Computes overlap at multiple Top-N thresholds and significance levels.

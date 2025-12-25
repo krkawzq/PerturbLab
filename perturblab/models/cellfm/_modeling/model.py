@@ -14,8 +14,6 @@ Licensed under CC BY-NC-ND 4.0
 
 from __future__ import annotations
 
-from typing import Union
-
 import torch.nn as nn
 from torch import Tensor
 
@@ -62,7 +60,7 @@ class CellFMModel(nn.Module):
         self.optimizer = None
         self.scaler = None
 
-    def forward(self, inputs: Union[CellFMInput, dict]) -> CellFMOutput:
+    def forward(self, inputs: CellFMInput | dict) -> CellFMOutput:
         """Forward pass handling both training and inference flows.
 
         Args:
@@ -132,7 +130,7 @@ class CellFMModel(nn.Module):
                 cw_pred=cw_pred,
             )
 
-    def encode(self, inputs: Union[CellFMInput, dict]) -> Tensor:
+    def encode(self, inputs: CellFMInput | dict) -> Tensor:
         """Utility method to encode cells into embeddings (CLS tokens).
 
         Args:

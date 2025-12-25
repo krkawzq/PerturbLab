@@ -135,7 +135,7 @@ Adapted for PerturbLab with config-based API and modular design.
 from __future__ import annotations
 
 import warnings
-from typing import Any, List, Union
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -161,7 +161,7 @@ class MLP(nn.Module):
         last_layer_act (str, optional): Type for last activation ("linear" or activation name). Default: 'linear'.
     """
 
-    def __init__(self, sizes: List[int], batch_norm: bool = True, last_layer_act: str = "linear"):
+    def __init__(self, sizes: list[int], batch_norm: bool = True, last_layer_act: str = "linear"):
         super().__init__()
         layers = []
         for s in range(len(sizes) - 1):
@@ -204,7 +204,7 @@ class GEARSModel(nn.Module):
         G_coexpress_weight: Tensor,
         G_go: Tensor,
         G_go_weight: Tensor,
-        device: Union[str, torch.device] = "cuda",
+        device: str | torch.device = "cuda",
     ):
         super().__init__()
         self.config = config
@@ -275,7 +275,7 @@ class GEARSModel(nn.Module):
                 [hidden_size, hidden_size * 2, hidden_size, 1], last_layer_act="linear"
             )
 
-    def forward(self, inputs: Union[GEARSInput, Any]) -> GEARSOutput:
+    def forward(self, inputs: GEARSInput | Any) -> GEARSOutput:
         """Forward pass for GEARS_Model.
 
         Supports both structured GEARSInput and legacy PyG Data objects.

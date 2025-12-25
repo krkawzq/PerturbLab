@@ -6,8 +6,6 @@ direction (up-regulation vs down-regulation) compared to ground truth.
 
 from __future__ import annotations
 
-from typing import Dict
-
 import numpy as np
 
 from perturblab.utils import get_logger
@@ -113,7 +111,7 @@ def compute_direction_metrics(
     pred: np.ndarray,
     true: np.ndarray,
     ctrl: np.ndarray,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Compute all direction consistency metrics.
 
     Parameters

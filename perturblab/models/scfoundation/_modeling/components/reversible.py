@@ -5,7 +5,7 @@ Original logic based on: https://github.com/TencentAILabHealthcare/scBERT
 Heavily inspired by: https://github.com/RobinBruegger/RevTorch
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -15,8 +15,8 @@ from torch.utils.checkpoint import get_device_states, set_device_states
 
 
 def route_args(
-    router: Dict[str, List[List[bool]]], args: Dict[str, Any], depth: int
-) -> List[Tuple[Dict[str, Any], Dict[str, Any]]]:
+    router: dict[str, list[list[bool]]], args: dict[str, Any], depth: int
+) -> list[tuple[dict[str, Any], dict[str, Any]]]:
     """
     Routes arguments to specific layers based on a routing map.
 
@@ -62,10 +62,10 @@ class Deterministic(nn.Module):
     def __init__(self, net: nn.Module):
         super().__init__()
         self.net = net
-        self.cpu_state: Optional[Tensor] = None
+        self.cpu_state: Tensor | None = None
         self.cuda_in_fwd: bool = False
-        self.gpu_devices: List[int] = []
-        self.gpu_states: List[Tensor] = []
+        self.gpu_devices: list[int] = []
+        self.gpu_states: list[Tensor] = []
 
     def record_rng(self, *args):
         self.cpu_state = torch.get_rng_state()
@@ -103,7 +103,7 @@ class ReversibleBlock(nn.Module):
         self.f = Deterministic(f)
         self.g = Deterministic(g)
 
-    def forward(self, x: Tensor, f_args: Dict = {}, g_args: Dict = {}) -> Tensor:
+    def forward(self, x: Tensor, f_args: dict = {}, g_args: dict = {}) -> Tensor:
         # Split input into two parts along the channel dimension
         x1, x2 = torch.chunk(x, 2, dim=2)
 
@@ -118,8 +118,8 @@ class ReversibleBlock(nn.Module):
         return torch.cat([y1, y2], dim=2)
 
     def backward_pass(
-        self, y: Tensor, dy: Tensor, f_args: Dict = {}, g_args: Dict = {}
-    ) -> Tuple[Tensor, Tensor]:
+        self, y: Tensor, dy: Tensor, f_args: dict = {}, g_args: dict = {}
+    ) -> tuple[Tensor, Tensor]:
         """
         Manually computes the backward pass, reconstructing the input x from output y.
         """
@@ -176,7 +176,7 @@ class _ReversibleFunction(Function):
     """
 
     @staticmethod
-    def forward(ctx, x: Tensor, blocks: nn.ModuleList, args: List[Dict]):
+    def forward(ctx, x: Tensor, blocks: nn.ModuleList, args: list[dict]):
         ctx.args = args
         ctx.blocks = blocks
 
@@ -207,7 +207,7 @@ class SequentialSequence(nn.Module):
     Assumes layers are tuples of (Attention, FeedForward) or similar structures.
     """
 
-    def __init__(self, layers: nn.ModuleList, args_route: Dict[str, Any] = {}):
+    def __init__(self, layers: nn.ModuleList, args_route: dict[str, Any] = {}):
         super().__init__()
         # Validate routing depth
         if args_route:
@@ -220,7 +220,7 @@ class SequentialSequence(nn.Module):
 
     def forward(
         self, x: Tensor, output_attentions: bool = False, **kwargs
-    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+    ) -> Tensor | tuple[Tensor, Tensor]:
         args = route_args(self.args_route, kwargs, len(self.layers))
 
         attn_weights = []
@@ -250,7 +250,7 @@ class SequentialSequenceGAU(nn.Module):
     Sequential container specific for Gated Attention Unit (GAU) structures.
     """
 
-    def __init__(self, layers: nn.ModuleList, args_route: Dict[str, Any] = {}):
+    def __init__(self, layers: nn.ModuleList, args_route: dict[str, Any] = {}):
         super().__init__()
         if args_route:
             assert all(
@@ -290,7 +290,7 @@ class ReversibleSequence(nn.Module):
     Wraps layers in ReversibleBlocks and executes them via the custom autograd function.
     """
 
-    def __init__(self, blocks: List[Tuple[nn.Module, nn.Module]], args_route: Dict[str, Any] = {}):
+    def __init__(self, blocks: list[tuple[nn.Module, nn.Module]], args_route: dict[str, Any] = {}):
         super().__init__()
         self.args_route = args_route
         # Create ReversibleBlocks from pairs of (f, g)

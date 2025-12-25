@@ -66,10 +66,10 @@ class PolynomialFitResults(ctypes.Structure):
 # Load C++ Library
 # =============================================================================
 
-_lib: Optional[ctypes.CDLL] = None
+_lib: ctypes.CDLL | None = None
 
 
-def _find_library() -> Optional[Path]:
+def _find_library() -> Path | None:
     """Find the compiled C++ library."""
     module_dir = Path(__file__).parent
 
@@ -88,7 +88,7 @@ def _find_library() -> Optional[Path]:
     return None
 
 
-def _load_library() -> Optional[ctypes.CDLL]:
+def _load_library() -> ctypes.CDLL | None:
     """Load the C++ library and setup function signatures."""
     lib_path = _find_library()
     if lib_path is None:
@@ -256,7 +256,7 @@ def sparse_clipped_moments_cpp(
     X: scipy.sparse.csc_matrix,
     clip_vals: np.ndarray,
     n_threads: int = 0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute clipped moments for sparse matrix (C++ backend).
 
     Args:
@@ -307,7 +307,7 @@ def sparse_mean_var_cpp(
     X: scipy.sparse.csc_matrix,
     include_zeros: bool = True,
     n_threads: int = 0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute mean and variance for sparse matrix columns (C++ backend).
 
     Args:
@@ -391,9 +391,9 @@ def polynomial_fit_cpp(
     x: np.ndarray,
     y: np.ndarray,
     degree: int = 2,
-    weights: Optional[np.ndarray] = None,
+    weights: np.ndarray | None = None,
     return_coeffs: bool = False,
-) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+) -> tuple[np.ndarray, np.ndarray | None]:
     """Fit polynomial regression (C++ backend).
 
     Args:
@@ -553,7 +553,7 @@ def group_mean_var_cpp(
     n_groups: int,
     include_zeros: bool = True,
     n_threads: int = 0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute group-wise mean and variance (C++ backend).
 
     Args:

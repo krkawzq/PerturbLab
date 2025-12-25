@@ -5,7 +5,7 @@ and generative tasks.
 """
 
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 from perturblab.core.config import Config
 
@@ -123,7 +123,7 @@ class scGPTConfig(Config):
 
     # Multi-omics
     use_mod: bool = False
-    ntokens_mod: Optional[int] = None
+    ntokens_mod: int | None = None
 
     # Acceleration
     use_fast_transformer: bool = False

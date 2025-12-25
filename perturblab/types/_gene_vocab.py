@@ -1,7 +1,8 @@
 """Gene-specific vocabulary class with standardization support."""
 
 from collections import Counter
-from typing import Callable, List, Literal, Optional, Set, Union
+from collections.abc import Callable
+from typing import Literal
 
 import pandas as pd
 from anndata import AnnData
@@ -26,7 +27,7 @@ class GeneVocab(Vocab):
 
     def __init__(
         self,
-        genes: List[str],
+        genes: list[str],
         default_token: str = "<unk>",
         default_index: int = -1,
         duplicate_policy: DuplicatePolicy = "error",
@@ -37,9 +38,9 @@ class GeneVocab(Vocab):
 
     @staticmethod
     def _handle_duplicate_genes(
-        genes: List[str],
+        genes: list[str],
         duplicate_policy: "GeneVocab.DuplicatePolicy" = "error",
-    ) -> List[str]:
+    ) -> list[str]:
         """Handle duplicate genes according to policy.
 
         Args:
@@ -86,7 +87,7 @@ class GeneVocab(Vocab):
     def from_anndata(
         cls,
         adata: AnnData,
-        var_col: Optional[str] = None,
+        var_col: str | None = None,
         duplicate_policy: DuplicatePolicy = "error",
         default_token: str = "<unk>",
         default_index: int = -1,
@@ -153,7 +154,7 @@ class GeneVocab(Vocab):
 
     def standardize_gene_names(
         self,
-        standardize_fn: Optional[Callable[[str], str]] = None,
+        standardize_fn: Callable[[str], str] | None = None,
         duplicate_policy: DuplicatePolicy = "first",  # Changed default to 'first' to be safer
     ) -> None:
         """Standardize gene names in-place using the provided function.
@@ -195,7 +196,7 @@ class GeneVocab(Vocab):
 
     def select_genes(
         self,
-        genes_to_keep: Union[Set[str], List[str]],
+        genes_to_keep: set[str] | list[str],
         keep_order: bool = True,
         min_genes: int = 1,
     ) -> "GeneVocab":

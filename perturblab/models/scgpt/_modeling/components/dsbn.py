@@ -17,7 +17,6 @@ Copyright:
     Adapted for scGPT and PerturbLab.
 """
 
-from typing import Optional
 
 import torch
 from torch import nn
@@ -77,7 +76,7 @@ class _DomainSpecificBatchNorm(nn.Module):
         raise NotImplementedError
 
     @property
-    def cur_domain(self) -> Optional[int]:
+    def cur_domain(self) -> int | None:
         """int or None: Currently active domain index."""
         return self._cur_domain
 

@@ -6,7 +6,6 @@ interfaces for model pipelines.
 """
 
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 from torch import Tensor
 
@@ -91,13 +90,13 @@ class GeneCompassInput(ModelIO):
     """
 
     input_ids: Tensor
-    values: Optional[Tensor] = None
-    attention_mask: Optional[Tensor] = None
-    species: Optional[Tensor] = None
-    token_type_ids: Optional[Tensor] = None
-    position_ids: Optional[Tensor] = None
-    labels: Optional[Tensor] = None
-    labels_values: Optional[Tensor] = None
+    values: Tensor | None = None
+    attention_mask: Tensor | None = None
+    species: Tensor | None = None
+    token_type_ids: Tensor | None = None
+    position_ids: Tensor | None = None
+    labels: Tensor | None = None
+    labels_values: Tensor | None = None
     output_attentions: bool = False
     output_hidden_states: bool = False
 
@@ -147,10 +146,10 @@ class GeneCompassOutput(ModelIO):
     """
 
     logits: Tensor
-    loss: Optional[Tensor] = None
-    value_logits: Optional[Tensor] = None
-    hidden_states: Optional[Tensor] = None
-    attentions: Optional[Tuple[Tensor, ...]] = None
+    loss: Tensor | None = None
+    value_logits: Tensor | None = None
+    hidden_states: Tensor | None = None
+    attentions: tuple[Tensor, ...] | None = None
 
 
 @dataclass(kw_only=True)
@@ -182,9 +181,9 @@ class MaskedLMOutputBoth(ModelIO):
         Example: MaskedLMOutputBoth(field1=..., field2=...)
     """
 
-    loss: Optional[Tensor] = None
-    value_loss: Optional[Tensor] = None
-    id_loss: Optional[Tensor] = None
-    logits: Optional[Tensor] = None
-    hidden_states: Optional[Tuple[Tensor, ...]] = None
-    attentions: Optional[Tuple[Tensor, ...]] = None
+    loss: Tensor | None = None
+    value_loss: Tensor | None = None
+    id_loss: Tensor | None = None
+    logits: Tensor | None = None
+    hidden_states: tuple[Tensor, ...] | None = None
+    attentions: tuple[Tensor, ...] | None = None

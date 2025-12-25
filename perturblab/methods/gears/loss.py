@@ -6,7 +6,6 @@ This module provides loss computation for GEARS models, including:
 - Uncertainty-aware loss (for epistemic uncertainty quantification)
 """
 
-from typing import Dict, Optional
 
 import torch
 import torch.nn as nn
@@ -54,8 +53,8 @@ class GEARSLoss(nn.Module):
     def __init__(
         self,
         direction_lambda: float = 1e-3,
-        reduction: str = 'mean',
-        ctrl_expression: Optional[torch.Tensor] = None,
+        reduction: str = "mean",
+        ctrl_expression: torch.Tensor | None = None,
     ):
         super().__init__()
         self.default_direction_lambda = direction_lambda
@@ -63,18 +62,18 @@ class GEARSLoss(nn.Module):
 
         # Register control expression as buffer if provided
         if ctrl_expression is not None:
-            self.register_buffer('ctrl_expression', ctrl_expression)
+            self.register_buffer("ctrl_expression", ctrl_expression)
         else:
             self.ctrl_expression = None
 
     def forward(
         self,
         outputs: GEARSOutput,
-        labels: Dict,
-        metadata: Dict,
-        ctrl_expression: Optional[torch.Tensor] = None,
-        direction_lambda: Optional[float] = None,
-        **loss_kwargs
+        labels: dict,
+        metadata: dict,
+        ctrl_expression: torch.Tensor | None = None,
+        direction_lambda: float | None = None,
+        **loss_kwargs,
     ) -> torch.Tensor:
         """Computes GEARS loss.
 
@@ -109,13 +108,15 @@ class GEARSLoss(nn.Module):
             ... )
         """
         pred = outputs.predictions
-        target = labels['predictions']
+        target = labels["predictions"]
 
         # Main MSE loss
         mse_loss = F.mse_loss(pred, target, reduction=self.reduction)
 
         # Direction loss (optional)
-        direction_lambda = direction_lambda if direction_lambda is not None else self.default_direction_lambda
+        direction_lambda = (
+            direction_lambda if direction_lambda is not None else self.default_direction_lambda
+        )
 
         if direction_lambda > 0:
             # Use provided ctrl_expression or registered buffer
@@ -128,9 +129,7 @@ class GEARSLoss(nn.Module):
 
                 # Direction consistency loss
                 direction_loss = F.mse_loss(
-                    torch.sign(pred_delta),
-                    torch.sign(target_delta),
-                    reduction=self.reduction
+                    torch.sign(pred_delta), torch.sign(target_delta), reduction=self.reduction
                 )
 
                 mse_loss = mse_loss + direction_lambda * direction_loss
@@ -170,8 +169,8 @@ class GEARSUncertaintyLoss(nn.Module):
         self,
         uncertainty_reg: float = 1.0,
         direction_lambda: float = 1e-3,
-        reduction: str = 'mean',
-        ctrl_expression: Optional[torch.Tensor] = None,
+        reduction: str = "mean",
+        ctrl_expression: torch.Tensor | None = None,
     ):
         super().__init__()
         self.default_uncertainty_reg = uncertainty_reg
@@ -179,19 +178,19 @@ class GEARSUncertaintyLoss(nn.Module):
         self.reduction = reduction
 
         if ctrl_expression is not None:
-            self.register_buffer('ctrl_expression', ctrl_expression)
+            self.register_buffer("ctrl_expression", ctrl_expression)
         else:
             self.ctrl_expression = None
 
     def forward(
         self,
         outputs: GEARSOutput,
-        labels: Dict,
-        metadata: Dict,
-        ctrl_expression: Optional[torch.Tensor] = None,
-        uncertainty_reg: Optional[float] = None,
-        direction_lambda: Optional[float] = None,
-        **loss_kwargs
+        labels: dict,
+        metadata: dict,
+        ctrl_expression: torch.Tensor | None = None,
+        uncertainty_reg: float | None = None,
+        direction_lambda: float | None = None,
+        **loss_kwargs,
     ) -> torch.Tensor:
         """Computes GEARS uncertainty loss.
 
@@ -210,29 +209,33 @@ class GEARSUncertaintyLoss(nn.Module):
         Notes:
             The uncertainty loss uses the formulation:
             L = (1/2) * exp(-log_var) * MSE + (1/2) * log_var
-            
+
             This encourages the model to predict higher variance for harder samples.
         """
         pred = outputs.predictions
         log_var = outputs.log_variance
-        target = labels['predictions']
+        target = labels["predictions"]
 
         if log_var is None:
             raise ValueError("Model outputs do not contain log_variance. Use GEARSLoss instead.")
 
         # Dynamic parameter overrides
-        uncertainty_reg = uncertainty_reg if uncertainty_reg is not None else self.default_uncertainty_reg
-        direction_lambda = direction_lambda if direction_lambda is not None else self.default_direction_lambda
+        uncertainty_reg = (
+            uncertainty_reg if uncertainty_reg is not None else self.default_uncertainty_reg
+        )
+        direction_lambda = (
+            direction_lambda if direction_lambda is not None else self.default_direction_lambda
+        )
 
         # Uncertainty-aware MSE loss
         # L = 0.5 * exp(-log_var) * (pred - target)^2 + 0.5 * log_var
         precision = torch.exp(-log_var)
-        mse_term = F.mse_loss(pred, target, reduction='none')
+        mse_term = F.mse_loss(pred, target, reduction="none")
         uncertainty_loss = 0.5 * precision * mse_term + 0.5 * log_var
 
-        if self.reduction == 'mean':
+        if self.reduction == "mean":
             uncertainty_loss = uncertainty_loss.mean()
-        elif self.reduction == 'sum':
+        elif self.reduction == "sum":
             uncertainty_loss = uncertainty_loss.sum()
 
         total_loss = uncertainty_loss * uncertainty_reg
@@ -246,9 +249,7 @@ class GEARSUncertaintyLoss(nn.Module):
                 target_delta = target - ctrl_expr
 
                 direction_loss = F.mse_loss(
-                    torch.sign(pred_delta),
-                    torch.sign(target_delta),
-                    reduction=self.reduction
+                    torch.sign(pred_delta), torch.sign(target_delta), reduction=self.reduction
                 )
 
                 total_loss = total_loss + direction_lambda * direction_loss
@@ -256,10 +257,7 @@ class GEARSUncertaintyLoss(nn.Module):
         return total_loss
 
 
-def build_loss(
-    loss_type: str = 'standard',
-    **config
-) -> nn.Module:
+def build_loss(loss_type: str = "standard", **config) -> nn.Module:
     """Builds a GEARS loss module.
 
     This factory function creates the appropriate loss module based on the
@@ -324,23 +322,22 @@ def build_loss(
         GEARSUncertaintyLoss: Uncertainty-aware loss implementation
     """
     loss_modules = {
-        'standard': GEARSLoss,
-        'uncertainty': GEARSUncertaintyLoss,
+        "standard": GEARSLoss,
+        "uncertainty": GEARSUncertaintyLoss,
     }
 
     if loss_type not in loss_modules:
         raise ValueError(
-            f"Unknown loss_type: {loss_type}. "
-            f"Available: {list(loss_modules.keys())}"
+            f"Unknown loss_type: {loss_type}. " f"Available: {list(loss_modules.keys())}"
         )
 
     LossClass = loss_modules[loss_type]
 
     # Filter config to only include parameters for this loss class
     import inspect
+
     sig = inspect.signature(LossClass.__init__)
-    valid_params = set(sig.parameters.keys()) - {'self'}
+    valid_params = set(sig.parameters.keys()) - {"self"}
     filtered_config = {k: v for k, v in config.items() if k in valid_params}
 
     return LossClass(**filtered_config)
-

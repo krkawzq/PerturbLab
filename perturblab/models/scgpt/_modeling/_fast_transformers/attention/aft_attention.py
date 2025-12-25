@@ -50,7 +50,7 @@ class AFTFullAttention(Module):
         _, S, _, D = values.shape
         if E != D:
             raise ValueError(
-                ("AFT requires that queries, keys and values " "have the same dimensionality")
+                "AFT requires that queries, keys and values " "have the same dimensionality"
             )
 
         # Make a gate out of Q and permute the dimensions of K and V
@@ -98,7 +98,7 @@ class AFTSimpleAttention(Module):
         _, S, _, D = values.shape
         if E != D:
             raise ValueError(
-                ("AFT requires that queries, keys and values " "have the same dimensionality")
+                "AFT requires that queries, keys and values " "have the same dimensionality"
             )
 
         # Make a gate out of Q

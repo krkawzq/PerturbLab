@@ -1,7 +1,7 @@
 """Gene mapping system for alias/symbol/ID resolution."""
 
 import os
-from typing import Literal, Optional
+from typing import Literal
 
 import pandas as pd
 
@@ -56,7 +56,7 @@ class GeneMap:
         alias_to_symbol: BipartiteGraph,
         symbol_to_id: BipartiteGraph,
         build_fast_mapping: bool = True,
-        meta: Optional[pd.DataFrame] = None,
+        meta: pd.DataFrame | None = None,
     ):
         self.alias_vocab = alias_vocab
         self.symbol_vocab = symbol_vocab

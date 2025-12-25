@@ -7,7 +7,6 @@ Backend priority: C++ (SIMD + OpenMP) > Python (NumPy/SciPy fallback)
 """
 
 import logging
-from typing import Optional, Tuple
 
 import numpy as np
 import scipy.sparse
@@ -143,8 +142,8 @@ def sparse_clipped_moments(
     X: scipy.sparse.csc_matrix,
     clip_vals: np.ndarray,
     n_threads: int = 0,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute clipped moments for sparse matrix.
+) -> tuple[np.ndarray, np.ndarray]:
+    f"""Compute clipped moments for sparse matrix.
     
     Core operator for Seurat V3 HVG detection. For each column (gene),
     computes:
@@ -161,16 +160,14 @@ def sparse_clipped_moments(
         sum_squares: Clipped sum of squares, shape (n_vars,)
     
     Backend:
-        Auto-selected at import time: {backend}
+        Auto-selected at import time: {_backend_name}
     
     Examples:
         >>> import scipy.sparse as sp
         >>> X = sp.random(1000, 500, density=0.1, format='csc')
         >>> clip_vals = X.mean(axis=0).A1 * 2
         >>> sums, sum_sq = sparse_clipped_moments(X, clip_vals)
-    """.format(
-        backend=_backend_name
-    )
+    """
 
     if _has_cpp:
         return _sparse_clipped_moments_impl(X, clip_vals, n_threads)
@@ -182,8 +179,8 @@ def sparse_mean_var(
     X: scipy.sparse.csc_matrix,
     include_zeros: bool = True,
     n_threads: int = 0,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute mean and variance for sparse matrix columns.
+) -> tuple[np.ndarray, np.ndarray]:
+    f"""Compute mean and variance for sparse matrix columns.
     
     Uses Welford's online algorithm for numerical stability.
     
@@ -197,10 +194,8 @@ def sparse_mean_var(
         vars: Column variances, shape (n_vars,)
     
     Backend:
-        Auto-selected at import time: {backend}
-    """.format(
-        backend=_backend_name
-    )
+        Auto-selected at import time: {_backend_name}
+    """
 
     if _has_cpp:
         return _sparse_mean_var_impl(X, include_zeros, n_threads)
@@ -213,7 +208,7 @@ def clip_matrix(
     clip_vals: np.ndarray,
     n_threads: int = 0,
 ) -> np.ndarray:
-    """Clip dense matrix by column (in-place operation).
+    f"""Clip dense matrix by column (in-place operation).
     
     Args:
         X: Dense matrix, shape (n_obs, n_vars)
@@ -224,15 +219,13 @@ def clip_matrix(
         Clipped matrix (same object as X, modified in-place)
     
     Backend:
-        Auto-selected at import time: {backend}
+        Auto-selected at import time: {_backend_name}
     
     Examples:
         >>> X = np.random.randn(1000, 500)
         >>> clip_vals = X.mean(axis=0) * 2
         >>> X_clipped = clip_matrix(X, clip_vals)  # X is modified in-place
-    """.format(
-        backend=_backend_name
-    )
+    """
 
     if _has_cpp:
         return _clip_matrix_impl(X, clip_vals, n_threads)
@@ -244,10 +237,10 @@ def polynomial_fit(
     x: np.ndarray,
     y: np.ndarray,
     degree: int = 2,
-    weights: Optional[np.ndarray] = None,
+    weights: np.ndarray | None = None,
     return_coeffs: bool = False,
-) -> Tuple[np.ndarray, Optional[np.ndarray]]:
-    """Fit polynomial regression.
+) -> tuple[np.ndarray, np.ndarray | None]:
+    f"""Fit polynomial regression.
     
     Args:
         x: Input x coordinates, shape (n,)
@@ -261,15 +254,13 @@ def polynomial_fit(
         coeffs: Coefficients [a0, a1, ..., an] if return_coeffs=True, else None
     
     Backend:
-        Auto-selected at import time: {backend}
+        Auto-selected at import time: {_backend_name}
     
     Examples:
         >>> x = np.linspace(0, 10, 100)
         >>> y = 2 + 3*x + 0.5*x**2 + np.random.randn(100)
         >>> fitted, coeffs = polynomial_fit(x, y, degree=2, return_coeffs=True)
-    """.format(
-        backend=_backend_name
-    )
+    """
 
     return _polynomial_fit_impl(x, y, degree, weights, return_coeffs)
 
@@ -280,7 +271,7 @@ def loess_fit(
     span: float = 0.3,
     n_threads: int = 0,
 ) -> np.ndarray:
-    """Fit LOESS (Locally Weighted Scatterplot Smoothing).
+    f"""Fit LOESS (Locally Weighted Scatterplot Smoothing).
     
     Args:
         x: Input x coordinates, shape (n,)
@@ -292,15 +283,13 @@ def loess_fit(
         fitted: Fitted y values, shape (n,)
     
     Backend:
-        Auto-selected at import time: {backend}
+        Auto-selected at import time: {_backend_name}
     
     Examples:
         >>> x = np.sort(np.random.rand(100))
         >>> y = np.sin(x * 5) + np.random.randn(100) * 0.1
         >>> fitted = loess_fit(x, y, span=0.2)
-    """.format(
-        backend=_backend_name
-    )
+    """
 
     if _has_cpp:
         return _loess_fit_impl(x, y, span, n_threads)
@@ -315,7 +304,7 @@ def group_var(
     include_zeros: bool = True,
     n_threads: int = 0,
 ) -> np.ndarray:
-    """Compute group-wise variance for sparse matrix.
+    f"""Compute group-wise variance for sparse matrix.
     
     Args:
         X: Sparse matrix (CSC format), shape (n_obs, n_vars)
@@ -329,10 +318,8 @@ def group_var(
         Access as: result[col * n_groups + group]
     
     Backend:
-        Auto-selected at import time: {backend}
-    """.format(
-        backend=_backend_name
-    )
+        Auto-selected at import time: {_backend_name}
+    """
 
     if _has_cpp:
         return _group_var_impl(X, group_id, n_groups, include_zeros, n_threads)
@@ -346,8 +333,8 @@ def group_mean_var(
     n_groups: int,
     include_zeros: bool = True,
     n_threads: int = 0,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Compute group-wise mean and variance for sparse matrix.
+) -> tuple[np.ndarray, np.ndarray]:
+    f"""Compute group-wise mean and variance for sparse matrix.
     
     Uses Welford's online algorithm for single-pass computation.
     
@@ -363,10 +350,8 @@ def group_mean_var(
         vars: Group variances, shape (n_vars, n_groups), flattened
     
     Backend:
-        Auto-selected at import time: {backend}
-    """.format(
-        backend=_backend_name
-    )
+        Auto-selected at import time: {_backend_name}
+    """
 
     if _has_cpp:
         return _group_mean_var_impl(X, group_id, n_groups, include_zeros, n_threads)

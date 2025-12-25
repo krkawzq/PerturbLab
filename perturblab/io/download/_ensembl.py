@@ -320,7 +320,7 @@ class EnsemblDownloader(BaseDownloader):
 
         records = []
 
-        with open(gtf_path, "r") as f:
+        with open(gtf_path) as f:
             for line in f:
                 # Skip comments
                 if line.startswith("#"):

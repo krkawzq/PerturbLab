@@ -10,4 +10,3 @@ from .distributed import DistributedTrainer
 from .trainner import Trainer
 
 __all__ = ["Trainer", "DistributedTrainer"]
-

@@ -11,7 +11,7 @@ Adapted for PerturbLab with strict weight compatibility.
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Any, Dict, Optional
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -83,7 +83,7 @@ class KnowledgeBertEmbeddings(nn.Module):
     4. Positional embeddings (standard BERT absolute position)
     """
 
-    def __init__(self, config: Any, knowledges: Dict[str, Any]):
+    def __init__(self, config: Any, knowledges: dict[str, Any]):
         super().__init__()
 
         # 1. Base Embeddings
@@ -199,12 +199,12 @@ class KnowledgeBertEmbeddings(nn.Module):
 
     def forward(
         self,
-        input_ids: Optional[torch.LongTensor] = None,
-        values: Optional[torch.FloatTensor] = None,
-        species: Optional[torch.Tensor] = None,
-        token_type_ids: Optional[torch.LongTensor] = None,
-        position_ids: Optional[torch.LongTensor] = None,
-        inputs_embeds: Optional[torch.FloatTensor] = None,
+        input_ids: torch.LongTensor | None = None,
+        values: torch.FloatTensor | None = None,
+        species: torch.Tensor | None = None,
+        token_type_ids: torch.LongTensor | None = None,
+        position_ids: torch.LongTensor | None = None,
+        inputs_embeds: torch.FloatTensor | None = None,
         past_key_values_length: int = 0,
         emb_warmup_alpha: float = 1.0,
     ) -> Tensor:

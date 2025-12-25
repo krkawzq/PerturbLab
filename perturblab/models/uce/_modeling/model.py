@@ -1,4 +1,4 @@
-"""UCE: Universal Cell Embeddings - Unified Model Architecture
+r"""UCE: Universal Cell Embeddings - Unified Model Architecture
 
 This module implements the UCE foundation model for generating universal single-cell
 representations. It leverages a Transformer-based architecture to process gene

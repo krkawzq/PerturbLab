@@ -9,7 +9,7 @@ from .event import Event
 from .filters import event_class
 
 
-class EventDispatcher(object):
+class EventDispatcher:
     """An EventDispatcher is a simple way to implement an observer pattern for
     loose coupling of components. In our case it is used so that the internals
     of large neural networks can communicate with the outside world in an

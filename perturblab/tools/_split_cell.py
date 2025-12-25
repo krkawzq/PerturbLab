@@ -9,7 +9,6 @@ All functions are data-agnostic and can be applied to any array-like data.
 from __future__ import annotations
 
 import warnings
-from typing import Optional, Tuple
 
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -26,10 +25,10 @@ __all__ = [
 def split_cells(
     n_cells: int,
     test_size: float = 0.2,
-    stratify_labels: Optional[np.ndarray] = None,
+    stratify_labels: np.ndarray | None = None,
     random_state: int = 42,
     shuffle: bool = True,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Split cell indices into train and test sets.
 
     Provides a simple wrapper around sklearn's train_test_split with
@@ -98,8 +97,8 @@ def split_cells(
 
 def sample_cells_simple(
     n_cells: int,
-    n: Optional[int] = None,
-    frac: Optional[float] = None,
+    n: int | None = None,
+    frac: float | None = None,
     random_state: int = 42,
     replace: bool = False,
 ) -> np.ndarray:
@@ -151,8 +150,8 @@ def sample_cells_simple(
 def sample_cells_weighted(
     n_cells: int,
     weights: np.ndarray,
-    n: Optional[int] = None,
-    frac: Optional[float] = None,
+    n: int | None = None,
+    frac: float | None = None,
     random_state: int = 42,
     replace: bool = False,
 ) -> np.ndarray:
@@ -213,8 +212,8 @@ def sample_cells_weighted(
 
 def sample_cells_by_group(
     group_indices: dict[str, np.ndarray],
-    n: Optional[int] = None,
-    frac: Optional[float] = None,
+    n: int | None = None,
+    frac: float | None = None,
     balance: bool = False,
     random_state: int = 42,
     replace: bool = False,
@@ -313,7 +312,7 @@ def stratify_split_cells_by_group(
     group_indices: dict[str, np.ndarray],
     test_size: float = 0.2,
     random_state: int = 42,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Stratified split maintaining group proportions.
 
     Splits each group independently with the same test_size ratio,

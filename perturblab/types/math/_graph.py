@@ -6,8 +6,6 @@ using NumPy and SciPy. It deals strictly with integer indices and edge weights.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
-
 import numpy as np
 import scipy.sparse as sparse
 
@@ -28,7 +26,7 @@ class WeightedGraph:
 
     def __init__(
         self,
-        edges: List[Tuple[int, int, float]] | List[Tuple[int, int]] | np.ndarray,
+        edges: list[tuple[int, int, float]] | list[tuple[int, int]] | np.ndarray,
         n_nodes: int,
         default_weight: float = 1.0,
     ):
@@ -53,10 +51,10 @@ class WeightedGraph:
 
         # Handle dimensions
         if edges_array.ndim == 1 and edges_array.size > 0:
-             edges_array = edges_array.reshape(1, -1)
-        
+            edges_array = edges_array.reshape(1, -1)
+
         if edges_array.ndim == 1 and edges_array.size == 0:
-             edges_array = np.zeros((0, 3), dtype=np.float64)
+            edges_array = np.zeros((0, 3), dtype=np.float64)
 
         # Normalize columns (add weights if missing)
         if edges_array.shape[1] == 2:
@@ -68,7 +66,7 @@ class WeightedGraph:
             raise ValueError(f"Edges must have 2 or 3 columns, got {edges_array.shape[1]}")
 
         self.n_nodes = n_nodes
-        self._adjacency: Optional[Dict[int, List[Tuple[int, float]]]] = None
+        self._adjacency: dict[int, list[tuple[int, float]]] | None = None
 
     @property
     def n_edges(self) -> int:
@@ -84,9 +82,9 @@ class WeightedGraph:
         """Lazily builds an adjacency list for O(1) neighbor lookups."""
         if self._adjacency is not None:
             return
-        
+
         self._adjacency = {i: [] for i in range(self.n_nodes)}
-        
+
         # Optimize loop slightly by avoiding explicit unpacking if not needed
         # but tuple unpacking is readable.
         for row in self.edges:
@@ -116,7 +114,7 @@ class WeightedGraph:
         self._build_adjacency()
         if source >= self.n_nodes:
             return 0.0
-            
+
         for neighbor, weight in self._adjacency[source]:
             if neighbor == target:
                 return weight
@@ -135,7 +133,7 @@ class WeightedGraph:
             col = self.edges[:, 1].astype(int)
             data = self.edges[:, 2]
             mat = sparse.csr_matrix((data, (row, col)), shape=(self.n_nodes, self.n_nodes))
-        
+
         if sparse_fmt:
             return mat
         return mat.toarray()

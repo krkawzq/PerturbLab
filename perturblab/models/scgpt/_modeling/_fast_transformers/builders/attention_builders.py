@@ -38,7 +38,7 @@ class BaseAttentionBuilder(BaseBuilder):
 
         # Assign everything else in the parameters dictionary
         if not self._registry.contains_parameter(key):
-            raise AttributeError(("{!r} is not a valid attention " "parameter name").format(key))
+            raise AttributeError(f"{key!r} is not a valid attention " "parameter name")
         self._parameters[key] = self._registry.validate_parameter(key, value)
 
     def __getattr__(self, key):
@@ -49,8 +49,8 @@ class BaseAttentionBuilder(BaseBuilder):
 
     def __repr__(self):
         return (
-            "{}.from_kwargs(\n".format(self.__class__.__name__)
-            + "\n".join(["    {}={!r},".format(k, v) for k, v in self._parameters.items()])[:-1]
+            f"{self.__class__.__name__}.from_kwargs(\n"
+            + "\n".join([f"    {k}={v!r}," for k, v in self._parameters.items()])[:-1]
             + "\n)"
         )
 
@@ -82,7 +82,7 @@ class BaseAttentionBuilder(BaseBuilder):
         for c in compositions:
             attentions = [self._construct_attention(t, attentions) for t in c.split(",")]
         if len(attentions) > 1:
-            raise ValueError(("Invalid attention_type argument " "{!r}").format(attention_type))
+            raise ValueError("Invalid attention_type argument " f"{attention_type!r}")
         return attentions[0]
 
     def _construct_attention(self, attention_type, decorated=[]):
@@ -96,7 +96,7 @@ class BaseAttentionBuilder(BaseBuilder):
                        to be decorated
         """
         if attention_type not in self._registry:
-            raise ValueError(("Unknown attention type " "{!r}").format(attention_type))
+            raise ValueError("Unknown attention type " f"{attention_type!r}")
 
         attention, parameters = self._registry[attention_type]
         parameter_dictionary = {

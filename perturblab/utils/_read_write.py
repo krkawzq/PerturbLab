@@ -5,7 +5,7 @@ including CellData and Gene Ontology data.
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, Literal, Union, overload
 
 import anndata as ad
 import pandas as pd
@@ -23,12 +23,13 @@ logger = get_logger()
 # Helper Functions for Auto-Detection
 # ==============================================================================
 
-def _guess_cell_type_col(obs: pd.DataFrame) -> Optional[str]:
+
+def _guess_cell_type_col(obs: pd.DataFrame) -> str | None:
     """Guess the column name for cell types in obs.
-    
+
     Args:
         obs: The obs DataFrame from AnnData.
-        
+
     Returns:
         Guessed column name or None if not found.
     """
@@ -47,7 +48,7 @@ def _guess_cell_type_col(obs: pd.DataFrame) -> Optional[str]:
         "cell_label",
         "label",
     ]
-    
+
     # First try exact case-insensitive match
     obs_lower = {col.lower(): col for col in obs.columns}
     for pattern in patterns:
@@ -55,23 +56,23 @@ def _guess_cell_type_col(obs: pd.DataFrame) -> Optional[str]:
             col = obs_lower[pattern]
             logger.info(f"Auto-detected cell_type_col: '{col}'")
             return col
-    
+
     # Try partial match
     for pattern in patterns:
         for col in obs.columns:
             if pattern in col.lower():
                 logger.info(f"Auto-detected cell_type_col: '{col}' (partial match)")
                 return col
-    
+
     return None
 
 
-def _guess_gene_name_col(var: pd.DataFrame) -> Optional[str]:
+def _guess_gene_name_col(var: pd.DataFrame) -> str | None:
     """Guess the column name for gene names in var.
-    
+
     Args:
         var: The var DataFrame from AnnData.
-        
+
     Returns:
         Guessed column name or None if not found.
     """
@@ -91,7 +92,7 @@ def _guess_gene_name_col(var: pd.DataFrame) -> Optional[str]:
         "feature_name",
         "feature",
     ]
-    
+
     # First try exact case-insensitive match
     var_lower = {col.lower(): col for col in var.columns}
     for pattern in patterns:
@@ -99,23 +100,23 @@ def _guess_gene_name_col(var: pd.DataFrame) -> Optional[str]:
             col = var_lower[pattern]
             logger.info(f"Auto-detected gene_name_col: '{col}'")
             return col
-    
+
     # Try partial match
     for pattern in patterns:
         for col in var.columns:
             if pattern in col.lower():
                 logger.info(f"Auto-detected gene_name_col: '{col}' (partial match)")
                 return col
-    
+
     return None
 
 
-def _guess_cell_id_col(obs: pd.DataFrame) -> Optional[str]:
+def _guess_cell_id_col(obs: pd.DataFrame) -> str | None:
     """Guess the column name for cell IDs in obs.
-    
+
     Args:
         obs: The obs DataFrame from AnnData.
-        
+
     Returns:
         Guessed column name or None if not found.
     """
@@ -129,7 +130,7 @@ def _guess_cell_id_col(obs: pd.DataFrame) -> Optional[str]:
         "barcode",
         "barcodes",
     ]
-    
+
     # First try exact case-insensitive match
     obs_lower = {col.lower(): col for col in obs.columns}
     for pattern in patterns:
@@ -137,54 +138,52 @@ def _guess_cell_id_col(obs: pd.DataFrame) -> Optional[str]:
             col = obs_lower[pattern]
             logger.info(f"Auto-detected cell_id_col: '{col}'")
             return col
-    
+
     # Try partial match
     for pattern in patterns:
         for col in obs.columns:
             if pattern in col.lower():
                 logger.info(f"Auto-detected cell_id_col: '{col}' (partial match)")
                 return col
-    
+
     return None
 
 
 # Overload signatures for type hints
 @overload
 def read_h5ad(
-    filename: Union[str, Path],
-    backed: Optional[Literal["r", "r+"]] = None,
-    cell_type_col: Optional[str] = None,
-    gene_name_col: Optional[str] = None,
-    cell_id_col: Optional[str] = None,
+    filename: str | Path,
+    backed: Literal["r", "r+"] | None = None,
+    cell_type_col: str | None = None,
+    gene_name_col: str | None = None,
+    cell_id_col: str | None = None,
     duplicated_gene_policy: Literal["error", "first", "last", "remove"] = "error",
     auto_guess: bool = True,
     return_type: Literal["celldata"] = "celldata",
     **kwargs,
-) -> "CellData":
-    ...
+) -> "CellData": ...
 
 
 @overload
 def read_h5ad(
-    filename: Union[str, Path],
-    backed: Optional[Literal["r", "r+"]] = None,
-    cell_type_col: Optional[str] = None,
-    gene_name_col: Optional[str] = None,
-    cell_id_col: Optional[str] = None,
+    filename: str | Path,
+    backed: Literal["r", "r+"] | None = None,
+    cell_type_col: str | None = None,
+    gene_name_col: str | None = None,
+    cell_id_col: str | None = None,
     duplicated_gene_policy: Literal["error", "first", "last", "remove"] = "error",
     auto_guess: bool = True,
     return_type: Literal["anndata"] = ...,
     **kwargs,
-) -> ad.AnnData:
-    ...
+) -> ad.AnnData: ...
 
 
 def read_h5ad(
-    filename: Union[str, Path],
-    backed: Optional[Literal["r", "r+"]] = None,
-    cell_type_col: Optional[str] = None,
-    gene_name_col: Optional[str] = None,
-    cell_id_col: Optional[str] = None,
+    filename: str | Path,
+    backed: Literal["r", "r+"] | None = None,
+    cell_type_col: str | None = None,
+    gene_name_col: str | None = None,
+    cell_id_col: str | None = None,
     duplicated_gene_policy: Literal["error", "first", "last", "remove"] = "error",
     auto_guess: bool = True,
     return_type: Literal["celldata", "anndata"] = "celldata",
@@ -293,22 +292,20 @@ def read_h5ad(
         - For multiple operations: materialize() backed views to avoid repeated disk I/O
     """
     filename = Path(filename)
-    
+
     # Check file exists
     if not filename.exists():
         raise FileNotFoundError(f"File not found: {filename}")
-    
+
     logger.info(f"Reading h5ad file: {filename}")
-    
+
     # Read AnnData
     adata = ad.read_h5ad(filename, backed=backed, **kwargs)
-    
+
     # Log dataset info
     mode_info = f" (backed mode: '{backed}')" if backed else ""
-    logger.info(
-        f"Loaded AnnData: {adata.n_obs} cells × {adata.n_vars} genes{mode_info}"
-    )
-    
+    logger.info(f"Loaded AnnData: {adata.n_obs} cells × {adata.n_vars} genes{mode_info}")
+
     # Auto-detect columns if requested
     if auto_guess:
         if cell_type_col is None:
@@ -317,29 +314,29 @@ def read_h5ad(
                 cell_type_col = detected
             else:
                 logger.debug("Could not auto-detect cell_type_col")
-        
+
         if gene_name_col is None:
             detected = _guess_gene_name_col(adata.var)
             if detected:
                 gene_name_col = detected
             else:
                 logger.debug("Could not auto-detect gene_name_col, will use var_names")
-        
+
         if cell_id_col is None:
             detected = _guess_cell_id_col(adata.obs)
             if detected:
                 cell_id_col = detected
             else:
                 logger.debug("Could not auto-detect cell_id_col, will use obs_names")
-    
+
     # Return raw AnnData if requested
     if return_type == "anndata":
         logger.info("Returning raw AnnData object")
         return adata
-    
+
     # Import CellData here to avoid circular import
     from perturblab.types import CellData
-    
+
     # Create CellData wrapper
     cell_data = CellData(
         adata,
@@ -348,7 +345,7 @@ def read_h5ad(
         cell_id_col=cell_id_col,
         duplicated_gene_policy=duplicated_gene_policy,
     )
-    
+
     # Log detected configuration
     config_parts = []
     if cell_type_col:
@@ -357,17 +354,17 @@ def read_h5ad(
         config_parts.append(f"gene_name_col='{gene_name_col}'")
     if cell_id_col:
         config_parts.append(f"cell_id_col='{cell_id_col}'")
-    
+
     if config_parts:
         logger.info(f"CellData configuration: {', '.join(config_parts)}")
-    
+
     return cell_data
 
 
 def read_obo(
-    obo_path: Union[str, Path],
+    obo_path: str | Path,
     load_obsolete: bool = False,
-) -> Tuple[List[Dict], "DAG"]:
+) -> tuple[list[dict], "DAG"]:
     """Parse OBO file and return GO term information and hierarchy.
 
     This is a standalone parser that extracts Gene Ontology term metadata
@@ -418,7 +415,7 @@ def read_obo(
         - The DAG structure allows efficient querying of term hierarchies.
     """
     obo_path = Path(obo_path)
-    
+
     if not obo_path.exists():
         raise FileNotFoundError(
             f"OBO file not found: {obo_path}\n"
@@ -433,7 +430,7 @@ def read_obo(
     data_version = None
     default_namespace = "default"
 
-    with open(obo_path, "r") as f:
+    with open(obo_path) as f:
         in_header = True
         current_term = None
 
@@ -540,4 +537,3 @@ def read_obo(
     )
 
     return terms, dag
-

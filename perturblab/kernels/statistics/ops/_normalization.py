@@ -114,7 +114,7 @@ def sparse_row_sum(
     X: scipy.sparse.csr_matrix,
     n_threads: int = 0,
 ) -> np.ndarray:
-    """Compute row sums for sparse matrix.
+    f"""Compute row sums for sparse matrix.
     
     Args:
         X: Sparse matrix (CSR format), shape (n_obs, n_vars)
@@ -124,10 +124,8 @@ def sparse_row_sum(
         Row sums, shape (n_obs,)
     
     Backend:
-        Auto-selected at import time: {backend}
-    """.format(
-        backend=_backend_name
-    )
+        Auto-selected at import time: {_backend_name}
+    """
 
     if not scipy.sparse.isspmatrix_csr(X):
         X = X.tocsr()
@@ -141,7 +139,7 @@ def inplace_divide_rows(
     allow_zero_divisor: bool = False,
     n_threads: int = 0,
 ) -> scipy.sparse.csr_matrix:
-    """Divide each row by a scalar in-place.
+    f"""Divide each row by a scalar in-place.
     
     Args:
         X: Sparse matrix (CSR format), shape (n_obs, n_vars)
@@ -153,10 +151,8 @@ def inplace_divide_rows(
         Modified matrix (same object as X)
     
     Backend:
-        Auto-selected at import time: {backend}
-    """.format(
-        backend=_backend_name
-    )
+        Auto-selected at import time: {_backend_name}
+    """
 
     if not scipy.sparse.isspmatrix_csr(X):
         raise ValueError("X must be CSR format for in-place operations")
@@ -165,7 +161,7 @@ def inplace_divide_rows(
 
 
 def compute_median_nonzero(values: np.ndarray) -> float:
-    """Compute median of non-zero values.
+    f"""Compute median of non-zero values.
     
     Args:
         values: Array of values
@@ -174,10 +170,8 @@ def compute_median_nonzero(values: np.ndarray) -> float:
         Median of non-zero values
     
     Backend:
-        Auto-selected at import time: {backend}
-    """.format(
-        backend=_backend_name
-    )
+        Auto-selected at import time: {_backend_name}
+    """
 
     return _compute_median_impl(values)
 
@@ -188,7 +182,7 @@ def find_highly_expressed_genes(
     max_fraction: float = 0.05,
     n_threads: int = 0,
 ) -> np.ndarray:
-    """Find highly expressed genes.
+    f"""Find highly expressed genes.
     
     A gene is highly expressed if it exceeds max_fraction of total counts
     in at least one cell.
@@ -203,10 +197,8 @@ def find_highly_expressed_genes(
         Boolean mask, shape (n_vars,). True = highly expressed.
     
     Backend:
-        Auto-selected at import time: {backend}
-    """.format(
-        backend=_backend_name
-    )
+        Auto-selected at import time: {_backend_name}
+    """
 
     if not scipy.sparse.isspmatrix_csr(X):
         X = X.tocsr()
@@ -219,7 +211,7 @@ def sparse_row_sum_exclude_genes(
     gene_mask: np.ndarray,
     n_threads: int = 0,
 ) -> np.ndarray:
-    """Compute row sums excluding specific genes.
+    f"""Compute row sums excluding specific genes.
     
     Args:
         X: Sparse matrix (CSR format), shape (n_obs, n_vars)
@@ -230,10 +222,8 @@ def sparse_row_sum_exclude_genes(
         Row sums, shape (n_obs,)
     
     Backend:
-        Auto-selected at import time: {backend}
-    """.format(
-        backend=_backend_name
-    )
+        Auto-selected at import time: {_backend_name}
+    """
 
     if not scipy.sparse.isspmatrix_csr(X):
         X = X.tocsr()

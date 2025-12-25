@@ -8,27 +8,27 @@ Licensed under the MIT License (see forks/scFoundation/LICENSE for details)
 """
 
 from .embeddings import AutoDiscretizationEmbedding, RandomPositionalEmbedding
-from .transformer import Transformer
 from .performer import (
-    FastAttention,
-    ReZero,
-    PreScaleNorm,
-    PreLayerNorm,
-    Chunk,
-    FeedForward,
-    SelfAttention,
     AbsolutePositionalEmbedding,
+    Chunk,
+    FastAttention,
+    FeedForward,
     Gene2VecPositionalEmbedding,
     Performer,
     PerformerModule,
+    PreLayerNorm,
+    PreScaleNorm,
+    ReZero,
+    SelfAttention,
 )
 from .reversible import (
     Deterministic,
     ReversibleBlock,
+    ReversibleSequence,
     SequentialSequence,
     SequentialSequenceGAU,
-    ReversibleSequence,
 )
+from .transformer import Transformer
 
 __all__ = [
     # Embeddings

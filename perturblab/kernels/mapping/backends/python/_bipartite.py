@@ -1,6 +1,5 @@
 """Pure Python implementation of bipartite graph queries."""
 
-from typing import Union
 
 import numpy as np
 import scipy.sparse as sparse
@@ -8,7 +7,7 @@ import scipy.sparse as sparse
 
 def bipartite_graph_query(
     graph: sparse.spmatrix,
-    queries: Union[np.ndarray, list[int]],
+    queries: np.ndarray | list[int],
     check_bounds: bool = True,
 ) -> list[np.ndarray]:
     """Perform efficient batch queries on bipartite graph.

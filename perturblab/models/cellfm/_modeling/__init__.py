@@ -1,26 +1,23 @@
 """CellFM model implementations."""
 
-from .model import CellFMModel
-from .components import (
-    # Core model
-    FinetuneModel,
-    MaskedMSE,
-    BCELoss,
-    # Encoders/Decoders
+from .components import (  # Core model; Encoders/Decoders; Retention layers
     FFN,
-    ValueEncoder,
-    ValueDecoder,
+    BCELoss,
     CellwiseDecoder,
-    # Retention layers
-    SiLU,
+    DropPath,
+    FinetuneModel,
+    GatedLinearUnit,
     Kernel,
     LoraBlock,
-    SRMSNorm,
-    DropPath,
+    MaskedMSE,
     MHRetention,
-    GatedLinearUnit,
     RetentionLayer,
+    SiLU,
+    SRMSNorm,
+    ValueDecoder,
+    ValueEncoder,
 )
+from .model import CellFMModel
 
 __all__ = [
     # Main model

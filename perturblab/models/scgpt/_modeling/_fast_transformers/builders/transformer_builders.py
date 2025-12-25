@@ -126,9 +126,7 @@ class BaseTransformerBuilder(BaseBuilder):
         activations = ["relu", "gelu"]
         if val not in activations:
             raise ValueError(
-                ("{!r} is not one of the availabel activation " "types {!r}").format(
-                    val, activations
-                )
+                f"{val!r} is not one of the availabel activation " f"types {activations!r}"
             )
         self._activation = val
 
@@ -206,7 +204,7 @@ class BaseTransformerEncoderBuilder(BaseTransformerBuilder):
     @attention_type.setter
     def attention_type(self, val):
         if not self._attention_builder.validate_attention_type(val):
-            raise ValueError(("{!r} is not an available attention " "type").format(val))
+            raise ValueError(f"{val!r} is not an available attention " "type")
         self._attention_type = val
 
     def __setattr__(self, key, val):
@@ -431,7 +429,7 @@ class BaseTransformerDecoderBuilder(BaseTransformerBuilder):
     @self_attention_type.setter
     def self_attention_type(self, val):
         if not self._self_attention_builder.validate_attention_type(val):
-            raise ValueError(("{!r} is not an available self attention " "type").format(val))
+            raise ValueError(f"{val!r} is not an available self attention " "type")
         self._self_attention_type = val
 
     @property
@@ -448,7 +446,7 @@ class BaseTransformerDecoderBuilder(BaseTransformerBuilder):
     @cross_attention_type.setter
     def cross_attention_type(self, val):
         if not self._cross_attention_builder.validate_attention_type(val):
-            raise ValueError(("{!r} is not an available cross attention " "type").format(val))
+            raise ValueError(f"{val!r} is not an available cross attention " "type")
         self._cross_attention_type = val
 
     def __setattr__(self, key, val):

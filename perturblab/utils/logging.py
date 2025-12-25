@@ -8,7 +8,6 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 
 # ANSI color codes for terminal output
@@ -86,10 +85,10 @@ class ColoredFormatter(logging.Formatter):
 def setup_logger(
     name: str = "perturblab",
     level: str | int = logging.INFO,
-    log_file: Optional[str | Path] = None,
+    log_file: str | Path | None = None,
     console: bool = True,
     use_colors: bool = True,
-    format_string: Optional[str] = None,
+    format_string: str | None = None,
 ) -> logging.Logger:
     """Setup a logger with console and/or file output.
 
@@ -159,7 +158,7 @@ def setup_logger(
 
 def get_logger(
     name: str = "perturblab",
-    level: Optional[str | int] = None,
+    level: str | int | None = None,
 ) -> logging.Logger:
     """Get or create a logger.
 
@@ -343,7 +342,7 @@ _default_logger = None
 
 def get_default_logger(
     level: str | int = None,
-    log_file: Optional[str | Path] = None,
+    log_file: str | Path | None = None,
 ) -> logging.Logger:
     """Get or initialize the default PerturbLab logger.
 

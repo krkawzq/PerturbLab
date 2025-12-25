@@ -6,7 +6,7 @@ distribution matches the ground truth distribution, including MMD and Wasserstei
 
 from __future__ import annotations
 
-from typing import Dict, Literal
+from typing import Literal
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -187,7 +187,7 @@ def compute_distribution_metrics(
     pred: np.ndarray,
     true: np.ndarray,
     mmd_gamma: float = 1.0,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Compute all distribution comparison metrics at once.
 
     Parameters

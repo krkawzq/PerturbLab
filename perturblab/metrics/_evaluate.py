@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
-
 import numpy as np
 import pandas as pd
 
@@ -23,17 +21,17 @@ def evaluate_prediction(
     pred: np.ndarray,
     true: np.ndarray,
     ctrl: np.ndarray,
-    pred_degs: Optional[pd.DataFrame] = None,
-    true_degs: Optional[pd.DataFrame] = None,
+    pred_degs: pd.DataFrame | None = None,
+    true_degs: pd.DataFrame | None = None,
     include_expression: bool = True,
     include_distribution: bool = True,
     include_direction: bool = True,
     include_deg_overlap: bool = True,
     mmd_gamma: float = 1.0,
-    deg_top_n: List[int] = [20, 50, 100, 200],
-    deg_p_thresholds: List[float] = [0.05, 0.01],
-    deg_fdr_thresholds: List[float] = [0.05, 0.01],
-) -> Dict[str, float]:
+    deg_top_n: list[int] = [20, 50, 100, 200],
+    deg_p_thresholds: list[float] = [0.05, 0.01],
+    deg_fdr_thresholds: list[float] = [0.05, 0.01],
+) -> dict[str, float]:
     """Comprehensive evaluation of perturbation prediction.
 
     Computes all available metrics to evaluate prediction quality, including:

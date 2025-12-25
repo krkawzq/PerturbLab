@@ -10,16 +10,18 @@ Features:
 """
 
 from abc import ABC, abstractmethod
-from typing import (
-    Any, Generic, Hashable, Set, Tuple, Type, TypeVar,
-    Dict, List, Iterator, Optional, Union, Iterable
-)
 from collections import defaultdict
-import itertools
+from collections.abc import Hashable, Iterable
+from typing import (
+    Any,
+    Generic,
+    TypeVar,
+)
 
 # -----------------------------------------------------------------------------
 # 1. Node (Vertex) Abstraction
 # -----------------------------------------------------------------------------
+
 
 class Node(ABC):
     """Base node in the graph.
@@ -30,6 +32,7 @@ class Node(ABC):
     Attributes:
         None
     """
+
     __slots__ = ()
 
     @property
@@ -53,20 +56,23 @@ class Node(ABC):
     def __repr__(self):
         return f"<{self.__class__.__name__}: {self.uid}>"
 
+
 # -----------------------------------------------------------------------------
 # 2. HyperEdge (Connection Unit)
 # -----------------------------------------------------------------------------
+
 
 class HyperEdge(Node, ABC):
     """Hyperedge: indivisible unit connecting two or more Nodes.
 
     Note:
         HyperEdge itself is a Node, supporting "edge of edges" (recursive graph).
-    
+
     Attributes:
         _metadata: Metadata dictionary for storing edge properties (weight, confidence, etc.).
     """
-    __slots__ = ('_metadata',)
+
+    __slots__ = ("_metadata",)
 
     def __init__(self, **metadata):
         """Initializes a HyperEdge with optional metadata.
@@ -78,7 +84,7 @@ class HyperEdge(Node, ABC):
 
     @property
     @abstractmethod
-    def participants(self) -> Tuple[Node, ...]:
+    def participants(self) -> tuple[Node, ...]:
         """Returns all nodes participating in this edge.
 
         Returns:
@@ -87,7 +93,7 @@ class HyperEdge(Node, ABC):
         pass
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """Returns metadata about the edge.
 
         Returns:
@@ -116,7 +122,9 @@ class HyperEdge(Node, ABC):
         part_ids = tuple(n.uid for n in self.participants)
         return (self.__class__.__name__,) + part_ids
 
+
 # --- Concrete Edge Types ---
+
 
 class UndirectedEdge(HyperEdge):
     """Undirected edge: (A, B) is equivalent to (B, A).
@@ -126,7 +134,8 @@ class UndirectedEdge(HyperEdge):
     Attributes:
         _participants: Tuple of sorted participating nodes.
     """
-    __slots__ = ('_participants',)
+
+    __slots__ = ("_participants",)
 
     def __init__(self, nodes: Iterable[Node], **metadata):
         """Initializes an undirected edge.
@@ -137,18 +146,17 @@ class UndirectedEdge(HyperEdge):
         """
         super().__init__(**metadata)
         # Sort by UID string to ensure canonical ordering
-        self._participants = tuple(
-            sorted(nodes, key=lambda x: str(x.uid))
-        )
+        self._participants = tuple(sorted(nodes, key=lambda x: str(x.uid)))
 
     @property
-    def participants(self) -> Tuple[Node, ...]:
+    def participants(self) -> tuple[Node, ...]:
         """Returns participating nodes (sorted tuple).
 
         Returns:
             Tuple[Node, ...]: Edge participants.
         """
         return self._participants
+
 
 class DirectedEdge(HyperEdge):
     """Directed edge: Source -> Target.
@@ -157,7 +165,8 @@ class DirectedEdge(HyperEdge):
         _source: Source node.
         _target: Target node.
     """
-    __slots__ = ('_source', '_target')
+
+    __slots__ = ("_source", "_target")
 
     def __init__(self, source: Node, target: Node, **metadata):
         """Initializes a directed edge.
@@ -172,7 +181,7 @@ class DirectedEdge(HyperEdge):
         self._target = target
 
     @property
-    def participants(self) -> Tuple[Node, ...]:
+    def participants(self) -> tuple[Node, ...]:
         """Returns the source and target nodes tuple.
 
         Returns:
@@ -198,11 +207,13 @@ class DirectedEdge(HyperEdge):
         """
         return self._target
 
+
 # -----------------------------------------------------------------------------
 # 3. Relation (The Container)
 # -----------------------------------------------------------------------------
 
 T_Edge = TypeVar("T_Edge", bound=HyperEdge)
+
 
 class Relation(Generic[T_Edge]):
     """A collection of edges of a specific type.
@@ -220,7 +231,8 @@ class Relation(Generic[T_Edge]):
         _incidence_index: Node UID to set of edges incidence index.
         _node_registry: Node UID to node instance.
     """
-    def __init__(self, name: str, edge_cls: Type[T_Edge]):
+
+    def __init__(self, name: str, edge_cls: type[T_Edge]):
         """Initializes a Relation container.
 
         Args:
@@ -231,13 +243,13 @@ class Relation(Generic[T_Edge]):
         self._edge_cls = edge_cls
 
         # Core storage for edges
-        self._edges: Set[T_Edge] = set()
+        self._edges: set[T_Edge] = set()
 
         # Node UID -> Set[Edge]: For O(1) lookups of all edges a node participates in
-        self._incidence_index: Dict[Hashable, Set[T_Edge]] = defaultdict(set)
+        self._incidence_index: dict[Hashable, set[T_Edge]] = defaultdict(set)
 
         # Node UID -> Node: Avoid redundant node objects and support fast lookup
-        self._node_registry: Dict[Hashable, Node] = {}
+        self._node_registry: dict[Hashable, Node] = {}
 
     def add(self, edge: T_Edge):
         """Add an edge to the relation and update incidence indices.
@@ -297,7 +309,7 @@ class Relation(Generic[T_Edge]):
 
     # --- Query Interfaces ---
 
-    def get_incident_edges(self, node_uid: Hashable) -> Set[T_Edge]:
+    def get_incident_edges(self, node_uid: Hashable) -> set[T_Edge]:
         """Get all edges incident to a given node.
 
         Args:
@@ -308,7 +320,7 @@ class Relation(Generic[T_Edge]):
         """
         return self._incidence_index.get(node_uid, set())
 
-    def get_neighbors(self, node_uid: Hashable) -> Set[Node]:
+    def get_neighbors(self, node_uid: Hashable) -> set[Node]:
         """Get 1-hop neighbors of a node via all edges.
 
         For hyperedges, neighbors are all other nodes in the same edge.
@@ -327,7 +339,7 @@ class Relation(Generic[T_Edge]):
                     neighbors.add(p)
         return neighbors
 
-    def get_node(self, uid: Hashable) -> Optional[Node]:
+    def get_node(self, uid: Hashable) -> Node | None:
         """Get node object by UID.
 
         Args:
@@ -341,7 +353,7 @@ class Relation(Generic[T_Edge]):
     # --- Properties ---
 
     @property
-    def nodes(self) -> List[Node]:
+    def nodes(self) -> list[Node]:
         """Returns all active nodes in the graph.
 
         Returns:
@@ -350,7 +362,7 @@ class Relation(Generic[T_Edge]):
         return list(self._node_registry.values())
 
     @property
-    def edges(self) -> Set[T_Edge]:
+    def edges(self) -> set[T_Edge]:
         """Returns all edges in the relation.
 
         Returns:
@@ -387,9 +399,9 @@ class Relation(Generic[T_Edge]):
 
     def to_scipy_sparse(
         self,
-        weight_key: str = 'weight',
+        weight_key: str = "weight",
         default_weight: float = 1.0,
-        node_order: Optional[List[Hashable]] = None
+        node_order: list[Hashable] | None = None,
     ):
         """Export relation as a Scipy sparse adjacency matrix.
 
@@ -408,8 +420,8 @@ class Relation(Generic[T_Edge]):
             ImportError: If scipy or numpy is not installed.
         """
         try:
-            import scipy.sparse as sp
             import numpy as np
+            import scipy.sparse as sp
         except ImportError:
             raise ImportError("Exporting to sparse matrix requires 'scipy' and 'numpy'.")
 

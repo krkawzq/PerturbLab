@@ -6,8 +6,6 @@ with perturbation-specific splitting strategies.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Union
-
 from perturblab.types import PerturbationData
 from perturblab.utils import get_logger
 
@@ -106,7 +104,7 @@ class PerturbationDataset(CellDataset):
         return self._cell_data  # type: ignore
 
     @property
-    def perturbations(self) -> "pd.Series":  # type: ignore
+    def perturbations(self) -> pd.Series:  # type: ignore
         """Get perturbation labels.
 
         Returns
@@ -117,7 +115,7 @@ class PerturbationDataset(CellDataset):
         return self.data.perturbations
 
     @property
-    def unique_perturbations(self) -> List[str]:
+    def unique_perturbations(self) -> list[str]:
         """Get unique perturbation labels.
 
         Returns
@@ -143,11 +141,11 @@ class PerturbationDataset(CellDataset):
         force_compute: bool = False,
         compute_only: bool = False,
         test_size: float = 0.2,
-        val_size: Optional[float] = None,
-        stratify: Union[bool, str] = False,
+        val_size: float | None = None,
+        stratify: bool | str = False,
         random_state: int = 42,
         **kwargs,
-    ) -> Dict[str, "PerturbationDataset"]:
+    ) -> dict[str, PerturbationDataset]:
         """Split dataset with perturbation-specific strategies.
 
         Supports multiple splitting strategies:

@@ -1,7 +1,7 @@
 """Configuration definition for scELMo model."""
 
 from dataclasses import dataclass, field
-from typing import List, Literal, Optional
+from typing import Literal
 
 from perturblab.core.config import Config
 
@@ -38,9 +38,9 @@ class scELMoConfig(Config):
 
     # Required field (using default_factory to allow empty initialization if needed,
     # but practically required for model usage)
-    gene_names: List[str] = field(default_factory=list)
+    gene_names: list[str] = field(default_factory=list)
 
     # Optional fields with defaults
     embedding_dim: int = 1536
     aggregation_mode: Literal["wa", "aa"] = "wa"
-    api_model: Optional[str] = None
+    api_model: str | None = None

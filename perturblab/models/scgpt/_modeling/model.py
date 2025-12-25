@@ -105,7 +105,7 @@ Last Updated: 2024-12-24
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import torch
@@ -311,7 +311,7 @@ class scGPTBaseModel(nn.Module):
         src: Tensor,
         values: Tensor,
         src_key_padding_mask: Tensor,
-        batch_labels: Optional[Tensor] = None,
+        batch_labels: Tensor | None = None,
     ) -> Tensor:
         """Shared encoding logic for all scGPT variants.
 
@@ -523,9 +523,9 @@ class scGPTModel(scGPTBaseModel):
         values: Tensor,
         src_key_padding_mask: Tensor,
         batch_size: int,
-        batch_labels: Optional[Tensor] = None,
+        batch_labels: Tensor | None = None,
         output_to_cpu: bool = True,
-        time_step: Optional[int] = None,
+        time_step: int | None = None,
         return_np: bool = False,
     ) -> Tensor:
         """Encode data in batches (for large datasets).
@@ -592,7 +592,7 @@ class scGPTMultiOmicModel(scGPTBaseModel):
         self,
         config: scGPTConfig,
         vocab: Any,
-        vocab_mod: Optional[Any] = None,
+        vocab_mod: Any | None = None,
         pad_token: str = "<pad>",
     ):
         # Validate multi-omics parameters

@@ -202,7 +202,7 @@ class ImprovedClusteredCausalAttention(Module):
         # lower triangular causal mask
         if not attn_mask.lower_triangular:
             raise RuntimeError(
-                ("ImprovedClusteredCausalAttention only supports " "lower triangular masks")
+                "ImprovedClusteredCausalAttention only supports " "lower triangular masks"
             )
         queries = queries.permute(0, 2, 1, 3).contiguous()
         keys = keys.permute(0, 2, 1, 3).contiguous()

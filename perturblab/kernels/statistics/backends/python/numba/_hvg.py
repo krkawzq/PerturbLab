@@ -13,7 +13,6 @@ Modifications by PerturbLab team.
 """
 
 import logging
-from typing import Tuple
 
 import numpy as np
 import scipy.sparse
@@ -260,7 +259,7 @@ def _get_group_var_numba():
 def sparse_clipped_moments_numba(
     X: scipy.sparse.csc_matrix,
     clip_vals: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute clipped moments (Numba backend).
 
     Adapted from Scanpy.
@@ -281,7 +280,7 @@ def sparse_clipped_moments_numba(
 def sparse_mean_var_numba(
     X: scipy.sparse.csc_matrix,
     include_zeros: bool = True,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute mean and variance (Numba backend)."""
     func = _get_sparse_mean_var_numba()
     if func is None:
@@ -320,7 +319,7 @@ def group_mean_var_numba(
     group_id: np.ndarray,
     n_groups: int,
     include_zeros: bool = True,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute group-wise mean and variance (Numba backend).
 
     Note: This is a placeholder. For now, compute mean and var separately.

@@ -8,8 +8,6 @@ Backend priority: Cython > Python
 
 from __future__ import annotations
 
-from typing import Union
-
 import numpy as np
 import scipy.sparse
 
@@ -64,7 +62,7 @@ _select_backend()
 
 def bipartite_graph_query(
     graph: scipy.sparse.spmatrix,
-    queries: Union[np.ndarray, list[int]],
+    queries: np.ndarray | list[int],
     check_bounds: bool = True,
 ) -> list[np.ndarray]:
     """Perform efficient batch queries on bipartite graph.

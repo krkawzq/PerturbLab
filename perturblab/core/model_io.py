@@ -9,14 +9,16 @@ from __future__ import annotations
 
 import copy
 from abc import ABC
+from collections.abc import Iterator
 from dataclasses import asdict, fields, replace
-from typing import Any, Dict, Iterator, Optional, Type, TypeVar, Union
+from typing import Any, TypeVar
 
 import torch
 
 __all__ = ["ModelIO"]
 
 T = TypeVar("T", bound="ModelIO")
+
 
 class ModelIO(ABC):
     """Base class for all Model Input and Output data structures.
@@ -35,7 +37,7 @@ class ModelIO(ABC):
     batch = batch.to('cuda')  # Moves all tensors to GPU
     """
 
-    def to(self: T, device: Union[str, torch.device], non_blocking: bool = False) -> T:
+    def to(self: T, device: str | torch.device, non_blocking: bool = False) -> T:
         """Move all Tensor fields to the specified device.
 
         Parameters
@@ -88,7 +90,7 @@ class ModelIO(ABC):
         """Move all tensors to CPU."""
         return self.to("cpu")
 
-    def cuda(self: T, device: Optional[Union[int, str, torch.device]] = None) -> T:
+    def cuda(self: T, device: int | str | torch.device | None = None) -> T:
         """Move all tensors to CUDA device.
 
         Parameters
@@ -174,12 +176,12 @@ class ModelIO(ABC):
         """Iterate over (key, value) pairs."""
         return ((f.name, getattr(self, f.name)) for f in fields(self))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to a standard dictionary."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: Type[T], data: Dict[str, Any]) -> T:
+    def from_dict(cls: type[T], data: dict[str, Any]) -> T:
         """Create instance from dictionary, filtering unknown keys.
 
         Useful when loading data from a flexible config or dataloader

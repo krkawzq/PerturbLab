@@ -20,7 +20,7 @@ NOTE: In all cases the value 1 or True signifies what should be kept and not
 import torch
 
 
-class BaseMask(object):
+class BaseMask:
     @property
     def bool_matrix(self):
         """Return a bool (uint8) matrix with 1s to all places that should be

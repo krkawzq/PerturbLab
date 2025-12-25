@@ -1,6 +1,6 @@
 """Type stubs for Cython lookup module."""
 
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 

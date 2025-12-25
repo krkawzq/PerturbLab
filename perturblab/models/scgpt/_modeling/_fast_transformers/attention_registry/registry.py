@@ -4,7 +4,7 @@
 #
 
 
-class Registry(object):
+class Registry:
     """Hold the available attention implementations and their required
     parameters."""
 
@@ -16,16 +16,14 @@ class Registry(object):
     def register(self, key, class_object, parameter_tuples):
         # register the class if the key is new
         if key in self._classes:
-            raise ValueError("{} is already registered".format(key))
+            raise ValueError(f"{key} is already registered")
         self._classes[key] = class_object
 
         # register the parameters
         for parameter, spec in parameter_tuples:
             if parameter in self._parameters and self._parameters[parameter] != spec:
                 raise ValueError(
-                    ("{} is already registered with " "spec {!r} instead of {!r}").format(
-                        parameter, self._parameters[parameter], spec
-                    )
+                    f"{parameter} is already registered with " f"spec {self._parameters[parameter]!r} instead of {spec!r}"
                 )
             self._parameters[parameter] = spec
 
@@ -49,7 +47,7 @@ class Registry(object):
         try:
             return self._parameters[key].get(value)
         except Exception as e:
-            raise ValueError(("Invalid value {!r} for " "parameter {!r}").format(value, key)) from e
+            raise ValueError(f"Invalid value {value!r} for " f"parameter {key!r}") from e
 
 
 AttentionRegistry = Registry()

@@ -4,7 +4,6 @@ Contains all decoder modules: expression decoder, MVC decoder, classification de
 and adversarial discriminator.
 """
 
-from typing import Dict, Union
 
 import torch
 import torch.nn as nn
@@ -48,7 +47,7 @@ class ExprDecoder(nn.Module):
                 nn.Linear(d_model, 1),
             )
 
-    def forward(self, x: Tensor) -> Dict[str, Tensor]:
+    def forward(self, x: Tensor) -> dict[str, Tensor]:
         pred_value = self.fc(x).squeeze(-1)
 
         if not self.explicit_zero_prob:
@@ -121,7 +120,7 @@ class MVCDecoder(nn.Module):
         self.do_detach = arch_style.endswith("detach")
         self.explicit_zero_prob = explicit_zero_prob
 
-    def forward(self, cell_emb: Tensor, gene_embs: Tensor) -> Union[Tensor, Dict[str, Tensor]]:
+    def forward(self, cell_emb: Tensor, gene_embs: Tensor) -> Tensor | dict[str, Tensor]:
         gene_embs = gene_embs.detach() if self.do_detach else gene_embs
         if self.arch_style in ["inner product", "inner product, detach"]:
             query_vecs = self.query_activation(self.gene2query(gene_embs))

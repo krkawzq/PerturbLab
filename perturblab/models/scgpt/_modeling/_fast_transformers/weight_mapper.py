@@ -14,7 +14,7 @@ NOTE: This API is lkely to change in the future as we collect more information
 import re
 
 
-class MappingRule(object):
+class MappingRule:
     """A mapping rule can be applied to a key and value and it returns new keys
     and values to be added in the state dict."""
 
@@ -136,7 +136,7 @@ class PytorchAttentionWeightsRule(MappingRule):
             ]
 
 
-class SimpleMapper(object):
+class SimpleMapper:
     """Map keys of a state dict to other keys.
 
     Arguments

@@ -154,7 +154,7 @@ Original implementation: Copyright (c) 2024 GeneCompass Authors
 PerturbLab wrapper: Copyright (c) 2024 PerturbLab Authors
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import torch
 from torch import nn
@@ -220,7 +220,7 @@ class GeneCompassModel(nn.Module):
     def __init__(
         self,
         config: GeneCompassConfig,
-        knowledges: Dict[str, torch.Tensor],
+        knowledges: dict[str, torch.Tensor],
         **kwargs,
     ):
         """Initializes GeneCompassModel.
@@ -248,7 +248,7 @@ class GeneCompassModel(nn.Module):
             f"use_values={config.use_values}"
         )
 
-    def _build_model(self, config: GeneCompassConfig, knowledges: Dict[str, torch.Tensor]) -> None:
+    def _build_model(self, config: GeneCompassConfig, knowledges: dict[str, torch.Tensor]) -> None:
         """Builds model components based on configuration.
 
         This method sets up the BERT encoder and prediction heads, ensuring attribute names
@@ -365,7 +365,7 @@ class GeneCompassModel(nn.Module):
             attentions=encoder_outputs.get("attentions"),
         )
 
-    def _encode(self, inputs: GeneCompassInput) -> Dict[str, Any]:
+    def _encode(self, inputs: GeneCompassInput) -> dict[str, Any]:
         """Encodes inputs using the BERT encoder.
 
         Args:
@@ -396,7 +396,7 @@ class GeneCompassModel(nn.Module):
             "attentions": bert_outputs.attentions if hasattr(bert_outputs, "attentions") else None,
         }
 
-    def _predict(self, sequence_output: torch.Tensor) -> Dict[str, Optional[torch.Tensor]]:
+    def _predict(self, sequence_output: torch.Tensor) -> dict[str, torch.Tensor | None]:
         """Generates predictions from encoder outputs.
 
         Args:
@@ -422,9 +422,9 @@ class GeneCompassModel(nn.Module):
     def _compute_loss(
         self,
         logits: torch.Tensor,
-        value_logits: Optional[torch.Tensor],
+        value_logits: torch.Tensor | None,
         labels: torch.Tensor,
-        labels_values: Optional[torch.Tensor],
+        labels_values: torch.Tensor | None,
     ) -> torch.Tensor:
         """Computes training loss for the model.
 

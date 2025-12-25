@@ -4,7 +4,6 @@ This module provides bidirectional conversion between pandas DataFrames
 (edge list format) and PerturbLab's WeightedGraph type.
 """
 
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -19,11 +18,11 @@ __all__ = [
 
 def dataframe_to_weighted_graph(
     df: pd.DataFrame,
-    node_names: Optional[list[str]] = None,
+    node_names: list[str] | None = None,
     make_undirected: bool = True,
     source_col: str = "source",
     target_col: str = "target",
-    weight_col: Optional[str] = "weight",
+    weight_col: str | None = "weight",
     default_weight: float = 1.0,
 ) -> WeightedGraph:
     """Converts pandas DataFrame to WeightedGraph with unweighted support.
@@ -64,7 +63,7 @@ def dataframe_to_weighted_graph(
         ... })
         >>> graph = dataframe_to_weighted_graph(df)
         >>> print(f"Graph with {graph.n_nodes} nodes")
-        
+
         >>> # Unweighted graph (no weight column)
         >>> df = pd.DataFrame({
         ...     'source': ['TP53', 'KRAS'],
@@ -72,14 +71,14 @@ def dataframe_to_weighted_graph(
         ... })
         >>> graph = dataframe_to_weighted_graph(df, weight_col=None)
         >>> # All edges have weight 1.0
-        
+
         >>> # Unweighted with custom default
         >>> graph = dataframe_to_weighted_graph(
         ...     df,
         ...     weight_col=None,
         ...     default_weight=0.5
         ... )
-        
+
         >>> # Custom column names
         >>> df = pd.DataFrame({
         ...     'from': ['A', 'B'],
@@ -101,9 +100,9 @@ def dataframe_to_weighted_graph(
     required_cols = [source_col, target_col]
     if weight_col is not None:
         required_cols.append(weight_col)
-    
+
     missing_cols = [col for col in required_cols if col not in df.columns]
-    
+
     if missing_cols:
         raise ValueError(
             f"DataFrame is missing required columns: {missing_cols}. "
@@ -136,7 +135,7 @@ def dataframe_to_weighted_graph(
         edges = df[[source_col, target_col]].values
         weights = np.full((edges.shape[0], 1), default_weight, dtype=np.float64)
         edges = np.hstack([edges, weights])
-    
+
     n_nodes = int(max(edges[:, 0].max(), edges[:, 1].max())) + 1
 
     # Ensure node_names matches n_nodes if provided
@@ -200,14 +199,14 @@ def weighted_graph_to_dataframe(
         #   source target  weight
         # 0   TP53  KRAS     0.5
         # 1  KRAS   TP53     0.5
-        
+
         >>> # With integer indices only
         >>> df = weighted_graph_to_dataframe(graph, include_node_names=False)
         >>> print(df)
         #   source  target  weight
         # 0      0       1     0.5
         # 1      1       0     0.5
-        
+
         >>> # Custom column names
         >>> df = weighted_graph_to_dataframe(
         ...     graph,

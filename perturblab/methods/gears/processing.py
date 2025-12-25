@@ -7,12 +7,13 @@ This module provides parsing and filtering helpers for perturbation condition st
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Callable, Dict, Iterable, List, Optional, Set, Union, overload
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, overload
 
+import anndata as ad
 import numpy as np
 import pandas as pd
 import scipy.sparse as sparse
-import anndata as ad
 
 from perturblab.types import PerturbationData
 
@@ -29,8 +30,8 @@ __all__ = [
 
 def filter_perturbations_by_genes(
     perturbations: Iterable[str],
-    allowed_genes: Set[str] | List[str],
-) -> List[str]:
+    allowed_genes: set[str] | list[str],
+) -> list[str]:
     """
     Filter perturbation strings, retaining only those where all constituent genes are in `allowed_genes`.
 
@@ -63,13 +64,13 @@ def filter_perturbations_by_genes(
         if pert.lower() in {"ctrl", "control"}:
             filtered.append(pert)
             continue
-        
+
         # GEARS format assumption: genes are split by '+'
         genes = pert.split("+")
-        
+
         # Filter out 'ctrl' from the gene check (e.g. for 'TP53+ctrl')
         genes_to_check = [g for g in genes if g.lower() not in {"ctrl", "control"}]
-        
+
         if all(gene in allowed_genes for gene in genes_to_check):
             filtered.append(pert)
     return filtered
@@ -78,7 +79,7 @@ def filter_perturbations_by_genes(
 def extract_genes_from_perturbations(
     perturbations: Iterable[str],
     exclude_control: bool = True,
-) -> List[str]:
+) -> list[str]:
     """
     Extract all unique gene names from a list of GEARS-formatted perturbation strings.
 
@@ -113,39 +114,39 @@ def extract_genes_from_perturbations(
 @overload
 def format_gears(
     data: ad.AnnData,
-    perturb_col: str = 'perturbation',
-    control_tag: Union[str, List[str]] = 'control',
-    ignore_tags: Optional[List[str]] = None,
-    parse_fn: Optional[Callable[[str], List[str]]] = None,
-    fallback_cell_type: str = 'K562',
+    perturb_col: str = "perturbation",
+    control_tag: str | list[str] = "control",
+    ignore_tags: list[str] | None = None,
+    parse_fn: Callable[[str], list[str]] | None = None,
+    fallback_cell_type: str = "K562",
     remove_ignore: bool = True,
-    inplace: bool = False
-) -> Optional[ad.AnnData]:
-    ...
+    inplace: bool = False,
+) -> ad.AnnData | None: ...
+
 
 @overload
 def format_gears(
     data: PerturbationData,
-    perturb_col: str = 'perturbation',
-    control_tag: Union[str, List[str]] = 'control',
-    ignore_tags: Optional[List[str]] = None,
-    parse_fn: Optional[Callable[[str], List[str]]] = None,
-    fallback_cell_type: str = 'K562',
+    perturb_col: str = "perturbation",
+    control_tag: str | list[str] = "control",
+    ignore_tags: list[str] | None = None,
+    parse_fn: Callable[[str], list[str]] | None = None,
+    fallback_cell_type: str = "K562",
     remove_ignore: bool = True,
-    inplace: bool = False
-) -> Optional[PerturbationData]:
-    ...
+    inplace: bool = False,
+) -> PerturbationData | None: ...
+
 
 def format_gears(
-    data: Union[ad.AnnData, PerturbationData],
-    perturb_col: str = 'perturbation',
-    control_tag: Union[str, List[str]] = 'control',
-    ignore_tags: Optional[List[str]] = None,
-    parse_fn: Optional[Callable[[str], List[str]]] = None,
-    fallback_cell_type: str = 'K562',
+    data: ad.AnnData | PerturbationData,
+    perturb_col: str = "perturbation",
+    control_tag: str | list[str] = "control",
+    ignore_tags: list[str] | None = None,
+    parse_fn: Callable[[str], list[str]] | None = None,
+    fallback_cell_type: str = "K562",
     remove_ignore: bool = True,
-    inplace: bool = False
-) -> Optional[Union[ad.AnnData, PerturbationData]]:
+    inplace: bool = False,
+) -> ad.AnnData | PerturbationData | None:
     """Standardizes data into the GEARS model required format.
 
     This function supports both AnnData and PerturbationData inputs and returns
@@ -177,7 +178,7 @@ def format_gears(
         ...     perturb_col='perturbation',
         ...     control_tag='ctrl'
         ... )
-        
+
         >>> # Modify in place
         >>> format_gears(
         ...     adata,
@@ -185,7 +186,7 @@ def format_gears(
         ...     control_tag='ctrl',
         ...     inplace=True
         ... )
-        
+
         >>> # With PerturbationData
         >>> from perturblab.types import PerturbationData
         >>> pert_data = PerturbationData(adata, perturbation_col='condition')
@@ -200,10 +201,10 @@ def format_gears(
     if is_perturbation_data:
         adata = data.adata
         # Use PerturbationData's perturbation_col if not explicitly provided
-        if perturb_col == 'perturbation' and data.perturbation_col:
+        if perturb_col == "perturbation" and data.perturbation_col:
             perturb_col = data.perturbation_col
         # Use PerturbationData's control labels if not explicitly provided
-        if control_tag == 'control' and data.control_labels:
+        if control_tag == "control" and data.control_labels:
             control_tag = list(data.control_labels)
     else:
         adata = data
@@ -219,7 +220,7 @@ def format_gears(
 
     # --- 2. Filter out ignored tags if requested ---
     obs_series = adata.obs[perturb_col].astype(str)
-    
+
     if ignore_tags_set and remove_ignore:
         valid_mask = ~obs_series.isin(ignore_tags_set)
         if not valid_mask.any():
@@ -236,7 +237,7 @@ def format_gears(
                 adata_gears = adata
         else:
             adata_gears = adata[valid_mask].copy()
-        
+
         # Refresh obs_series after filtering
         obs_series = adata_gears.obs[perturb_col].astype(str)
     else:
@@ -253,51 +254,53 @@ def format_gears(
     is_ignore = unique_series.isin(ignore_tags_set)
 
     if parse_fn is None:
-        def default_parser(pert_str: str) -> List[str]:
-            parts = {p.strip() for p in pert_str.split('+')}
+
+        def default_parser(pert_str: str) -> list[str]:
+            parts = {p.strip() for p in pert_str.split("+")}
             parts.discard("")
             return sorted(list(parts))
+
         parse_fn = default_parser
 
     parsed_lists = unique_series.apply(parse_fn)
     counts = parsed_lists.map(len)
     # Defensive: avoid errors if list is empty
     first_gene = parsed_lists.map(lambda x: x[0] if len(x) > 0 else "")
-    joined_genes = parsed_lists.str.join('+')
+    joined_genes = parsed_lists.str.join("+")
 
     # Build condition assignment
     # Each row is: (1) control? (2) ignore? (3) empty? (4) single? (5) multi?
     conditions = [
-        is_ctrl,                      # 1. Is a control tag
-        is_ignore,                    # 2. Is in ignore list
-        counts == 0,                  # 3. Empty parsed genes == treat as control
-        counts == 1,                  # 4. Single-gene pert
-        counts >= 2                   # 5. Multi-gene pert
+        is_ctrl,  # 1. Is a control tag
+        is_ignore,  # 2. Is in ignore list
+        counts == 0,  # 3. Empty parsed genes == treat as control
+        counts == 1,  # 4. Single-gene pert
+        counts >= 2,  # 5. Multi-gene pert
     ]
     choices = [
-        'ctrl',                       # For controls
-        unique_series,                # For ignored, keep raw label
-        'ctrl',                       # Empty = treat as control
-        first_gene + '+ctrl',         # For single-pert, add '+ctrl' for GEARS compatibility
-        joined_genes                  # For multi-perturbation, join with '+'
+        "ctrl",  # For controls
+        unique_series,  # For ignored, keep raw label
+        "ctrl",  # Empty = treat as control
+        first_gene + "+ctrl",  # For single-pert, add '+ctrl' for GEARS compatibility
+        joined_genes,  # For multi-perturbation, join with '+'
     ]
-    final_labels = np.select(conditions, choices, default='ctrl')
+    final_labels = np.select(conditions, choices, default="ctrl")
 
     # --- 4. Apply mapping to every cell and store in obs['condition'] ---
     label_map = dict(zip(unique_series, final_labels))
-    adata_gears.obs['condition'] = obs_series.map(label_map).astype('category')
+    adata_gears.obs["condition"] = obs_series.map(label_map).astype("category")
 
     # --- 5. Store the non-control unique perturbation list ---
-    unique_conditions = adata_gears.obs['condition'].unique().tolist()
-    if 'ctrl' in unique_conditions:
-        unique_conditions.remove('ctrl')
-    adata_gears.uns['pert_list'] = sorted(unique_conditions)
+    unique_conditions = adata_gears.obs["condition"].unique().tolist()
+    if "ctrl" in unique_conditions:
+        unique_conditions.remove("ctrl")
+    adata_gears.uns["pert_list"] = sorted(unique_conditions)
 
     # --- 6. (Meta)data standardization ---
-    if 'cell_type' not in adata_gears.obs.columns:
-        adata_gears.obs['cell_type'] = fallback_cell_type
-    if 'gene_name' not in adata_gears.var.columns:
-        adata_gears.var['gene_name'] = adata_gears.var_names
+    if "cell_type" not in adata_gears.obs.columns:
+        adata_gears.obs["cell_type"] = fallback_cell_type
+    if "gene_name" not in adata_gears.var.columns:
+        adata_gears.var["gene_name"] = adata_gears.var_names
 
     # --- 7. Ensure dense matrix storage is compressed sparse row ---
     if not sparse.isspmatrix_csr(adata_gears.X):
@@ -314,15 +317,15 @@ def format_gears(
             warnings.warn(
                 "Mixed Perturbation Format Detected: Dataset contains both single and "
                 "combinatorial (2+) perturbations. GEARS typically expects specific splits.",
-                UserWarning
+                UserWarning,
             )
-    
+
     # Return in the same type as input
     if inplace:
         if is_perturbation_data:
             # Update PerturbationData's internal state
             data.adata = adata_gears
-            data.perturbation_col = 'condition'
+            data.perturbation_col = "condition"
             if isinstance(control_tag, str):
                 data.control_labels = {control_tag}
             else:
@@ -332,7 +335,7 @@ def format_gears(
         if is_perturbation_data:
             return PerturbationData(
                 adata_gears,
-                perturbation_col='condition',
+                perturbation_col="condition",
                 control_label=control_tag,
                 ignore_labels=list(ignore_tags) if ignore_tags else None,
                 cell_type_col=data.cell_type_col,
@@ -344,7 +347,7 @@ def format_gears(
             return adata_gears
 
 
-def build_collate_fn(vocab: Optional[GeneVocab] = None):
+def build_collate_fn(vocab: GeneVocab | None = None):
     """Builds a collate function for GEARS DataLoader.
 
     The collate function combines individual samples into a standardized batch
@@ -374,7 +377,7 @@ def build_collate_fn(vocab: Optional[GeneVocab] = None):
         ...     # batch_dict has 'inputs' and 'labels'
         ...     inputs = batch_dict['inputs']
         ...     labels = batch_dict['labels']
-        ...     
+        ...
         ...     # Use with model
         ...     from perturblab.models.gears import GEARSInput
         ...     model_inputs = GEARSInput(**inputs)
@@ -410,7 +413,7 @@ def build_collate_fn(vocab: Optional[GeneVocab] = None):
     except ImportError:
         raise ImportError("PyTorch is required. Install with: pip install torch")
 
-    def collate_fn(samples: List[Dict]) -> Dict:
+    def collate_fn(samples: list[dict]) -> dict:
         """Collates samples into standardized batch dictionary.
 
         Args:
@@ -428,12 +431,12 @@ def build_collate_fn(vocab: Optional[GeneVocab] = None):
 
         for idx, sample in enumerate(samples):
             # Extract fields
-            x = sample['x']
-            y = sample['y']
-            pert = sample['pert']
-            pert_genes = sample.get('pert_genes', [])
-            de_idx = sample.get('de_idx', [])
-            sample_idx = sample.get('sample_idx', idx)
+            x = sample["x"]
+            y = sample["y"]
+            pert = sample["pert"]
+            pert_genes = sample.get("pert_genes", [])
+            de_idx = sample.get("de_idx", [])
+            sample_idx = sample.get("sample_idx", idx)
 
             # Convert to tensors
             if not isinstance(x, torch.Tensor):
@@ -469,25 +472,24 @@ def build_collate_fn(vocab: Optional[GeneVocab] = None):
         # Create batch indices: [0,0,...,0, 1,1,...,1, ..., B-1,B-1,...,B-1]
         n_genes = all_x[0].shape[0]
         batch_indices = torch.repeat_interleave(
-            torch.arange(len(samples), dtype=torch.long),
-            n_genes
+            torch.arange(len(samples), dtype=torch.long), n_genes
         )
 
         # Construct standardized batch dictionary
         batch_dict = {
-            'inputs': {
-                'gene_expression': gene_expression,
-                'pert_idx': all_pert_idx,
-                'graph_batch_indices': batch_indices,
+            "inputs": {
+                "gene_expression": gene_expression,
+                "pert_idx": all_pert_idx,
+                "graph_batch_indices": batch_indices,
             },
-            'labels': {
-                'predictions': target_expression,
-                'de_indices': all_de_idx,
+            "labels": {
+                "predictions": target_expression,
+                "de_indices": all_de_idx,
             },
-            'metadata': {
-                'perturbations': all_perts,
-                'sample_indices': all_sample_idx,
-            }
+            "metadata": {
+                "perturbations": all_perts,
+                "sample_indices": all_sample_idx,
+            },
         }
 
         return batch_dict

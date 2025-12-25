@@ -46,10 +46,10 @@ class GroupMeanResults(ctypes.Structure):
 # Load C++ Library
 # =============================================================================
 
-_lib: Optional[ctypes.CDLL] = None
+_lib: ctypes.CDLL | None = None
 
 
-def _find_library() -> Optional[Path]:
+def _find_library() -> Path | None:
     """Find the compiled C++ library.
 
     Searches in the same directory as this module.
@@ -72,7 +72,7 @@ def _find_library() -> Optional[Path]:
     return None
 
 
-def _load_library() -> Optional[ctypes.CDLL]:
+def _load_library() -> ctypes.CDLL | None:
     """Load the C++ library and setup function signatures."""
     lib_path = _find_library()
     if lib_path is None:
@@ -183,7 +183,7 @@ def mannwhitneyu_cpp(
     tie_correction: bool = True,
     use_continuity: bool = True,
     threads: int = -1,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Mann-Whitney U test using C++ backend.
 
     Args:

@@ -16,9 +16,10 @@ import os
 import shutil
 import tempfile
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 from perturblab.utils import get_logger
 
@@ -47,7 +48,7 @@ class CacheEntry:
         created_at: float,
         last_accessed: float,
         access_count: int = 0,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ):
         self.key = key
         self.path = path
@@ -70,7 +71,7 @@ class CacheEntry:
         """Get time in seconds since last access."""
         return time.time() - self.last_accessed
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "key": self.key,
@@ -83,7 +84,7 @@ class CacheEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> CacheEntry:
+    def from_dict(cls, data: dict[str, Any]) -> CacheEntry:
         """Create from dictionary."""
         return cls(
             key=data["key"],
@@ -137,9 +138,9 @@ class CacheManager:
 
     def __init__(
         self,
-        cache_dir: Optional[Path | str] = None,
-        max_size_mb: Optional[float] = None,
-        max_entries: Optional[int] = None,
+        cache_dir: Path | str | None = None,
+        max_size_mb: float | None = None,
+        max_entries: int | None = None,
         auto_evict: bool = True,
     ):
         # Setup cache directory
@@ -156,7 +157,7 @@ class CacheManager:
 
         # Metadata
         self._metadata_file = self.cache_dir / ".cache_metadata.json"
-        self._entries: Dict[str, CacheEntry] = {}
+        self._entries: dict[str, CacheEntry] = {}
 
         # Load existing metadata
         self._load_metadata()
@@ -186,7 +187,7 @@ class CacheManager:
             return
 
         try:
-            with open(self._metadata_file, "r") as f:
+            with open(self._metadata_file) as f:
                 data = json.load(f)
 
             self._entries = {
@@ -220,7 +221,7 @@ class CacheManager:
         except Exception as e:
             logger.error(f"Failed to save cache metadata: {e}")
 
-    def get(self, key: str) -> Optional[Path]:
+    def get(self, key: str) -> Path | None:
         """Get cached file path if exists.
 
         Parameters
@@ -261,7 +262,7 @@ class CacheManager:
         create_fn: Callable[[Path], None],
         force: bool = False,
         is_directory: bool = False,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Path:
         """Get cached file or directory, or create it.
 
@@ -494,7 +495,7 @@ class CacheManager:
 
             logger.info(f"Cleared cache directory: {self.cache_dir}")
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         total_size = sum(e.size_bytes for e in self._entries.values())
 
@@ -522,7 +523,7 @@ class CacheManager:
 
 
 # Global default cache manager
-_default_cache: Optional[CacheManager] = None
+_default_cache: CacheManager | None = None
 
 
 def get_default_cache_manager() -> CacheManager:
@@ -536,7 +537,7 @@ def get_default_cache_manager() -> CacheManager:
 def auto_cache(
     key: str,
     is_directory: bool = False,
-    metadata: Optional[Dict[str, Any]] = None,
+    metadata: dict[str, Any] | None = None,
 ) -> Callable:
     """Decorator to automatically cache a download function.
 

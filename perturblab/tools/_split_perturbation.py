@@ -11,8 +11,6 @@ All splitting functions return perturbation names/identifiers, not cell indices.
 
 from __future__ import annotations
 
-from typing import List, Optional, Set, Tuple
-
 import numpy as np
 
 __all__ = [
@@ -26,8 +24,8 @@ __all__ = [
 
 def extract_genes(
     perturbation: str,
-    control_labels: Set[str],
-) -> Set[str]:
+    control_labels: set[str],
+) -> set[str]:
     """Extract genes from perturbation string.
 
     Parses a perturbation identifier (e.g., 'ACTB+GAPDH') to extract
@@ -56,11 +54,11 @@ def extract_genes(
 
 
 def split_perturbations_simple(
-    perturbations: List[str],
+    perturbations: list[str],
     test_size: float,
-    val_size: Optional[float] = None,
+    val_size: float | None = None,
     seed: int = 42,
-) -> Tuple[List[str], List[str], List[str]]:
+) -> tuple[list[str], list[str], list[str]]:
     """Simple random split of perturbations.
 
     Randomly divides perturbations into train, test, and optionally validation sets.
@@ -110,14 +108,14 @@ def split_perturbations_simple(
 
 
 def split_perturbations_simulation(
-    perturbations: List[str],
-    control_labels: Set[str],
+    perturbations: list[str],
+    control_labels: set[str],
     split_type: str = "simulation",
     test_size: float = 0.2,
-    val_size: Optional[float] = None,
+    val_size: float | None = None,
     train_gene_fraction: float = 0.7,
     seed: int = 42,
-) -> Tuple[List[str], List[str], List[str]]:
+) -> tuple[list[str], list[str], list[str]]:
     """Gene-level split for simulation experiments.
 
     This splitting strategy divides genes into "seen" (training) and "unseen" (test) sets,
@@ -229,14 +227,14 @@ def split_perturbations_simulation(
 
 
 def split_perturbations_combo_seen(
-    perturbations: List[str],
-    control_labels: Set[str],
+    perturbations: list[str],
+    control_labels: set[str],
     target_seen_count: int,
     test_size: float = 0.2,
-    val_size: Optional[float] = None,
+    val_size: float | None = None,
     train_gene_fraction: float = 0.7,
     seed: int = 42,
-) -> Tuple[List[str], List[str], List[str]]:
+) -> tuple[list[str], list[str], list[str]]:
     """Split combo perturbations by number of seen genes.
 
     This strategy tests model generalization on combination perturbations where
@@ -336,10 +334,10 @@ def split_perturbations_combo_seen(
 
 
 def split_perturbations_no_test(
-    perturbations: List[str],
+    perturbations: list[str],
     val_size: float,
     seed: int = 42,
-) -> Tuple[List[str], List[str]]:
+) -> tuple[list[str], list[str]]:
     """Split with no test set (only train and validation).
 
     Useful when you want to use all data for training but still need

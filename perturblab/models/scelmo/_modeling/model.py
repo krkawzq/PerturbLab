@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import os
 import pickle
-from typing import Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -42,7 +41,7 @@ class scELMoModel(nn.Module):
     def __init__(
         self,
         config: scELMoConfig,
-        gene_embeddings: Optional[Union[np.ndarray, torch.Tensor]] = None,
+        gene_embeddings: np.ndarray | torch.Tensor | None = None,
         device: str = "cpu",
     ):
         """Initialize scELMo model.
@@ -392,11 +391,11 @@ class scELMoModel(nn.Module):
     def from_pretrained(
         cls,
         embedding_path: str,
-        gene_list: Optional[List[str]] = None,
+        gene_list: list[str] | None = None,
         embedding_dim: int = 1536,
         aggregation_mode: str = "wa",
         device: str = "cpu",
-    ) -> "scELMoModel":
+    ) -> scELMoModel:
         """Create scELMo model from pretrained embedding file.
 
         This is a convenience method that loads embeddings and automatically
@@ -452,7 +451,7 @@ class scELMoModel(nn.Module):
 
         return model
 
-    def get_gene_embedding(self, gene_name: str) -> Optional[torch.Tensor]:
+    def get_gene_embedding(self, gene_name: str) -> torch.Tensor | None:
         """Get embedding for a specific gene.
 
         Args:
@@ -468,7 +467,7 @@ class scELMoModel(nn.Module):
         idx = self.vocab[gene_name]
         return self.gene_embeddings[idx]
 
-    def get_coverage(self, gene_list: List[str]) -> Dict[str, Union[float, int, List[str]]]:
+    def get_coverage(self, gene_list: list[str]) -> dict[str, float | int | list[str]]:
         """Calculate coverage statistics for a gene list.
 
         Useful for understanding how well a dataset's genes align with the model.

@@ -11,8 +11,6 @@ Original source: https://github.com/biomed-AI/CellFM
 
 from __future__ import annotations
 
-from typing import Optional, Tuple, Union
-
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -102,7 +100,7 @@ class ValueEncoder(nn.Module):
         self.value_enc = FFN(1, emb_dims)
         self.mask_emb = nn.Parameter(torch.zeros(1, 1, emb_dims))
 
-    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor) -> tuple[Tensor, Tensor]:
         """Encodes expression values.
 
         Args:
@@ -177,7 +175,7 @@ class ValueDecoder(nn.Module):
                 nn.Sigmoid(),
             )
 
-    def forward(self, expr_emb: Tensor) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+    def forward(self, expr_emb: Tensor) -> Tensor | tuple[Tensor, Tensor]:
         """Decodes embeddings to expression values.
 
         Args:
@@ -215,7 +213,7 @@ class CellwiseDecoder(nn.Module):
     def __init__(
         self,
         in_dims: int,
-        emb_dims: Optional[int] = None,
+        emb_dims: int | None = None,
         dropout: float = 0.0,
         zero: bool = False,
         use_bias: bool = True,
@@ -239,7 +237,7 @@ class CellwiseDecoder(nn.Module):
         if zero:
             self.zero_logit = nn.Linear(emb_dims, emb_dims)
 
-    def forward(self, cell_emb: Tensor, gene_emb: Tensor) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+    def forward(self, cell_emb: Tensor, gene_emb: Tensor) -> Tensor | tuple[Tensor, Tensor]:
         """Forward pass.
 
         Args:

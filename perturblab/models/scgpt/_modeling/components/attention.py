@@ -5,7 +5,6 @@ Contains fast transformer implementations including:
 - FlashTransformerEncoderLayer: Flash attention integration
 """
 
-from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -162,7 +161,7 @@ class FlashTransformerEncoderLayer(nn.Module):
             return F.relu
         elif activation == "gelu":
             return F.gelu
-        raise RuntimeError("activation should be relu/gelu, not {}".format(activation))
+        raise RuntimeError(f"activation should be relu/gelu, not {activation}")
 
     def __setstate__(self, state):
         if "activation" not in state:
@@ -172,8 +171,8 @@ class FlashTransformerEncoderLayer(nn.Module):
     def forward(
         self,
         src: Tensor,
-        src_mask: Optional[Tensor] = None,
-        src_key_padding_mask: Optional[Tensor] = None,
+        src_mask: Tensor | None = None,
+        src_key_padding_mask: Tensor | None = None,
         **kwargs,
     ) -> Tensor:
         if src_mask is not None:

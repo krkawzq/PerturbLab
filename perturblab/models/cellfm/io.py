@@ -7,7 +7,6 @@ Licensed under CC BY-NC-ND 4.0
 """
 
 from dataclasses import dataclass
-from typing import Dict, Optional
 
 import torch
 
@@ -47,7 +46,7 @@ class CellFMInput(ModelIO):
 
         base_mask (Optional[torch.Tensor]):
             Optional base mask for task-specific loss calculation.
-    
+
     Note:
         All fields must be specified as keyword arguments due to dataclass inheritance constraints.
         Example: CellFMInput(raw_nzdata=..., dw_nzdata=..., nonz_gene=..., mask_gene=..., zero_idx=...)
@@ -58,8 +57,8 @@ class CellFMInput(ModelIO):
     nonz_gene: torch.Tensor
     mask_gene: torch.Tensor
     zero_idx: torch.Tensor
-    ST_feat: Optional[torch.Tensor] = None
-    base_mask: Optional[torch.Tensor] = None
+    ST_feat: torch.Tensor | None = None
+    base_mask: torch.Tensor | None = None
 
 
 @dataclass(kw_only=True)
@@ -94,8 +93,8 @@ class CellFMOutput(ModelIO):
     """
 
     cls_token: torch.Tensor
-    loss: Optional[torch.Tensor] = None
-    loss_breakdown: Optional[Dict[str, torch.Tensor]] = None
-    embeddings: Optional[torch.Tensor] = None
-    gw_pred: Optional[torch.Tensor] = None
-    cw_pred: Optional[torch.Tensor] = None
+    loss: torch.Tensor | None = None
+    loss_breakdown: dict[str, torch.Tensor] | None = None
+    embeddings: torch.Tensor | None = None
+    gw_pred: torch.Tensor | None = None
+    cw_pred: torch.Tensor | None = None

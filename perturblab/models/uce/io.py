@@ -7,7 +7,6 @@ gradient detachment, and dictionary-like access.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from torch import Tensor
 
@@ -67,7 +66,7 @@ class UCEOutput(ModelIO):
 
     cell_embedding: Tensor
     gene_embeddings: Tensor
-    gene_expression_preds: Optional[Tensor] = None
+    gene_expression_preds: Tensor | None = None
 
 
 @dataclass(kw_only=True)
@@ -91,7 +90,7 @@ class UCEPredictInput(ModelIO):
 
     cell_embedding: Tensor
     gene_embeddings: Tensor
-    mask: Optional[Tensor] = None
+    mask: Tensor | None = None
 
 
 @dataclass(kw_only=True)

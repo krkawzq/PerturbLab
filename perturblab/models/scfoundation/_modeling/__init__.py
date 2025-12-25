@@ -1,31 +1,27 @@
 """scFoundation model implementations."""
 
-from .model import scFoundationModel
-from .components import (
-    # Embeddings
-    AutoDiscretizationEmbedding,
-    RandomPositionalEmbedding,
-    # Transformer
-    Transformer,
-    # Performer attention
-    FastAttention,
-    ReZero,
-    PreScaleNorm,
-    PreLayerNorm,
-    Chunk,
-    FeedForward,
-    SelfAttention,
+from .components import (  # Embeddings; Transformer; Performer attention; Reversible layers
     AbsolutePositionalEmbedding,
+    AutoDiscretizationEmbedding,
+    Chunk,
+    Deterministic,
+    FastAttention,
+    FeedForward,
     Gene2VecPositionalEmbedding,
     Performer,
     PerformerModule,
-    # Reversible layers
-    Deterministic,
+    PreLayerNorm,
+    PreScaleNorm,
+    RandomPositionalEmbedding,
     ReversibleBlock,
+    ReversibleSequence,
+    ReZero,
+    SelfAttention,
     SequentialSequence,
     SequentialSequenceGAU,
-    ReversibleSequence,
+    Transformer,
 )
+from .model import scFoundationModel
 
 __all__ = [
     # Main model

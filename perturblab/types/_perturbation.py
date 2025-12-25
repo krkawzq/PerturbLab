@@ -5,7 +5,7 @@ Inherits all features from `CellDataset` and adds perturbation-specific function
 """
 
 import warnings
-from typing import Dict, List, Optional, Union
+from typing import Union
 
 import anndata as ad
 import numpy as np
@@ -60,11 +60,11 @@ class PerturbationData(CellData):
         self,
         adata: ad.AnnData,
         perturbation_col: str,
-        control_label: Union[str, List[str]] = "ctrl",
-        ignore_labels: Optional[List[str]] = None,
-        cell_type_col: Optional[str] = None,
-        gene_name_col: Optional[str] = None,
-        cell_id_col: Optional[str] = None,
+        control_label: str | list[str] = "ctrl",
+        ignore_labels: list[str] | None = None,
+        cell_type_col: str | None = None,
+        gene_name_col: str | None = None,
+        cell_id_col: str | None = None,
         duplicated_gene_policy: DuplicatedGenePolicy = "error",
     ):
         """Initialize PerturbationDataset."""
@@ -259,7 +259,7 @@ class PerturbationData(CellData):
         self,
         num_samples: int = 1,
         seed: int = 42,
-        stratify_by: Optional[str] = None,
+        stratify_by: str | None = None,
         ctrl_pairing_key: str = "ctrl_indices",
     ) -> None:
         """
@@ -357,13 +357,13 @@ class PerturbationData(CellData):
         self,
         split_type: str = "simple",
         test_size: float = 0.2,
-        val_size: Optional[float] = None,
-        stratify: Union[bool, str] = False,
+        val_size: float | None = None,
+        stratify: bool | str = False,
         seed: int = 42,
         dry_run: bool = True,
         split_col: str = "split",
         **kwargs,
-    ) -> Union["PerturbationData", Dict[str, "PerturbationData"]]:
+    ) -> Union["PerturbationData", dict[str, "PerturbationData"]]:
         """
         Split dataset with multiple strategies for perturbation analysis.
 
@@ -492,13 +492,13 @@ class PerturbationData(CellData):
     def calculate_de(
         self,
         method: str = "wilcoxon",
-        groups: Union[str, List[str]] = "all",
-        reference: Optional[str] = None,
+        groups: str | list[str] = "all",
+        reference: str | None = None,
         *,
         use_scanpy: bool = False,
         force_recalculate: bool = False,
         key_added: str = "rank_genes_groups",
-        n_genes: Optional[int] = None,
+        n_genes: int | None = None,
         pts: bool = False,
         **kwargs,
     ) -> None:
@@ -669,12 +669,12 @@ class PerturbationData(CellData):
         n_top_genes: int = 2000,
         *,
         flavor: str = "seurat_v3",
-        layer: Optional[str] = None,
-        batch_key: Optional[str] = None,
+        layer: str | None = None,
+        batch_key: str | None = None,
         span: float = 0.3,
         subset: bool = False,
         **kwargs,
-    ) -> List[str]:
+    ) -> list[str]:
         """Calculate highly variable genes using PerturbLab's optimized kernels.
 
         This method provides a simplified interface for HVG detection,

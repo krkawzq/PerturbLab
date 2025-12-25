@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 from torch import Tensor
 
@@ -28,7 +27,7 @@ class scELMoInput(ModelIO):
     """
 
     expression: Tensor
-    gene_names: List[str]
+    gene_names: list[str]
 
 
 @dataclass(kw_only=True)

@@ -11,8 +11,6 @@ Refactored for PerturbLab with:
 
 from __future__ import annotations
 
-from typing import Optional, Tuple, Union
-
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -42,8 +40,8 @@ class AutoDiscretizationEmbedding(nn.Module):
         dim: int,
         bin_num: int,
         bin_alpha: float = 1.0,
-        mask_token_id: Optional[float] = None,
-        pad_token_id: Optional[float] = None,
+        mask_token_id: float | None = None,
+        pad_token_id: float | None = None,
     ):
         super().__init__()
 
@@ -72,7 +70,7 @@ class AutoDiscretizationEmbedding(nn.Module):
 
     def forward(
         self, x: Tensor, return_weights: bool = False
-    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+    ) -> Tensor | tuple[Tensor, Tensor]:
         """Forward pass.
 
         Args:

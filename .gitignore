@@ -29,3 +29,6 @@ test.py
 test.ipynb
 
 .ruff_cache/
+*.pyd
+*.pyc
+*.egg-info/

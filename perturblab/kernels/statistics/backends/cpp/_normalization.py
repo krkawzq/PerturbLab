@@ -74,7 +74,7 @@ try:
     ]
     _lib.sparse_row_sum_csr_exclude_genes_capi.restype = None
 
-except (OSError, AttributeError) as e:
+except (OSError, AttributeError):
     _lib = None
 
 

@@ -166,7 +166,7 @@ Migrated to PerturbLab by the PerturbLab team.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
@@ -223,7 +223,7 @@ class scFoundationModel(nn.Module):
 
     def __init__(
         self,
-        config: "scFoundationConfig",
+        config: scFoundationConfig,
     ):
         """Initializes the scFoundation model from configuration.
 
@@ -254,7 +254,7 @@ class scFoundationModel(nn.Module):
         self.norm = nn.LayerNorm(config.decoder_embed_dim)
         self.to_final = nn.Linear(config.decoder_embed_dim, 1)
 
-    def _build_embeddings(self, config: "scFoundationConfig"):
+    def _build_embeddings(self, config: scFoundationConfig):
         """Builds the auto-discretization and positional embedding layers.
 
         Args:
@@ -274,7 +274,7 @@ class scFoundationModel(nn.Module):
         # Positional embedding (max_seq_len + 1 for flexibility)
         self.pos_emb = nn.Embedding(config.max_seq_len + 1, config.embed_dim)
 
-    def _build_backbone(self, config: "scFoundationConfig"):
+    def _build_backbone(self, config: scFoundationConfig):
         """Builds the encoder and decoder transformer modules.
 
         Args:
@@ -296,7 +296,7 @@ class scFoundationModel(nn.Module):
                 f"Supported types: ['pytorch', 'performer', 'reversible']"
             )
 
-    def _build_transformer(self, config: "scFoundationConfig"):
+    def _build_transformer(self, config: scFoundationConfig):
         """Builds standard PyTorch Transformer encoder and decoder.
 
         Args:
@@ -322,7 +322,7 @@ class scFoundationModel(nn.Module):
             norm_first=config.norm_first,
         )
 
-    def _build_performer(self, config: "scFoundationConfig"):
+    def _build_performer(self, config: scFoundationConfig):
         """Builds Performer (FAVOR+) encoder and decoder.
 
         Args:
@@ -379,7 +379,7 @@ class scFoundationModel(nn.Module):
             no_projection=config.no_projection,
         )
 
-    def _build_reversible_transformer(self, config: "scFoundationConfig"):
+    def _build_reversible_transformer(self, config: scFoundationConfig):
         """Builds Reversible Transformer encoder and decoder.
 
         Reversible transformers use gradient checkpointing to reduce memory
@@ -398,9 +398,9 @@ class scFoundationModel(nn.Module):
 
     def forward(
         self,
-        inputs: Union["scFoundationInput", dict],
+        inputs: scFoundationInput | dict,
         **kwargs,
-    ) -> "scFoundationOutput":
+    ) -> scFoundationOutput:
         """Forward pass of scFoundation model.
 
         Args:

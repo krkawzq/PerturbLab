@@ -8,7 +8,6 @@ Licensed under BSD 3-Clause License
 """
 
 import warnings
-from typing import Optional, Union
 
 import numpy as np
 import scipy.sparse
@@ -26,15 +25,15 @@ from perturblab.kernels.statistics import (
 def normalize_total(
     adata: AnnData,
     *,
-    target_sum: Optional[float] = None,
+    target_sum: float | None = None,
     exclude_highly_expressed: bool = False,
     max_fraction: float = 0.05,
-    key_added: Optional[str] = None,
-    layer: Optional[str] = None,
+    key_added: str | None = None,
+    layer: str | None = None,
     inplace: bool = True,
     copy: bool = False,
     n_threads: int = 0,
-) -> Optional[Union[AnnData, dict]]:
+) -> AnnData | dict | None:
     """
     Normalize counts per cell (CPM/TPM normalization).
 

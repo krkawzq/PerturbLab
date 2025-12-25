@@ -6,8 +6,9 @@ into weighted undirected graphs using various similarity metrics.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from multiprocessing import Pool
-from typing import Callable, Literal
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -75,9 +76,9 @@ def project_bipartite_graph(
     # Select similarity function
     if isinstance(similarity, str):
         similarity_funcs = {
-            'jaccard': jaccard_similarity,
-            'overlap': overlap_coefficient,
-            'cosine': cosine_similarity_sets,
+            "jaccard": jaccard_similarity,
+            "overlap": overlap_coefficient,
+            "cosine": cosine_similarity_sets,
         }
         if similarity not in similarity_funcs:
             raise ValueError(f"Unknown similarity: {similarity}")
@@ -87,7 +88,7 @@ def project_bipartite_graph(
 
     # Get neighbors for each source node
     n_source = bipartite_graph.shape[0]
-    all_neighbors = [bipartite_graph.neighbors(i, side='source') for i in range(n_source)]
+    all_neighbors = [bipartite_graph.neighbors(i, side="source") for i in range(n_source)]
 
     # Compute pairwise similarities
     edges = []
@@ -101,11 +102,13 @@ def project_bipartite_graph(
 
         with Pool(num_workers) as pool:
             if show_progress:
-                results = list(tqdm(
-                    pool.imap(_worker_wrapper, args_list),
-                    total=len(args_list),
-                    desc="Computing similarities"
-                ))
+                results = list(
+                    tqdm(
+                        pool.imap(_worker_wrapper, args_list),
+                        total=len(args_list),
+                        desc="Computing similarities",
+                    )
+                )
             else:
                 results = pool.map(_worker_wrapper, args_list)
 

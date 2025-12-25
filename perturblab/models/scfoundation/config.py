@@ -7,7 +7,7 @@ Licensed under the MIT License (see forks/scFoundation/LICENSE for details)
 """
 
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 from perturblab.core.config import Config
 
@@ -76,8 +76,8 @@ class scFoundationConfig(Config):
     bin_num: int = 10
     bin_alpha: float = 1.0
 
-    pad_token_id: Optional[int] = None
-    mask_token_id: Optional[int] = None
+    pad_token_id: int | None = None
+    mask_token_id: int | None = None
 
     transformer_type: Literal["performer", "pytorch", "reversible"] = "performer"
     depth: int = 12
@@ -90,7 +90,7 @@ class scFoundationConfig(Config):
     local_window_size: int = 256
     causal: bool = False
     reversible: bool = False
-    nb_features: Optional[int] = None
+    nb_features: int | None = None
     feature_redraw_interval: int = 1000
     generalized_attention: bool = False
     kernel_fn: Literal["relu", "gelu"] = "relu"

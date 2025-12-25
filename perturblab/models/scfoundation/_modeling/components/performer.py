@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import math
 import warnings
+from collections.abc import Callable
 from contextlib import contextmanager
 from functools import partial
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 import torch
@@ -55,7 +56,7 @@ def empty(tensor: Tensor) -> bool:
     return tensor.numel() == 0
 
 
-def cast_tuple(val: Any) -> Tuple:
+def cast_tuple(val: Any) -> tuple:
     return (val,) if not isinstance(val, tuple) else val
 
 
@@ -88,7 +89,7 @@ def softmax_kernel(
     is_query: bool,
     normalize_data: bool = True,
     eps: float = 1e-4,
-    device: Optional[torch.device] = None,
+    device: torch.device | None = None,
 ) -> Tensor:
     """Approximates softmax kernel using orthogonal random features."""
     b, h, *_ = data.shape
@@ -122,11 +123,11 @@ def softmax_kernel(
 def generalized_kernel(
     data: Tensor,
     *,
-    projection_matrix: Optional[Tensor],
+    projection_matrix: Tensor | None,
     kernel_fn: nn.Module = nn.ReLU(),
     kernel_epsilon: float = 0.001,
     normalize_data: bool = True,
-    device: Optional[torch.device] = None,
+    device: torch.device | None = None,
 ) -> Tensor:
     """Generalized kernel for non-softmax attention."""
     b, h, *_ = data.shape
@@ -144,7 +145,7 @@ def generalized_kernel(
 
 
 @torch.no_grad()
-def orthogonal_matrix_chunk(cols: int, device: Optional[torch.device] = None) -> Tensor:
+def orthogonal_matrix_chunk(cols: int, device: torch.device | None = None) -> Tensor:
     """Generates a chunk of orthogonal matrix via QR decomposition."""
     unstructured_block = torch.randn((cols, cols), device=device)
     q, r = torch.linalg.qr(unstructured_block.cpu(), mode="reduced")
@@ -154,7 +155,7 @@ def orthogonal_matrix_chunk(cols: int, device: Optional[torch.device] = None) ->
 
 @torch.no_grad()
 def gaussian_orthogonal_random_matrix(
-    nb_rows: int, nb_columns: int, scaling: int = 0, device: Optional[torch.device] = None
+    nb_rows: int, nb_columns: int, scaling: int = 0, device: torch.device | None = None
 ) -> Tensor:
     """Generates Gaussian Orthogonal Random Matrix for FAVOR+."""
     nb_full_blocks = int(nb_rows / nb_columns)
@@ -174,7 +175,7 @@ def gaussian_orthogonal_random_matrix(
     if scaling == 0:
         multiplier = torch.randn((nb_rows, nb_columns), device=device).norm(dim=1)
     elif scaling == 1:
-        multiplier = math.sqrt((float(nb_columns))) * torch.ones((nb_rows,), device=device)
+        multiplier = math.sqrt(float(nb_columns)) * torch.ones((nb_rows,), device=device)
     else:
         raise ValueError(f"Invalid scaling {scaling}")
 
@@ -255,7 +256,7 @@ class FastAttention(nn.Module):
     def __init__(
         self,
         dim_heads: int,
-        nb_features: Optional[int] = None,
+        nb_features: int | None = None,
         ortho_scaling: int = 0,
         causal: bool = False,
         generalized_attention: bool = False,
@@ -407,7 +408,7 @@ class FeedForward(nn.Module):
         dim: int,
         mult: int = 4,
         dropout: float = 0.0,
-        activation: Optional[Callable] = None,
+        activation: Callable | None = None,
         glu: bool = False,
     ):
         super().__init__()
@@ -445,7 +446,7 @@ class SelfAttention(nn.Module):
         dim_head: int = 64,
         local_heads: int = 0,
         local_window_size: int = 256,
-        nb_features: Optional[int] = None,
+        nb_features: int | None = None,
         feature_redraw_interval: int = 1000,
         generalized_attention: bool = False,
         kernel_fn: nn.Module = nn.ReLU(),
@@ -492,13 +493,13 @@ class SelfAttention(nn.Module):
     def forward(
         self,
         x: Tensor,
-        pos_emb: Optional[Tensor] = None,
-        context: Optional[Tensor] = None,
-        mask: Optional[Tensor] = None,
-        context_mask: Optional[Tensor] = None,
+        pos_emb: Tensor | None = None,
+        context: Tensor | None = None,
+        mask: Tensor | None = None,
+        context_mask: Tensor | None = None,
         output_attentions: bool = False,
         **kwargs,
-    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+    ) -> Tensor | tuple[Tensor, Tensor]:
 
         b, n = x.shape[0], x.shape[1]
         h = self.heads
@@ -576,7 +577,7 @@ def rotate_every_two(x: Tensor) -> Tensor:
     return x_out.reshape(*x.shape[:-2], d * 2)
 
 
-def apply_rotary_pos_emb(q: Tensor, k: Tensor, sinu_pos: Tensor) -> Tuple[Tensor, Tensor]:
+def apply_rotary_pos_emb(q: Tensor, k: Tensor, sinu_pos: Tensor) -> tuple[Tensor, Tensor]:
     # q, k: (b, h, n, d)
     # sinu_pos: (1, n, d_model)
     # original: rearrange(sinu_pos, '() n (j d) -> n j d', j=2)
@@ -642,8 +643,8 @@ class Gene2VecPositionalEmbedding(nn.Module):
         self,
         dim: int,
         max_seq_len: int,
-        weights_path: Optional[str] = None,
-        pretrained_weights: Optional[np.ndarray] = None,
+        weights_path: str | None = None,
+        pretrained_weights: np.ndarray | None = None,
     ):
         super().__init__()
 
@@ -714,7 +715,7 @@ class Performer(nn.Module):
         local_window_size: int = 256,
         causal: bool = False,
         ff_mult: int = 4,
-        nb_features: Optional[int] = None,
+        nb_features: int | None = None,
         feature_redraw_interval: int = 1000,
         reversible: bool = False,
         ff_chunks: int = 1,
@@ -861,7 +862,7 @@ class PerformerModule(nn.Module):
         local_window_size: int = 256,
         causal: bool = False,
         ff_mult: int = 4,
-        nb_features: Optional[int] = None,
+        nb_features: int | None = None,
         feature_redraw_interval: int = 1000,
         reversible: bool = False,
         ff_chunks: int = 1,
@@ -915,7 +916,7 @@ class PerformerModule(nn.Module):
 
     def forward(
         self, x: Tensor, output_attentions: bool = False, **kwargs
-    ) -> Union[Tensor, Tuple[Tensor, Tensor]]:
+    ) -> Tensor | tuple[Tensor, Tensor]:
         b, n, _, device = *x.shape, x.device
         assert (
             n <= self.max_seq_len

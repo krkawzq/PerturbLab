@@ -269,7 +269,7 @@ class GODownloader(BaseDownloader):
 
         records = []
 
-        with open(gaf_path, "r") as f:
+        with open(gaf_path) as f:
             for line in f:
                 # Skip comments and header
                 if line.startswith("!"):

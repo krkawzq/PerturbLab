@@ -1,7 +1,7 @@
 """Basic vocabulary class for token-index mapping."""
 
 import json
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 
@@ -262,7 +262,7 @@ class Vocab:
             raise FileNotFoundError(f"Vocabulary file not found: {path}")
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON file: {e}")

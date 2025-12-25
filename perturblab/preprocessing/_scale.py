@@ -7,7 +7,6 @@ Copyright (c) 2017 F. Alexander Wolf, P. Angerer, Theis Lab
 Licensed under BSD 3-Clause License
 """
 
-from typing import Optional
 
 import numpy as np
 import scipy.sparse
@@ -20,14 +19,14 @@ def scale(
     adata: AnnData,
     *,
     zero_center: bool = True,
-    max_value: Optional[float] = None,
-    layer: Optional[str] = None,
-    obsm: Optional[str] = None,
-    mask_obs: Optional[np.ndarray] = None,
+    max_value: float | None = None,
+    layer: str | None = None,
+    obsm: str | None = None,
+    mask_obs: np.ndarray | None = None,
     inplace: bool = True,
     copy: bool = False,
     n_threads: int = 0,
-) -> Optional[AnnData]:
+) -> AnnData | None:
     """
     Scale data to unit variance and zero mean.
 

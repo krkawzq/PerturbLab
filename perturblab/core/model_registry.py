@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import importlib
 import sys
-from typing import Any, Callable, Dict, Iterator, List, Optional, Type, TypeVar, Union
+from collections.abc import Callable, Iterator
+from typing import Any, TypeVar
 
 from perturblab.utils import DependencyError, check_dependencies, get_logger
 
@@ -41,7 +42,7 @@ class ModelRegistry:
     def __init__(
         self,
         name: str,
-        parent: Optional[ModelRegistry] = None,
+        parent: ModelRegistry | None = None,
         auto_import: bool = False,
     ):
         """Initializes the ModelRegistry.
@@ -57,14 +58,14 @@ class ModelRegistry:
         self._auto_import = auto_import
 
         # Eagerly initialized models (class objects)
-        self._obj_map: Dict[str, Type[Any]] = {}
-        
+        self._obj_map: dict[str, type[Any]] = {}
+
         # Child registries for hierarchy
-        self._child_registries: Dict[str, ModelRegistry] = {}
+        self._child_registries: dict[str, ModelRegistry] = {}
 
         # Lazy registration metadata: stores info to import models later.
         # Format: {model_name: {'module': '...', 'class': '...', 'dependencies': [...]}}
-        self._lazy_map: Dict[str, Dict[str, Any]] = {}
+        self._lazy_map: dict[str, dict[str, Any]] = {}
 
         logger.debug(f"ModelRegistry created: {name}")
 
@@ -74,7 +75,7 @@ class ModelRegistry:
         return self._name
 
     @property
-    def parent(self) -> Optional[ModelRegistry]:
+    def parent(self) -> ModelRegistry | None:
         """Returns the parent registry."""
         return self._parent
 
@@ -84,10 +85,10 @@ class ModelRegistry:
 
     def register(
         self,
-        name: Optional[str] = None,
+        name: str | None = None,
         force: bool = False,
-        module: Optional[str] = None,
-    ) -> Callable[[Type[T]], Type[T]]:
+        module: str | None = None,
+    ) -> Callable[[type[T]], type[T]]:
         """Decorator to register a class.
 
         Args:
@@ -109,7 +110,7 @@ class ModelRegistry:
             >>> class MyModel2(nn.Module): ...
         """
 
-        def _register_wrapper(cls: Type[T]) -> Type[T]:
+        def _register_wrapper(cls: type[T]) -> type[T]:
             key = name if name is not None else cls.__name__
 
             if key in self._obj_map:
@@ -125,7 +126,7 @@ class ModelRegistry:
                     logger.warning(f"Overwriting model '{key}' in registry '{self._name}'")
 
             self._obj_map[key] = cls
-            
+
             module_name = module or cls.__module__
             logger.debug(
                 f"Registered model '{key}' in registry '{self._name}' "
@@ -137,8 +138,8 @@ class ModelRegistry:
 
     def register_class(
         self,
-        cls: Type[T],
-        name: Optional[str] = None,
+        cls: type[T],
+        name: str | None = None,
         force: bool = False,
     ) -> None:
         """Manually registers a class without using a decorator.
@@ -161,8 +162,8 @@ class ModelRegistry:
         name: str,
         module: str,
         class_name: str,
-        requirements: Optional[List[str]] = None,
-        dependencies: Optional[List[str]] = None,
+        requirements: list[str] | None = None,
+        dependencies: list[str] | None = None,
         force: bool = False,
     ) -> None:
         """Registers a model lazily without importing the module immediately.
@@ -208,10 +209,10 @@ class ModelRegistry:
             logger.warning(f"Overwriting lazy model '{name}' in registry '{self._name}'.")
 
         self._lazy_map[name] = {
-            'module': module,
-            'class': class_name,
-            'requirements': requirements or [],
-            'dependencies': dependencies or [],
+            "module": module,
+            "class": class_name,
+            "requirements": requirements or [],
+            "dependencies": dependencies or [],
         }
 
         logger.debug(
@@ -259,8 +260,8 @@ class ModelRegistry:
             raise
 
     def get(
-        self, key: str, default: Optional[Type[Any]] = None
-    ) -> Union[Type[Any], ModelRegistry, None]:
+        self, key: str, default: type[Any] | None = None
+    ) -> type[Any] | ModelRegistry | None:
         """Retrieves a model class or sub-registry by key.
 
         Args:
@@ -275,7 +276,7 @@ class ModelRegistry:
         except KeyError:
             return default
 
-    def _get_no_default(self, key: str) -> Union[Type[Any], ModelRegistry]:
+    def _get_no_default(self, key: str) -> type[Any] | ModelRegistry:
         """Internal retrieval method that raises KeyError if not found.
 
         Handles nested lookups and triggers lazy loading if necessary.
@@ -310,8 +311,7 @@ class ModelRegistry:
         # 4. Not found
         available = list(self._obj_map.keys()) + list(self._lazy_map.keys())
         raise KeyError(
-            f"Model '{key}' not found in registry '{self._name}'. "
-            f"Available models: {available}"
+            f"Model '{key}' not found in registry '{self._name}'. " f"Available models: {available}"
         )
 
     # =========================================================================
@@ -341,7 +341,7 @@ class ModelRegistry:
         logger.debug(f"Created child registry '{name}' under '{self._name}'")
         return child_registry
 
-    def add_child(self, registry: ModelRegistry, name: Optional[str] = None) -> None:
+    def add_child(self, registry: ModelRegistry, name: str | None = None) -> None:
         """Attaches an existing registry as a child.
 
         Args:
@@ -361,7 +361,7 @@ class ModelRegistry:
     # Internal Lazy Loading Logic
     # =========================================================================
 
-    def _load_lazy_model(self, name: str) -> Optional[Type[Any]]:
+    def _load_lazy_model(self, name: str) -> type[Any] | None:
         """Internal method to import and cache a lazily registered model.
 
         Args:
@@ -374,10 +374,10 @@ class ModelRegistry:
             return None
 
         metadata = self._lazy_map[name]
-        module_path = metadata['module']
-        class_name = metadata['class']
-        requirements = metadata['requirements']
-        dependencies = metadata['dependencies']
+        module_path = metadata["module"]
+        class_name = metadata["class"]
+        requirements = metadata["requirements"]
+        dependencies = metadata["dependencies"]
 
         # Check dependencies using the utility function
         if requirements or dependencies:
@@ -423,7 +423,6 @@ class ModelRegistry:
             logger.error(f"Unexpected error loading model '{name}': {e}")
             return None
 
-
     # =========================================================================
     # Dict-like Interface & Introspection
     # =========================================================================
@@ -433,11 +432,11 @@ class ModelRegistry:
         yield from self._obj_map.keys()
         yield from self._lazy_map.keys()
 
-    def values(self) -> Iterator[Type[Any]]:
+    def values(self) -> Iterator[type[Any]]:
         """Iterates over all model classes (triggers loading of lazy models)."""
         for value in self._obj_map.values():
             yield value
-        
+
         # Snapshot keys to avoid runtime error during iteration if map changes
         lazy_keys = list(self._lazy_map.keys())
         for key in lazy_keys:
@@ -445,7 +444,7 @@ class ModelRegistry:
             if model_class is not None:
                 yield model_class
 
-    def items(self) -> Iterator[tuple[str, Type[Any]]]:
+    def items(self) -> Iterator[tuple[str, type[Any]]]:
         """Iterates over (key, class) pairs (triggers loading of lazy models)."""
         yield from self._obj_map.items()
 
@@ -455,7 +454,7 @@ class ModelRegistry:
             if model_class is not None:
                 yield key, model_class
 
-    def list_keys(self, recursive: bool = False) -> List[str]:
+    def list_keys(self, recursive: bool = False) -> list[str]:
         """Lists all registered model keys.
 
         Args:
@@ -477,7 +476,7 @@ class ModelRegistry:
 
         return current_keys
 
-    def __getitem__(self, key: str) -> Union[Type[Any], ModelRegistry]:
+    def __getitem__(self, key: str) -> type[Any] | ModelRegistry:
         return self._get_no_default(key)
 
     def __contains__(self, key: str) -> bool:
@@ -505,18 +504,19 @@ class ModelRegistry:
 # Utility Functions
 # =============================================================================
 
+
 def register_lazy_models(
     registry: ModelRegistry,
-    models: Dict[str, str],
+    models: dict[str, str],
     base_module: str,
-    requirements: Optional[List[str]] = None,
-    dependencies: Optional[List[str]] = None,
+    requirements: list[str] | None = None,
+    dependencies: list[str] | None = None,
 ) -> None:
     """Batch registers multiple models lazily to a registry.
-    
+
     This utility function simplifies the common pattern of registering multiple
     model variants or components with the same dependencies.
-    
+
     Args:
         registry: The ModelRegistry instance to register models to.
         models: Dictionary mapping model names to class names.
@@ -525,7 +525,7 @@ def register_lazy_models(
             Example: "perturblab.models.gears._modeling.model"
         requirements: List of required package dependencies.
         dependencies: List of optional package dependencies.
-    
+
     Examples:
         >>> # Register multiple GEARS models
         >>> register_lazy_models(
@@ -538,7 +538,7 @@ def register_lazy_models(
         ...     requirements=["torch_geometric"],
         ...     dependencies=[]
         ... )
-        
+
         >>> # Register scGPT components from _modeling/__init__.py exports
         >>> from perturblab.models.scgpt._modeling import __all__ as scgpt_models
         >>> register_lazy_models(
@@ -551,7 +551,7 @@ def register_lazy_models(
     """
     requirements = requirements or []
     dependencies = dependencies or []
-    
+
     for model_name, class_name in models.items():
         registry.register_lazy(
             name=model_name,

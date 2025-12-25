@@ -34,7 +34,7 @@ from __future__ import annotations
 import warnings
 from dataclasses import dataclass
 from inspect import signature
-from typing import Literal, Optional, cast
+from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -61,7 +61,7 @@ __all__ = [
 # ============================================================================
 
 
-def _get_obs_rep(adata: AnnData, layer: Optional[str] = None):
+def _get_obs_rep(adata: AnnData, layer: str | None = None):
     """Get observation representation from AnnData (scanpy-compatible)."""
     if layer is None or layer == "X":
         return adata.X
@@ -97,7 +97,7 @@ class _Cutoffs:
     def validate(
         cls,
         *,
-        n_top_genes: Optional[int],
+        n_top_genes: int | None,
         min_disp: float,
         max_disp: float,
         min_mean: float,
@@ -141,14 +141,14 @@ def _highly_variable_genes_seurat_v3(
     adata: AnnData,
     *,
     flavor: Literal["seurat_v3", "seurat_v3_paper"] = "seurat_v3",
-    layer: Optional[str] = None,
+    layer: str | None = None,
     n_top_genes: int = 2000,
-    batch_key: Optional[str] = None,
+    batch_key: str | None = None,
     check_values: bool = True,
     span: float = 0.3,
     subset: bool = False,
     inplace: bool = True,
-) -> Optional[pd.DataFrame]:
+) -> pd.DataFrame | None:
     """Seurat v3 HVG selection using variance stabilizing transformation.
 
     Args:
@@ -303,7 +303,7 @@ def _highly_variable_genes_seurat_v3(
 def _highly_variable_genes_single_batch(
     adata: AnnData,
     *,
-    layer: Optional[str] = None,
+    layer: str | None = None,
     cutoff: _Cutoffs | int,
     n_bins: int = 20,
     flavor: Literal["seurat", "cell_ranger"] = "seurat",
@@ -501,7 +501,7 @@ def _highly_variable_genes_batched(
     adata: AnnData,
     batch_key: str,
     *,
-    layer: Optional[str],
+    layer: str | None,
     cutoff: _Cutoffs | int,
     n_bins: int,
     flavor: Literal["seurat", "cell_ranger"],
@@ -562,8 +562,8 @@ def _highly_variable_genes_batched(
 def highly_variable_genes(
     adata: AnnData,
     *,
-    layer: Optional[str] = None,
-    n_top_genes: Optional[int] = None,
+    layer: str | None = None,
+    n_top_genes: int | None = None,
     min_disp: float = 0.5,
     max_disp: float = np.inf,
     min_mean: float = 0.0125,
@@ -573,9 +573,9 @@ def highly_variable_genes(
     flavor: Literal["seurat", "cell_ranger", "seurat_v3", "seurat_v3_paper"] = "seurat",
     subset: bool = False,
     inplace: bool = True,
-    batch_key: Optional[str] = None,
+    batch_key: str | None = None,
     check_values: bool = True,
-) -> Optional[pd.DataFrame]:
+) -> pd.DataFrame | None:
     """Identify highly variable genes (HVGs).
 
     This function implements multiple HVG detection methods with optimized

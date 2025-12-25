@@ -1,12 +1,12 @@
 """GeneCompass: Knowledge-Informed Cross-Species Foundation Model.
 
 GeneCompass is a BERT-based foundation model for single-cell RNA-seq analysis.
-It integrates five types of biological prior knowledge to enable enhanced gene 
-expression prediction, cross-species transfer learning, zero-shot cell type 
+It integrates five types of biological prior knowledge to enable enhanced gene
+expression prediction, cross-species transfer learning, zero-shot cell type
 prediction, and gene expression imputation.
 
 References:
-    GeneCompass: Decoding Universal Gene Expression Signatures Across Species 
+    GeneCompass: Decoding Universal Gene Expression Signatures Across Species
     and Sequencing Platforms. bioRxiv 2023.
 
 Dependencies:
@@ -36,6 +36,7 @@ dependencies = []
 def _get_models_registry():
     """Lazily imports MODELS to avoid circular dependency."""
     from perturblab.models import MODELS
+
     return MODELS
 
 
@@ -70,4 +71,4 @@ register_lazy_models(
 try:
     from ._modeling.model import GeneCompassModel
 except ImportError:
-    pass 
+    pass

@@ -22,11 +22,14 @@ def __getattr__(name: str):
     """Lazy import for read functions to avoid circular import."""
     if name == "read_obo":
         from ._read_write import read_obo
+
         return read_obo
     elif name == "read_h5ad":
         from ._read_write import read_h5ad
+
         return read_h5ad
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
 
 __all__ = [
     "setup_logger",

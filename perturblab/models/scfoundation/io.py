@@ -8,7 +8,6 @@ Licensed under the MIT License (see forks/scFoundation/LICENSE for details)
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 import torch
 
@@ -87,7 +86,7 @@ class scFoundationOutput(ModelIO):
     """
 
     predictions: torch.Tensor
-    attention_weights: Optional[torch.Tensor] = None
+    attention_weights: torch.Tensor | None = None
 
     def to_dict(self):
         """Converts the output to a dictionary for backward compatibility.

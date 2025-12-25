@@ -5,7 +5,6 @@ and positional encodings.
 """
 
 import math
-from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -27,7 +26,7 @@ class GeneEncoder(nn.Module):
         self,
         num_embeddings: int,
         embedding_dim: int,
-        padding_idx: Optional[int] = None,
+        padding_idx: int | None = None,
     ):
         super().__init__()
         self.embedding = nn.Embedding(num_embeddings, embedding_dim, padding_idx=padding_idx)
@@ -86,7 +85,7 @@ class CategoryValueEncoder(nn.Module):
         self,
         num_embeddings: int,
         embedding_dim: int,
-        padding_idx: Optional[int] = None,
+        padding_idx: int | None = None,
     ):
         super().__init__()
         self.embedding = nn.Embedding(num_embeddings, embedding_dim, padding_idx=padding_idx)
@@ -106,7 +105,7 @@ class BatchLabelEncoder(nn.Module):
         self,
         num_embeddings: int,
         embedding_dim: int,
-        padding_idx: Optional[int] = None,
+        padding_idx: int | None = None,
     ):
         super().__init__()
         self.embedding = nn.Embedding(num_embeddings, embedding_dim, padding_idx=padding_idx)

@@ -1,21 +1,21 @@
 """GeneCompass model implementations."""
 
-from .model import GeneCompassModel
-from .components.embeddings import (
-    KnowledgeBertEmbeddings,
-    ContinuousValueEncoder,
-    PriorEmbedding,
-    QuickGELU,
-)
 from .components.bert import (
-    BertModel,
     BertForMaskedLM,
     BertLMPredictionHead,
     BertLMPredictionHead_value,
+    BertModel,
     BertOnlyMLMHead,
     BertOnlyMLMHead_value,
     EmbeddingWarmup,
 )
+from .components.embeddings import (
+    ContinuousValueEncoder,
+    KnowledgeBertEmbeddings,
+    PriorEmbedding,
+    QuickGELU,
+)
+from .model import GeneCompassModel
 
 __all__ = [
     # Main model
