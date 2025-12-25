@@ -9,6 +9,8 @@ Copyright (c) 2023 CellFM Authors
 Licensed under CC BY-NC-ND 4.0
 """
 
+from dataclasses import dataclass
+
 from perturblab.core.config import Config
 
 __all__ = ["CellFMConfig", "requirements", "dependencies"]
@@ -20,6 +22,7 @@ requirements = []
 dependencies = []
 
 
+@dataclass(kw_only=True)
 class CellFMConfig(Config):
     """Configuration class for CellFM models.
 
@@ -40,6 +43,9 @@ class CellFMConfig(Config):
         cellwise_use_bias (bool): Whether to use bias in cellwise decoder. Defaults to True.
         ecs (bool): Whether to enable Elastic Cell Similarity loss. Defaults to False.
         ecs_threshold (float): Threshold for ECS loss. Defaults to 0.5.
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: CellFMConfig(field1=..., field2=...)
     """
 
     n_genes: int

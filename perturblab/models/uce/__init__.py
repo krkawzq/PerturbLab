@@ -13,7 +13,6 @@ Copyright (c) 2023 SNAP Lab, Stanford University
 Licensed under the MIT License
 """
 
-from perturblab.models import MODELS
 from perturblab.utils import DependencyError
 
 from .config import UCEConfig
@@ -29,8 +28,14 @@ __all__ = [
 ]
 
 
-# Create UCE sub-registry
-UCE_REGISTRY = MODELS.child("UCE")
+def _get_models_registry():
+    """Lazy import MODELS to avoid circular dependency."""
+    from perturblab.models import MODELS
+    return MODELS
+
+
+# Create UCE sub-registry (lazy)
+UCE_REGISTRY = _get_models_registry().child("UCE")
 
 
 # Register UCE model with dependency checking

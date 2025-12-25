@@ -6,6 +6,7 @@ Copyright (c) 2023 BioMap (Beijing) Intelligence Technology Limited
 Licensed under the MIT License (see forks/scFoundation/LICENSE for details)
 """
 
+from dataclasses import dataclass
 from typing import Literal, Optional
 
 from perturblab.core.config import Config
@@ -20,6 +21,7 @@ requirements = []
 dependencies = ["local_attention"]
 
 
+@dataclass(kw_only=True)
 class scFoundationConfig(Config):
     """Configuration options for scFoundation MAE-Autobin model.
 

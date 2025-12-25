@@ -1,6 +1,6 @@
 """Configuration definition for scELMo model."""
 
-from dataclasses import field
+from dataclasses import dataclass, field
 from typing import List, Literal, Optional
 
 from perturblab.core.config import Config
@@ -15,6 +15,7 @@ requirements = []
 dependencies = []
 
 
+@dataclass(kw_only=True)
 class scELMoConfig(Config):
     """Configuration for scELMo (Single-Cell Embeddings from Language Models).
 
@@ -30,6 +31,9 @@ class scELMoConfig(Config):
             - 'aa': Arithmetic Average (simple mean of expressed genes).
         api_model (str):
             OpenAI model name used for embedding generation (for metadata tracking).
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: scELMoConfig(field1=..., field2=...)
     """
 
     # Required field (using default_factory to allow empty initialization if needed,

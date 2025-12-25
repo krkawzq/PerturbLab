@@ -464,7 +464,7 @@ class PerturbationData(CellData):
         val_set = set(val_perts) if val_perts else set()
         test_set = set(test_perts) if test_perts else set()
 
-        # Assign splits
+        # Assign splits (train is always assigned, val and test only if non-empty)
         self.adata.obs.loc[self.perturbations.isin(train_set), split_col] = "train"
         if val_set:
             self.adata.obs.loc[self.perturbations.isin(val_set), split_col] = "val"

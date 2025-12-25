@@ -309,7 +309,13 @@ class GEARSModel(nn.Module):
             return GEARSOutput(predictions=torch.stack(out))
 
         # 3. Determine number of graphs (i.e., batch size)
-        num_graphs = len(torch.unique(batch_idx)) if batch_idx is not None else 1
+        # If pert_idx is a list, use its length (more reliable than batch_idx)
+        if isinstance(pert_idx, (list, tuple)):
+            num_graphs = len(pert_idx)
+        elif batch_idx is not None:
+            num_graphs = len(torch.unique(batch_idx))
+        else:
+            num_graphs = 1
 
         # 4. Gene Embeddings & Co-expression GNN
         gene_indices = torch.arange(self.num_genes, device=self.device).long().repeat(num_graphs)

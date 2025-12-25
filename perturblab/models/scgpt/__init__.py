@@ -23,7 +23,6 @@ Copyright (c) 2023 Bo Wang Lab
 Licensed under the MIT License
 """
 
-from perturblab.models import MODELS
 from perturblab.utils import DependencyError
 
 from .config import scGPTConfig
@@ -38,8 +37,14 @@ __all__ = [
 ]
 
 
-# Create scGPT sub-registry for models
-SCGPT_REGISTRY = MODELS.child("scGPT")
+def _get_models_registry():
+    """Lazy import MODELS to avoid circular dependency."""
+    from perturblab.models import MODELS
+    return MODELS
+
+
+# Create scGPT sub-registry for models (lazy)
+SCGPT_REGISTRY = _get_models_registry().child("scGPT")
 
 # Create components sub-registry (for encoder/decoder components)
 SCGPT_COMPONENTS = SCGPT_REGISTRY.child("components")
@@ -62,9 +67,10 @@ try:
     # Add to __all__ if successfully imported
     __all__.extend(["scGPTModel", "scGPTMultiOmicModel", "scGPTPerturbationModel"])
 
-except (DependencyError, ImportError):
+except (DependencyError, ImportError) as e:
     # Dependencies not satisfied - models won't be available
-    pass
+    import warnings
+    warnings.warn(f"Failed to import scGPT models: {e}")
 
 
 # Register components (encoders, decoders, attention layers)
@@ -133,6 +139,8 @@ try:
         ]
     )
 
-except (DependencyError, ImportError):
+except (DependencyError, ImportError) as e:
     # Components not available - dependencies missing
-    pass
+    import warnings
+    import traceback
+    warnings.warn(f"Failed to import scGPT components: {e}\n{traceback.format_exc()}")

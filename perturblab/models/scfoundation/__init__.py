@@ -17,7 +17,6 @@ Copyright (c) 2023 BioMap (Beijing) Intelligence Technology Limited
 Licensed under the MIT License
 """
 
-from perturblab.models import MODELS
 from perturblab.utils import DependencyError
 
 from .config import scFoundationConfig
@@ -32,8 +31,14 @@ __all__ = [
 ]
 
 
-# Create scFoundation sub-registry for models
-SCFOUNDATION_REGISTRY = MODELS.child("scFoundation")
+def _get_models_registry():
+    """Lazy import MODELS to avoid circular dependency."""
+    from perturblab.models import MODELS
+    return MODELS
+
+
+# Create scFoundation sub-registry for models (lazy)
+SCFOUNDATION_REGISTRY = _get_models_registry().child("scFoundation")
 
 # Create components sub-registry
 SCFOUNDATION_COMPONENTS = SCFOUNDATION_REGISTRY.child("components")

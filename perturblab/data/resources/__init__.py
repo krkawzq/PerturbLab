@@ -292,7 +292,7 @@ def get_dataset(path: str) -> File | Files | h5adFile:
             raise KeyError(f"'{category}' is not a category")
 
     except KeyError as e:
-        available = list_datasets(category=None, recursive=True)
+        available = list_datasets(path=None, recursive=True)
         raise KeyError(
             f"Dataset '{path}' not found. "
             f"Available datasets: {available[:5]}... (total: {len(available)})"

@@ -12,7 +12,6 @@ References
 Copyright (c) 2024 scELMo Authors
 """
 
-from perturblab.models import MODELS
 from perturblab.utils import DependencyError
 
 from .config import scELMoConfig
@@ -26,8 +25,14 @@ __all__ = [
 ]
 
 
-# Create scELMo sub-registry
-SCELMO_REGISTRY = MODELS.child("scELMo")
+def _get_models_registry():
+    """Lazy import MODELS to avoid circular dependency."""
+    from perturblab.models import MODELS
+    return MODELS
+
+
+# Create scELMo sub-registry (lazy)
+SCELMO_REGISTRY = _get_models_registry().child("scELMo")
 
 
 # Register scELMo model (no dependencies, pure Python)

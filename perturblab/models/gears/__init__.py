@@ -13,7 +13,6 @@ Copyright (c) 2023 SNAP Lab, Stanford University
 Licensed under the MIT License
 """
 
-from perturblab.models import MODELS
 from perturblab.utils import DependencyError
 
 from .config import GEARSConfig
@@ -27,8 +26,14 @@ __all__ = [
 ]
 
 
-# Create GEARS sub-registry
-GEARS_REGISTRY = MODELS.child("GEARS")
+def _get_models_registry():
+    """Lazy import MODELS to avoid circular dependency."""
+    from perturblab.models import MODELS
+    return MODELS
+
+
+# Create GEARS sub-registry (lazy)
+GEARS_REGISTRY = _get_models_registry().child("GEARS")
 
 
 # Register GEARS model with dependency checking

@@ -6,6 +6,7 @@ gradient detachment, and dictionary-like access.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Optional
 
 from torch import Tensor
@@ -18,6 +19,7 @@ __all__ = [
 ]
 
 
+@dataclass(kw_only=True)
 class GEARSInput(ModelIO):
     """Container for GEARS model inputs.
 
@@ -38,6 +40,9 @@ class GEARSInput(ModelIO):
             Required for torch_geometric format when processing multiple graphs.
             Shape: (num_graphs * num_genes,).
             If None, assumes batch_size=1.
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: GEARSInput(field1=..., field2=...)
     """
 
     gene_expression: Tensor
@@ -45,6 +50,7 @@ class GEARSInput(ModelIO):
     graph_batch_indices: Optional[Tensor] = None
 
 
+@dataclass(kw_only=True)
 class GEARSOutput(ModelIO):
     """Container for GEARS model outputs.
 
@@ -59,6 +65,9 @@ class GEARSOutput(ModelIO):
             Log variance for uncertainty quantification.
             Only present if uncertainty mode is enabled in config.
             Shape: (num_graphs, num_genes) or (batch_size, num_genes).
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: GEARSOutput(field1=..., field2=...)
     """
 
     predictions: Tensor

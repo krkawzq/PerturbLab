@@ -16,7 +16,7 @@ from perturblab.core.model_io import ModelIO
 __all__ = ["scGPTInput", "scGPTOutput"]
 
 
-@dataclass
+@dataclass(kw_only=True)
 class scGPTInput(ModelIO):
     """Container for scGPT model inputs and task control flags.
 
@@ -49,12 +49,19 @@ class scGPTInput(ModelIO):
         Whether to compute Elastic Cell Similarity loss.
     do_sample : bool, default=False
         Whether to sample from the output distribution (for MVC/MLM) instead of taking the mean.
+    
+    Note
+    ----
+    All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+    Example: scGPTInput(src=..., values=..., src_key_padding_mask=...)
     """
 
-    # Data Tensors
+    # Data Tensors (required fields)
     src: Tensor
     values: Tensor
     src_key_padding_mask: Tensor
+    
+    # Optional Data Tensors
     batch_labels: Optional[Tensor] = None
     mod_types: Optional[Tensor] = None
     pert_flags: Optional[Tensor] = None
@@ -67,7 +74,7 @@ class scGPTInput(ModelIO):
     do_sample: bool = False
 
 
-@dataclass
+@dataclass(kw_only=True)
 class scGPTOutput(ModelIO):
     """Container for scGPT model outputs.
 
@@ -94,6 +101,11 @@ class scGPTOutput(ModelIO):
         Zero-inflation probability for MLM.
     mvc_zero_probs : Optional[Tensor]
         Zero-inflation probability for MVC.
+    
+    Note
+    ----
+    All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+    Example: scGPTOutput(mlm_output=..., cell_emb=...)
     """
 
     # Primary Outputs

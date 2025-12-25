@@ -1,5 +1,7 @@
 """Configuration definition for GEARS model."""
 
+from dataclasses import dataclass
+
 from perturblab.core.config import Config
 
 __all__ = ["GEARSConfig", "requirements", "dependencies"]
@@ -11,6 +13,7 @@ requirements = ["torch_geometric"]
 dependencies = []
 
 
+@dataclass(kw_only=True)
 class GEARSConfig(Config):
     """Configuration for GEARS (Graph-Enhanced gene Activation and Repression Simulator) model.
 
@@ -43,6 +46,9 @@ class GEARSConfig(Config):
             Regularization term to balance direction loss and prediction loss. Defaults to 0.1.
         no_perturb (bool, optional):
             If True, predict no perturbation condition (baseline mode). Defaults to False.
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: GEARSConfig(field1=..., field2=...)
     """
 
     num_genes: int

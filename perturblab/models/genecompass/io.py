@@ -5,6 +5,7 @@ for the GeneCompass model. These schemas enable type safety and standardize
 interfaces for model pipelines.
 """
 
+from dataclasses import dataclass
 from typing import Optional, Tuple
 
 from torch import Tensor
@@ -14,6 +15,7 @@ from perturblab.core.model_io import ModelIO
 __all__ = ["GeneCompassInput", "GeneCompassOutput", "MaskedLMOutputBoth"]
 
 
+@dataclass(kw_only=True)
 class GeneCompassInput(ModelIO):
     """Input schema for the GeneCompass model.
 
@@ -83,6 +85,9 @@ class GeneCompassInput(ModelIO):
         - input_ids values should be in [0, vocab_size).
         - For masked language modeling, set masked positions in input_ids to mask_token_id.
         - labels with value -100 are ignored in loss computation.
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: GeneCompassInput(field1=..., field2=...)
     """
 
     input_ids: Tensor
@@ -97,6 +102,7 @@ class GeneCompassInput(ModelIO):
     output_hidden_states: bool = False
 
 
+@dataclass(kw_only=True)
 class GeneCompassOutput(ModelIO):
     """Output schema for the GeneCompass model.
 
@@ -135,6 +141,9 @@ class GeneCompassOutput(ModelIO):
         - loss is only computed during training (when labels present).
         - value_logits are raw predictions (no activation, unless handled downstream).
         - hidden_states can be useful for clustering or additional tasks.
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: GeneCompassOutput(field1=..., field2=...)
     """
 
     logits: Tensor
@@ -144,6 +153,7 @@ class GeneCompassOutput(ModelIO):
     attentions: Optional[Tuple[Tensor, ...]] = None
 
 
+@dataclass(kw_only=True)
 class MaskedLMOutputBoth(ModelIO):
     """Internal output for GeneCompass masked language modeling (MLM + value).
 
@@ -167,6 +177,9 @@ class MaskedLMOutputBoth(ModelIO):
     Notes:
         This dataclass is for internal/intermediate use (checkpoint loading etc).
         Most application logic returns or expects GeneCompassOutput.
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: MaskedLMOutputBoth(field1=..., field2=...)
     """
 
     loss: Optional[Tensor] = None

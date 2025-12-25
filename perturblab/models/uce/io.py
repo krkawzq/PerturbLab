@@ -6,6 +6,7 @@ gradient detachment, and dictionary-like access.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Optional
 
 from torch import Tensor
@@ -20,6 +21,7 @@ __all__ = [
 ]
 
 
+@dataclass(kw_only=True)
 class UCEInput(ModelIO):
     """Container for UCE model inputs.
 
@@ -34,12 +36,16 @@ class UCEInput(ModelIO):
         mask: The padding mask indicating valid tokens.
             Shape: (batch_size, seq_len).
             Values: 1 for valid tokens, 0 for padding.
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: UCEInput(field1=..., field2=...)
     """
 
     src: Tensor
     mask: Tensor
 
 
+@dataclass(kw_only=True)
 class UCEOutput(ModelIO):
     """Container for UCE model outputs.
 
@@ -54,6 +60,9 @@ class UCEOutput(ModelIO):
         gene_expression_preds: Predicted expression values.
             Only present if the full prediction pipeline is executed.
             Shape: (batch_size, num_genes) or None.
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: UCEOutput(field1=..., field2=...)
     """
 
     cell_embedding: Tensor
@@ -61,6 +70,7 @@ class UCEOutput(ModelIO):
     gene_expression_preds: Optional[Tensor] = None
 
 
+@dataclass(kw_only=True)
 class UCEPredictInput(ModelIO):
     """Container for UCE predict inputs.
 
@@ -74,6 +84,9 @@ class UCEPredictInput(ModelIO):
             Shape: (seq_len, batch_size, output_dim).
         mask: Optional padding mask for the gene embeddings.
             Shape: (batch_size, seq_len).
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: UCEPredictInput(field1=..., field2=...)
     """
 
     cell_embedding: Tensor
@@ -81,12 +94,16 @@ class UCEPredictInput(ModelIO):
     mask: Optional[Tensor] = None
 
 
+@dataclass(kw_only=True)
 class UCEPredictOutput(ModelIO):
     """Container for UCE predict outputs.
 
     Attributes:
         gene_expression_preds: Predicted gene expression values.
             Shape: (batch_size, num_genes).
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: UCEPredictOutput(field1=..., field2=...)
     """
 
     gene_expression_preds: Tensor

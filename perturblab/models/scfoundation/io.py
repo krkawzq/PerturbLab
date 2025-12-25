@@ -7,6 +7,7 @@ Copyright (c) 2023 BioMap (Beijing) Intelligence Technology Limited
 Licensed under the MIT License (see forks/scFoundation/LICENSE for details)
 """
 
+from dataclasses import dataclass
 from typing import Optional
 
 import torch
@@ -14,6 +15,7 @@ import torch
 from perturblab.core.model_io import ModelIO
 
 
+@dataclass(kw_only=True)
 class scFoundationInput(ModelIO):
     """Input schema for scFoundation model forward pass.
 
@@ -44,6 +46,9 @@ class scFoundationInput(ModelIO):
             mask_labels=target_labels,
         )
         outputs = model(inputs)
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: scFoundationInput(field1=..., field2=...)
     """
 
     x: torch.Tensor
@@ -58,6 +63,7 @@ class scFoundationInput(ModelIO):
     output_attentions: bool = False
 
 
+@dataclass(kw_only=True)
 class scFoundationOutput(ModelIO):
     """Output schema for scFoundation model forward pass.
 
@@ -75,6 +81,9 @@ class scFoundationOutput(ModelIO):
         outputs = model(inputs)
         reconstructed = outputs.predictions
         loss = criterion(reconstructed[mask], targets[mask])
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: scFoundationOutput(field1=..., field2=...)
     """
 
     predictions: torch.Tensor

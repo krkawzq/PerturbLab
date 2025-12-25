@@ -21,7 +21,7 @@ requirements = [
 dependencies = []
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GeneCompassConfig(ModelConfig):
     """Configuration for the GeneCompass model.
 

@@ -1,5 +1,7 @@
 """Configuration for UCE (Universal Cell Embeddings) model."""
 
+from dataclasses import dataclass
+
 from perturblab.core.config import Config
 
 __all__ = ["UCEConfig", "requirements", "dependencies"]
@@ -11,6 +13,7 @@ requirements = []
 dependencies = ["accelerate"]
 
 
+@dataclass(kw_only=True)
 class UCEConfig(Config):
     """Configuration for UCE (Universal Cell Embeddings) model.
 

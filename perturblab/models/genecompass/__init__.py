@@ -65,8 +65,7 @@ Dependencies:
     Install: pip install perturblab[genecompass]
 """
 
-from perturblab.models import MODELS
-from perturblab.utils import create_lazy_loader
+from perturblab.utils import create_lazy_loader, DependencyError
 
 # Import configuration and IO schemas
 from .config import GeneCompassConfig, requirements, dependencies
@@ -86,27 +85,31 @@ __getattr__, __dir__ = create_lazy_loader(
     install_hint="pip install perturblab[genecompass]",
 )
 
+
+def _get_models_registry():
+    """Lazy import MODELS to avoid circular dependency."""
+    from perturblab.models import MODELS
+    return MODELS
+
+
 # ============================================================================
 # Model Registry
 # ============================================================================
 
-GENECOMPASS_REGISTRY = {
-    "genecompass": "GeneCompassModel",
-    "genecompass_base": "GeneCompassModel",
-    "genecompass_small": "GeneCompassModel",
-}
+# Create GeneCompass sub-registry (lazy)
+GENECOMPASS_REGISTRY = _get_models_registry().child("GeneCompass")
 
-# Register model classes into the global MODELS registry only if not present.
-for model_name, model_class in GENECOMPASS_REGISTRY.items():
-    if model_name not in MODELS:
-        MODELS[model_name] = {
-            "class": model_class,
-            "module": "perturblab.models.genecompass",
-            "config": GeneCompassConfig,
-            "input": GeneCompassInput,
-            "output": GeneCompassOutput,
-            "description": "Knowledge-informed cross-species foundation model",
-        }
+# Register GeneCompass model with dependency checking
+try:
+    from ._modeling import GeneCompassModel
+
+    # Register the main model
+    GENECOMPASS_REGISTRY.register("GeneCompassModel")(GeneCompassModel)
+    GENECOMPASS_REGISTRY.register("default")(GeneCompassModel)
+
+except (DependencyError, ImportError):
+    # Dependencies not satisfied - models won't be available
+    pass
 
 # ============================================================================
 # Component Registry

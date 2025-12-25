@@ -6,6 +6,7 @@ Copyright (c) 2023 CellFM Authors
 Licensed under CC BY-NC-ND 4.0
 """
 
+from dataclasses import dataclass
 from typing import Dict, Optional
 
 import torch
@@ -13,6 +14,7 @@ import torch
 from perturblab.core.model_io import ModelIO
 
 
+@dataclass(kw_only=True)
 class CellFMInput(ModelIO):
     """Input schema for CellFM model forward pass.
 
@@ -45,6 +47,10 @@ class CellFMInput(ModelIO):
 
         base_mask (Optional[torch.Tensor]):
             Optional base mask for task-specific loss calculation.
+    
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: CellFMInput(raw_nzdata=..., dw_nzdata=..., nonz_gene=..., mask_gene=..., zero_idx=...)
     """
 
     raw_nzdata: torch.Tensor
@@ -56,6 +62,7 @@ class CellFMInput(ModelIO):
     base_mask: Optional[torch.Tensor] = None
 
 
+@dataclass(kw_only=True)
 class CellFMOutput(ModelIO):
     """Output schema for CellFM model forward pass.
 
@@ -81,6 +88,9 @@ class CellFMOutput(ModelIO):
         cw_pred (Optional[torch.Tensor]):
             Cell-wise predictions.
             Shape: [batch_size, seq_len].
+    Note:
+        All fields must be specified as keyword arguments due to dataclass inheritance constraints.
+        Example: CellFMOutput(field1=..., field2=...)
     """
 
     cls_token: torch.Tensor
