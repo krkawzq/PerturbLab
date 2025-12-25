@@ -319,21 +319,20 @@ class ModelRegistry:
     # =========================================================================
 
     def child(self, name: str, force: bool = False) -> ModelRegistry:
-        """Creates and returns a child registry.
+        """Creates and returns a child registry, or returns existing one.
 
         Args:
             name: Name of the child registry.
-            force: If True, overwrite existing child registry.
+            force: If True, overwrite existing child registry with a new one.
 
         Returns:
-            ModelRegistry: The created child registry.
+            ModelRegistry: The child registry (existing or newly created).
         """
         if name in self._child_registries:
             if not force:
-                raise KeyError(
-                    f"Child registry '{name}' already exists in '{self._name}'. "
-                    f"Use force=True to overwrite."
-                )
+                # Return existing child registry (similar to dict.setdefault)
+                logger.debug(f"Returning existing child registry '{name}' from '{self._name}'")
+                return self._child_registries[name]
             logger.warning(f"Overwriting child registry '{name}' in '{self._name}'")
 
         child_registry = ModelRegistry(name, parent=self)
@@ -428,12 +427,13 @@ class ModelRegistry:
     # =========================================================================
 
     def keys(self) -> Iterator[str]:
-        """Iterates over all model keys (eager and lazy, excluding child registries)."""
+        """Iterates over all model keys and child registry names."""
         yield from self._obj_map.keys()
         yield from self._lazy_map.keys()
+        yield from self._child_registries.keys()
 
-    def values(self) -> Iterator[type[Any]]:
-        """Iterates over all model classes (triggers loading of lazy models)."""
+    def values(self) -> Iterator[type[Any] | ModelRegistry]:
+        """Iterates over all model classes and child registries (triggers loading of lazy models)."""
         for value in self._obj_map.values():
             yield value
 
@@ -443,9 +443,13 @@ class ModelRegistry:
             model_class = self._load_lazy_model(key)
             if model_class is not None:
                 yield model_class
+        
+        # Include child registries
+        for child_registry in self._child_registries.values():
+            yield child_registry
 
-    def items(self) -> Iterator[tuple[str, type[Any]]]:
-        """Iterates over (key, class) pairs (triggers loading of lazy models)."""
+    def items(self) -> Iterator[tuple[str, type[Any] | ModelRegistry]]:
+        """Iterates over (key, class/registry) pairs (triggers loading of lazy models)."""
         yield from self._obj_map.items()
 
         lazy_keys = list(self._lazy_map.keys())
@@ -453,23 +457,33 @@ class ModelRegistry:
             model_class = self._load_lazy_model(key)
             if model_class is not None:
                 yield key, model_class
+        
+        # Include child registries
+        for name, child_registry in self._child_registries.items():
+            yield name, child_registry
 
     def list_keys(self, recursive: bool = False) -> list[str]:
         """Lists all registered model keys.
 
         Args:
             recursive: If True, includes keys from nested child registries using
-                dot notation (e.g., 'GEARS.gnn').
+                dot notation (e.g., 'gears.GEARSModel'). If False, includes
+                only direct models and child registry names.
 
         Returns:
             List[str]: A list of available model keys.
         """
+        # Direct models registered at this level
         current_keys = list(self._obj_map.keys()) + list(self._lazy_map.keys())
+        
+        # Add child registry names (so users can discover them)
+        current_keys.extend(self._child_registries.keys())
 
         if not recursive:
             return current_keys
 
-        # Recursive listing
+        # Recursive listing: replace child names with their full paths
+        current_keys = list(self._obj_map.keys()) + list(self._lazy_map.keys())
         for child_name, child_registry in self._child_registries.items():
             nested_keys = child_registry.list_keys(recursive=True)
             current_keys.extend([f"{child_name}.{nk}" for nk in nested_keys])
@@ -485,6 +499,22 @@ class ModelRegistry:
             return True
         except KeyError:
             return False
+
+    def __dir__(self) -> list[str]:
+        """Returns attribute names for auto-completion.
+        
+        Includes:
+        - Registry methods (get, build, register, etc.)
+        - Registered model names
+        - Child registry names
+        """
+        # Get default attributes from the class
+        attrs = list(object.__dir__(self))
+        
+        # Add registered models and child registries
+        attrs.extend(self.list_keys(recursive=False))
+        
+        return sorted(set(attrs))
 
     def __len__(self) -> int:
         return len(self._obj_map) + len(self._lazy_map)

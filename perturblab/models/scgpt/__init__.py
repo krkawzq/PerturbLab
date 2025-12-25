@@ -23,6 +23,7 @@ __all__ = [
     "scGPTInput",
     "scGPTOutput",
     "scGPTModel",
+    "scGPT",  # Alias
     "scGPTMultiOmicModel",
     "scGPTPerturbationModel",
     "requirements",
@@ -90,11 +91,38 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
-try:
-    from ._modeling.model import (
-        scGPTModel,
-        scGPTMultiOmicModel,
-        scGPTPerturbationModel,
-    )
-except ImportError:
-    pass
+def __getattr__(name: str):
+    """Lazy load scGPT model classes on attribute access."""
+    if name == "scGPTModel":
+        try:
+            from ._modeling.model import scGPTModel
+            return scGPTModel
+        except ImportError as e:
+            from perturblab.utils import DependencyError
+            raise DependencyError(
+                f"scGPTModel requires: {', '.join(requirements or ['torch'])}. "
+                f"Optional dependencies: {', '.join(dependencies)}\n"
+                f"Install them with: pip install torch {' '.join(dependencies)}"
+            ) from e
+    elif name == "scGPT":
+        # Alias for scGPTModel
+        return __getattr__("scGPTModel")
+    elif name == "scGPTMultiOmicModel":
+        try:
+            from ._modeling.model import scGPTMultiOmicModel
+            return scGPTMultiOmicModel
+        except ImportError as e:
+            from perturblab.utils import DependencyError
+            raise DependencyError(
+                f"scGPTMultiOmicModel requires: {', '.join(requirements or ['torch'])}\n"
+            ) from e
+    elif name == "scGPTPerturbationModel":
+        try:
+            from ._modeling.model import scGPTPerturbationModel
+            return scGPTPerturbationModel
+        except ImportError as e:
+            from perturblab.utils import DependencyError
+            raise DependencyError(
+                f"scGPTPerturbationModel requires: {', '.join(requirements or ['torch'])}\n"
+            ) from e
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

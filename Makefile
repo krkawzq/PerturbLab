@@ -1,4 +1,4 @@
-.PHONY: help build compile compile-cpp compile-cython clean test format lint all tree cloc
+.PHONY: help build compile compile-cpp compile-cython clean test test-fast test-imports test-types test-verbose test-coverage test-quick test-models format lint all tree cloc
 
 # Config
 PYTHON := python3
@@ -23,7 +23,14 @@ help:
 	@echo "  clean          Clean build artifacts"
 	@echo "  format         Format and fix code (all tools)"
 	@echo "  lint           Run linters"
-	@echo "  test           Run tests"
+	@echo "  test           Run all tests"
+	@echo "  test-fast      Run tests (fail fast)"
+	@echo "  test-imports   Run import tests only"
+	@echo "  test-types     Run type tests only"
+	@echo "  test-verbose   Run tests with verbose output"
+	@echo "  test-coverage  Run tests with coverage report"
+	@echo "  test-quick     Quick sanity test (import check)"
+	@echo "  test-models    Test model registry"
 	@echo "  cloc           Count lines of code"
 	@echo "  tree           Show git-tracked files tree (filtered)"
 
@@ -103,7 +110,46 @@ check: format lint test
 # =============================================================================
 
 test:
-	@[ -f test.py ] && $(PYTHON) test.py || $(PYTHON) -m pytest tests/ -v 2>/dev/null || echo "No tests found"
+	@echo "Running tests..."
+	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest
+	@uv run pytest tests/ -v --tb=short || $(PYTHON) -m pytest tests/ -v --tb=short
+
+test-fast:
+	@echo "Running tests (fail fast)..."
+	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest
+	@uv run pytest tests/ -x -v || $(PYTHON) -m pytest tests/ -x -v
+
+test-imports:
+	@echo "Running import tests..."
+	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest
+	@uv run pytest tests/test_imports.py -v || $(PYTHON) -m pytest tests/test_imports.py -v
+
+test-types:
+	@echo "Running type tests..."
+	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest
+	@uv run pytest tests/test_types.py -v || $(PYTHON) -m pytest tests/test_types.py -v
+
+test-verbose:
+	@echo "Running tests (verbose)..."
+	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest
+	@uv run pytest tests/ -vv -s || $(PYTHON) -m pytest tests/ -vv -s
+
+test-coverage:
+	@echo "Running tests with coverage..."
+	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest pytest-cov
+	@uv run pytest tests/ --cov=perturblab --cov-report=html --cov-report=term || \
+		$(PYTHON) -m pytest tests/ --cov=perturblab --cov-report=html --cov-report=term
+	@echo "Coverage report generated in htmlcov/index.html"
+
+test-quick:
+	@echo "Running quick sanity test..."
+	@uv run python -c "import perturblab; print(f'✓ PerturbLab v{perturblab.__version__} imported successfully')" || \
+		$(PYTHON) -c "import perturblab; print(f'✓ PerturbLab v{perturblab.__version__} imported successfully')"
+
+test-models:
+	@echo "Testing model imports..."
+	@uv run python -c "from perturblab import MODELS; print(f'✓ Found {len(list(MODELS._child_registries))} model registries: {list(MODELS._child_registries.keys())}')" || \
+		$(PYTHON) -c "from perturblab import MODELS; print(f'✓ Found {len(list(MODELS._child_registries))} model registries: {list(MODELS._child_registries.keys())}')"
 
 cloc:
 	@command -v cloc >/dev/null 2>&1 || { echo "Install: sudo apt install cloc"; exit 1; }

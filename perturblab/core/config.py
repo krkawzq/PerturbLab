@@ -7,7 +7,12 @@ import inspect
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Self
+from typing import Any
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 # Allowed basic types for config values
 BASIC_TYPES = (int, float, str, bool, type(None))

@@ -7,9 +7,9 @@ to experimental datasets (AnnData).
 
 from __future__ import annotations
 
-from math._graph import WeightedGraph
-
 import numpy as np
+
+from .math._graph import WeightedGraph
 import scipy.sparse as sparse
 
 from ._vocab import Vocab

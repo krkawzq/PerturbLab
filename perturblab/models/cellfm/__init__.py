@@ -19,9 +19,10 @@ __all__ = [
     "CellFMConfig",
     "CellFMInput",
     "CellFMOutput",
+    "CellFMModel",
+    "CellFM",  # Alias
     "requirements",
     "dependencies",
-    "CellFMModel",
 ]
 
 requirements = ["torch"]
@@ -63,7 +64,19 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
-try:
-    from ._modeling.model import CellFMModel
-except ImportError:
-    pass
+def __getattr__(name: str):
+    """Lazy load CellFM model class on attribute access."""
+    if name == "CellFMModel":
+        try:
+            from ._modeling.model import CellFMModel
+            return CellFMModel
+        except ImportError as e:
+            from perturblab.utils import DependencyError
+            raise DependencyError(
+                f"CellFMModel requires: {', '.join(requirements)}\n"
+                f"Install them with: pip install {' '.join(requirements)}"
+            ) from e
+    elif name == "CellFM":
+        # Alias for CellFMModel
+        return __getattr__("CellFMModel")
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

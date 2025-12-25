@@ -19,9 +19,10 @@ __all__ = [
     "scFoundationConfig",
     "scFoundationInput",
     "scFoundationOutput",
+    "scFoundationModel",
+    "scFoundation",  # Alias
     "requirements",
     "dependencies",
-    "scFoundationModel",
 ]
 
 requirements = []
@@ -63,7 +64,20 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
-try:
-    from ._modeling.model import scFoundationModel
-except ImportError:
-    pass
+def __getattr__(name: str):
+    """Lazy load scFoundation model class on attribute access."""
+    if name == "scFoundationModel":
+        try:
+            from ._modeling.model import scFoundationModel
+            return scFoundationModel
+        except ImportError as e:
+            from perturblab.utils import DependencyError
+            raise DependencyError(
+                f"scFoundationModel requires: {', '.join(requirements or ['torch'])}. "
+                f"Optional dependencies: {', '.join(dependencies)}\n"
+                f"Install them with: pip install torch {' '.join(dependencies)}"
+            ) from e
+    elif name == "scFoundation":
+        # Alias for scFoundationModel
+        return __getattr__("scFoundationModel")
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

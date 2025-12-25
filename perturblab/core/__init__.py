@@ -13,6 +13,14 @@ For model access with smart lazy loading, use:
 """
 
 from .dataset import Dataset, TorchDataset
+from .exceptions import (
+    ConfigurationError,
+    DataError,
+    DependencyError,
+    PerturbLabError,
+    RegistryError,
+    ValidationError,
+)
 from .model_registry import ModelRegistry
 from .resource import Resource
 from .resource_registry import ResourceRegistry
@@ -26,4 +34,11 @@ __all__ = [
     "ResourceRegistry",
     # Model registry (base class only, use perturblab.models.MODELS for instances)
     "ModelRegistry",
+    # Exceptions
+    "PerturbLabError",
+    "DependencyError",
+    "ConfigurationError",
+    "DataError",
+    "RegistryError",
+    "ValidationError",
 ]

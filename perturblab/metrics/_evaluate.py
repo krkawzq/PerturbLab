@@ -10,7 +10,7 @@ from perturblab.utils import get_logger
 from ._deg_overlap import compute_deg_overlap_metrics
 from ._direction import compute_direction_metrics
 from ._distribution import compute_distribution_metrics
-from ._expression import compute_expression_metrics
+from ._expression import evaluate_perturbation
 
 logger = get_logger()
 
@@ -121,7 +121,7 @@ def evaluate_prediction(
 
     See Also
     --------
-    compute_expression_metrics : Expression accuracy metrics
+    evaluate_perturbation : Expression accuracy metrics
     compute_distribution_metrics : Distribution similarity metrics
     compute_direction_metrics : Direction consistency metrics
     compute_deg_overlap_metrics : DEG overlap metrics
@@ -131,7 +131,7 @@ def evaluate_prediction(
     # Expression metrics
     if include_expression:
         logger.info("Computing expression metrics...")
-        expr_metrics = compute_expression_metrics(pred, true, ctrl, include_delta=True)
+        expr_metrics = evaluate_perturbation(pred, true, ctrl)
         all_metrics.update(expr_metrics)
 
     # Distribution metrics

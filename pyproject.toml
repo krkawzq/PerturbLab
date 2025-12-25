@@ -71,6 +71,9 @@ example = [
 all = [
     "perturblab[accelerate,gears,uce,scgpt,scfoundation,genecompass]",
 ]
+test = [
+    "pytest>=9.0.2",
+]
 
 [project.urls]
 Repository = "https://github.com/krkawzq/PerturbLab"

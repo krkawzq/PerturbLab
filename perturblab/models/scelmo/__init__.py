@@ -20,9 +20,10 @@ __all__ = [
     "scELMoConfig",
     "scELMoInput",
     "scELMoOutput",
+    "scELMoModel",
+    "scELMo",  # Alias
     "requirements",
     "dependencies",
-    "scELMoModel",
 ]
 
 requirements = []
@@ -49,7 +50,18 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
-try:
-    from ._modeling.model import scELMoModel
-except ImportError:
-    pass
+def __getattr__(name: str):
+    """Lazy load scELMo model class on attribute access."""
+    if name == "scELMoModel":
+        try:
+            from ._modeling.model import scELMoModel
+            return scELMoModel
+        except ImportError as e:
+            from perturblab.utils import DependencyError
+            raise DependencyError(
+                f"scELMoModel requires: {', '.join(requirements or ['torch'])}\n"
+            ) from e
+    elif name == "scELMo":
+        # Alias for scELMoModel
+        return __getattr__("scELMoModel")
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

@@ -17,7 +17,7 @@ from tqdm import tqdm
 from perturblab.types import BipartiteGraph, WeightedGraph
 
 from ._similarity import (
-    compute_pairwise_similarities,
+    pairwise_similarities,
     cosine_similarity_sets,
     jaccard_similarity,
     overlap_coefficient,
@@ -121,7 +121,7 @@ def project_bipartite_graph(
             iterator = tqdm(iterator, desc="Computing similarities")
 
         for i in iterator:
-            edge_list = compute_pairwise_similarities(
+            edge_list = pairwise_similarities(
                 i, all_neighbors[i], all_neighbors, similarity_func, threshold
             )
             edges.extend(edge_list)
@@ -141,7 +141,7 @@ def project_bipartite_graph(
 
 def _worker_wrapper(args: tuple) -> list[tuple[int, int, float]]:
     """Wrapper for parallel execution."""
-    return compute_pairwise_similarities(*args)
+    return pairwise_similarities(*args)
 
 
 def project_bipartite_graph_df(

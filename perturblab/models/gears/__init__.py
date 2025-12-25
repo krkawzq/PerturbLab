@@ -22,6 +22,7 @@ __all__ = [
     "GEARSInput",
     "GEARSOutput",
     "GEARSModel",
+    "GEARS",  # Alias for GEARSModel
     "requirements",
     "dependencies",
 ]
@@ -30,14 +31,11 @@ requirements = ["torch_geometric"]
 dependencies = []
 
 
-def _get_models_registry():
-    """Lazily imports MODELS to avoid circular dependency."""
-    from perturblab.models import MODELS
+# Get MODELS registry - must import after perturblab.models.__init__ completes
+# This import is safe because __init__.py imports model packages at the END
+from perturblab.models import MODELS
 
-    return MODELS
-
-
-GEARS_REGISTRY = _get_models_registry().child("GEARS")
+GEARS_REGISTRY = MODELS.child("gears")
 GEARS_COMPONENTS = GEARS_REGISTRY.child("components")
 
 # Register main model
@@ -61,7 +59,19 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
-try:
-    from ._modeling.model import GEARSModel
-except ImportError:
-    pass
+def __getattr__(name: str):
+    """Lazy load GEARS model class on attribute access."""
+    if name == "GEARSModel":
+        try:
+            from ._modeling.model import GEARSModel
+            return GEARSModel
+        except ImportError as e:
+            from perturblab.utils import DependencyError
+            raise DependencyError(
+                f"GEARSModel requires: {', '.join(requirements)}\n"
+                f"Install them with: pip install {' '.join(requirements)}"
+            ) from e
+    elif name == "GEARS":
+        # Alias for GEARSModel
+        return __getattr__("GEARSModel")
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
