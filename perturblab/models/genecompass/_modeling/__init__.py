@@ -1,21 +1,38 @@
-"""GeneCompass model implementation with lazy loading."""
+"""GeneCompass model implementations."""
 
-from perturblab.utils import create_lazy_loader
-
-from perturblab.models.genecompass.config import requirements, dependencies
-
-# Define lazy loading module map
-_LAZY_MODULES = {
-    "GeneCompassModel": "model",
-}
-
-# Create lazy loader
-__getattr__, __dir__ = create_lazy_loader(
-    requirements=requirements,
-    dependencies=dependencies,
-    lazy_modules=_LAZY_MODULES,
-    package_name=__package__,
-    install_hint="pip install perturblab[genecompass]",
+from .model import GeneCompassModel
+from .components.embeddings import (
+    KnowledgeBertEmbeddings,
+    ContinuousValueEncoder,
+    PriorEmbedding,
+    QuickGELU,
+)
+from .components.bert import (
+    BertModel,
+    BertForMaskedLM,
+    BertLMPredictionHead,
+    BertLMPredictionHead_value,
+    BertOnlyMLMHead,
+    BertOnlyMLMHead_value,
+    EmbeddingWarmup,
 )
 
-__all__ = list(_LAZY_MODULES.keys())
+__all__ = [
+    # Main model
+    "GeneCompassModel",
+    # Embeddings
+    "KnowledgeBertEmbeddings",
+    "ContinuousValueEncoder",
+    "PriorEmbedding",
+    "QuickGELU",
+    # BERT core
+    "BertModel",
+    "BertForMaskedLM",
+    # Prediction heads
+    "BertLMPredictionHead",
+    "BertLMPredictionHead_value",
+    "BertOnlyMLMHead",
+    "BertOnlyMLMHead_value",
+    # Training utilities
+    "EmbeddingWarmup",
+]

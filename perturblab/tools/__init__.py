@@ -14,13 +14,17 @@ Available Submodules:
 # Bipartite graph projection tools
 from ._bipartite import project_bipartite_graph
 
-# Gene similarity computation tools
-from ._gene_similarity import (
-    compute_gene_similarity_from_go,
+# Similarity metrics
+from ._similarity import (
+    pairwise_similarities,
     cosine_similarity_sets,
+    cosine_similarity_vectors,
     jaccard_similarity,
     overlap_coefficient,
 )
+
+# Gene similarity computation tools
+from ._gene_similarity import compute_gene_similarity_from_go
 
 # Cell splitting tools
 from ._split_cell import (
@@ -40,6 +44,12 @@ from ._split_perturbation import (
     split_perturbations_simulation,
 )
 
+# DataFrame and graph conversion tools
+from ._df_graph_converting import (
+    dataframe_to_weighted_graph,
+    weighted_graph_to_dataframe,
+)
+
 __all__ = [
     # Cell splitting
     "split_cells",
@@ -53,10 +63,18 @@ __all__ = [
     "split_perturbations_simulation",
     "split_perturbations_combo_seen",
     "split_perturbations_no_test",
-    # Bipartite graph projection
-    "project_bipartite_graph",
-    "compute_gene_similarity_from_go",
+    # Similarity metrics
     "jaccard_similarity",
     "overlap_coefficient",
     "cosine_similarity_sets",
+    "cosine_similarity_vectors",
+    "compute_pairwise_similarities",
+    # Bipartite graph projection
+    "project_bipartite_graph",
+    "project_bipartite_graph_df",
+    "compute_gene_similarity_from_go",
+    "compute_gene_similarity_from_go_df",
+    # DataFrame and graph conversion
+    "dataframe_to_weighted_graph",
+    "weighted_graph_to_dataframe",
 ]

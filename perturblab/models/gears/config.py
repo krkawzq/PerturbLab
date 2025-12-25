@@ -4,13 +4,7 @@ from dataclasses import dataclass
 
 from perturblab.core.config import Config
 
-__all__ = ["GEARSConfig", "requirements", "dependencies"]
-
-# Required dependencies (mandatory)
-requirements = ["torch_geometric"]
-
-# Optional dependencies (for enhanced functionality)
-dependencies = []
+__all__ = ["GEARSConfig"]
 
 
 @dataclass(kw_only=True)

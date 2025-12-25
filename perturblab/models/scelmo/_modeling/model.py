@@ -10,7 +10,6 @@ Architecture:
 
 from __future__ import annotations
 
-import logging
 import os
 import pickle
 from typing import Dict, List, Optional, Union
@@ -22,8 +21,9 @@ import torch.nn as nn
 from perturblab.models.scelmo.config import scELMoConfig
 from perturblab.models.scelmo.io import scELMoInput, scELMoOutput
 from perturblab.types import GeneVocab
+from perturblab.utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 __all__ = ["scELMoModel"]
 

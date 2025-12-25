@@ -1,43 +1,30 @@
-"""Bipartite graph projection and similarity computation tools.
+"""Bipartite graph projection tools.
 
 This module provides general-purpose tools for projecting bipartite graphs
-(e.g., gene-GO term networks) into weighted undirected graphs (e.g., gene-gene
-similarity networks) using various similarity metrics.
-
-These are method-agnostic utilities that can be used for GEARS and other
-graph-based methods. GEARS-specific logic is in perturblab.methods.gears.
-
-Ported and abstracted from GEARS (https://github.com/snap-stanford/GEARS).
-
-Copyright (c) 2023 SNAP Lab, Stanford University
-Licensed under the MIT License
+into weighted undirected graphs using various similarity metrics.
 """
 
 from __future__ import annotations
 
 from multiprocessing import Pool
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import Callable, Literal
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from perturblab.utils import get_logger
+from perturblab.types import BipartiteGraph, WeightedGraph
 
-if TYPE_CHECKING:
-    from perturblab.types import BipartiteGraph
-
-from ._gene_similarity import (
-    _compute_similarities_for_node,
+from ._similarity import (
+    compute_pairwise_similarities,
     cosine_similarity_sets,
     jaccard_similarity,
     overlap_coefficient,
 )
 
-logger = get_logger()
-
 __all__ = [
     "project_bipartite_graph",
+    "project_bipartite_graph_df",
 ]
 
 
@@ -48,159 +35,157 @@ def project_bipartite_graph(
     similarity: Literal["jaccard", "overlap", "cosine"] | Callable = "jaccard",
     threshold: float = 0.1,
     num_workers: int = 1,
-    show_progress: bool = True,
-) -> pd.DataFrame:
-    """Project bipartite graph to weighted undirected graph using similarity.
+    show_progress: bool = False,
+) -> WeightedGraph:
+    """Projects bipartite graph to weighted undirected graph using similarity.
 
-    Given a bipartite graph (e.g., genes -> GO terms), this function computes
-    pairwise similarity between source nodes based on their shared target nodes,
-    creating a weighted undirected graph.
+    Given a bipartite graph (e.g., genes -> GO terms), computes pairwise
+    similarity between source nodes based on their shared target nodes.
 
-    This is a general-purpose algorithm used in GEARS and other methods for
-    constructing similarity networks from bipartite relationships.
+    Args:
+        bipartite_graph: Input bipartite graph (source nodes -> target nodes).
+        source_names: Optional names for source nodes. If None, uses indices.
+        similarity: Similarity metric ('jaccard', 'overlap', 'cosine') or
+            custom function: func(set1, set2) -> float. Defaults to 'jaccard'.
+        threshold: Minimum similarity to include an edge. Defaults to 0.1.
+        num_workers: Number of parallel workers. Defaults to 1.
+        show_progress: Whether to show progress bar. Defaults to False.
 
-    Parameters
-    ----------
-    bipartite_graph : BipartiteGraph
-        Input bipartite graph (source nodes -> target nodes).
-        For gene-GO networks, source nodes are genes, target nodes are GO terms.
-    source_names : list[str] or np.ndarray, optional
-        Optional names for source nodes. If None, uses indices.
-    similarity : {'jaccard', 'overlap', 'cosine'} or callable, default='jaccard'
-        Similarity metric to use:
-        - 'jaccard': Jaccard similarity (default, used in GEARS)
-        - 'overlap': Overlap coefficient
-        - 'cosine': Cosine similarity
-        - Or a custom function: func(set1, set2) -> float
-    threshold : float, default=0.1
-        Minimum similarity to include an edge. GEARS uses 0.1.
-    num_workers : int, default=1
-        Number of parallel workers. Set to 1 for serial computation.
-    show_progress : bool, default=True
-        Whether to show progress bar.
+    Returns:
+        WeightedGraph with similarity edges between source nodes.
 
-    Returns
-    -------
-    pd.DataFrame
-        Edge list with columns ['source', 'target', 'weight'].
-        Nodes are identified by names if provided, else by indices.
-
-    Examples
-    --------
-    >>> # Create gene-GO bipartite graph
-    >>> edges = [(0, 0), (0, 1), (1, 1), (1, 2), (2, 2)]  # genes -> GO terms
-    >>> bg = BipartiteGraph(edges)
-    >>> gene_names = ['KRAS', 'TP53', 'MYC']
-    >>>
-    >>> # Project to gene-gene similarity graph
-    >>> similarity_graph = project_bipartite_graph(
-    ...     bg, gene_names, similarity='jaccard', threshold=0.1
-    ... )
-
-    Notes
-    -----
-    The algorithm computes pairwise similarity for all pairs of source nodes.
-    Time complexity: O(n^2 * m) where n is number of source nodes and m is
-    average number of target nodes per source.
-
-    For large graphs (>1000 nodes), consider using parallel computation with
-    `num_workers > 1`.
-
-    References
-    ----------
-    .. [1] Roohani et al. (2023). "GEARS: Predicting transcriptional outcomes
-           of novel multi-gene perturbations." Nature Methods.
+    Examples:
+        >>> from perturblab.types import BipartiteGraph
+        >>> from perturblab.tools import project_bipartite_graph
+        >>>
+        >>> # Gene-GO bipartite graph
+        >>> edges = [(0, 0), (0, 1), (1, 1), (1, 2)]
+        >>> bg = BipartiteGraph(edges, shape=(3, 3))
+        >>> gene_names = ['KRAS', 'TP53', 'MYC']
+        >>>
+        >>> # Project to gene-gene similarity
+        >>> graph = project_bipartite_graph(
+        ...     bg,
+        ...     source_names=gene_names,
+        ...     similarity='jaccard',
+        ...     threshold=0.1
+        ... )
+        >>> print(f"{graph.n_nodes} nodes, {graph.n_unique_edges} edges")
     """
-    logger.info(
-        f"🔄 Projecting bipartite graph: {bipartite_graph.n_source} source nodes, "
-        f"{bipartite_graph.n_target} target nodes"
-    )
-
     # Select similarity function
     if isinstance(similarity, str):
-        similarity_map = {
-            "jaccard": jaccard_similarity,
-            "overlap": overlap_coefficient,
-            "cosine": cosine_similarity_sets,
+        similarity_funcs = {
+            'jaccard': jaccard_similarity,
+            'overlap': overlap_coefficient,
+            'cosine': cosine_similarity_sets,
         }
-        if similarity not in similarity_map:
-            raise ValueError(
-                f"Unknown similarity metric: {similarity}. "
-                f"Choose from: {list(similarity_map.keys())}"
-            )
-        similarity_func = similarity_map[similarity]
+        if similarity not in similarity_funcs:
+            raise ValueError(f"Unknown similarity: {similarity}")
+        similarity_func = similarity_funcs[similarity]
     else:
         similarity_func = similarity
 
-    # Get neighbors for all source nodes
-    logger.info(f"📊 Retrieving neighbors for all source nodes...")
-    all_neighbors = bipartite_graph.to_adjacency_list()
+    # Get neighbors for each source node
+    n_source = bipartite_graph.shape[0]
+    all_neighbors = [bipartite_graph.neighbors(i, side='source') for i in range(n_source)]
 
-    # Convert to sets for faster set operations
-    all_neighbors_sets = [set(neighbors) for neighbors in all_neighbors]
-
-    # Prepare arguments for parallel computation
-    n_sources = bipartite_graph.n_source
-    args_list = [
-        (i, all_neighbors_sets[i], all_neighbors_sets, similarity_func, threshold)
-        for i in range(n_sources)
-    ]
-
-    # Compute similarities
-    logger.info(
-        f"🧮 Computing pairwise similarities (method={similarity}, " f"threshold={threshold})..."
-    )
+    # Compute pairwise similarities
+    edges = []
 
     if num_workers > 1:
-        logger.info(f"   Using {num_workers} parallel workers")
+        # Parallel computation
+        args_list = [
+            (i, all_neighbors[i], all_neighbors, similarity_func, threshold)
+            for i in range(n_source)
+        ]
+
         with Pool(num_workers) as pool:
             if show_progress:
-                all_edge_lists = list(
-                    tqdm(
-                        pool.imap(_compute_similarities_for_node, args_list),
-                        total=n_sources,
-                        desc="Computing similarities",
-                    )
-                )
+                results = list(tqdm(
+                    pool.imap(_worker_wrapper, args_list),
+                    total=len(args_list),
+                    desc="Computing similarities"
+                ))
             else:
-                all_edge_lists = pool.map(_compute_similarities_for_node, args_list)
+                results = pool.map(_worker_wrapper, args_list)
+
+        for edge_list in results:
+            edges.extend(edge_list)
     else:
+        # Serial computation
+        iterator = range(n_source)
         if show_progress:
-            all_edge_lists = [
-                _compute_similarities_for_node(args)
-                for args in tqdm(args_list, desc="Computing similarities")
-            ]
-        else:
-            all_edge_lists = [_compute_similarities_for_node(args) for args in args_list]
+            iterator = tqdm(iterator, desc="Computing similarities")
 
-    # Flatten edge list
-    edge_list = []
-    for edges in all_edge_lists:
-        edge_list.extend(edges)
+        for i in iterator:
+            edge_list = compute_pairwise_similarities(
+                i, all_neighbors[i], all_neighbors, similarity_func, threshold
+            )
+            edges.extend(edge_list)
 
-    logger.info(f"✅ Found {len(edge_list)} edges above threshold {threshold}")
+    # Add reverse edges for undirected graph
+    reverse_edges = [(t, s, w) for s, t, w in edges]
+    all_edges = edges + reverse_edges
 
-    # Convert to DataFrame
-    if not edge_list:
-        logger.warning("⚠️  No edges found above threshold! Consider lowering threshold.")
-        df = pd.DataFrame(columns=["source", "target", "weight"])
-    else:
-        df = pd.DataFrame(edge_list, columns=["source", "target", "weight"])
+    # Create WeightedGraph
+    if source_names is not None:
+        source_names = list(source_names)
 
-        # Map indices to names if provided
-        if source_names is not None:
-            source_names = np.asarray(source_names)
-            df["source"] = source_names[df["source"].values]
-            df["target"] = source_names[df["target"].values]
+    graph = WeightedGraph(all_edges, n_nodes=n_source, node_names=source_names)
 
-    # Add reverse edges to make undirected
-    df_reverse = df.copy()
-    df_reverse.columns = ["target", "source", "weight"]
-    df_undirected = pd.concat([df, df_reverse], ignore_index=True)
+    return graph
 
-    logger.info(
-        f"📈 Created undirected graph: {len(df)} unique edges, "
-        f"{len(df_undirected)} total edges (undirected)"
+
+def _worker_wrapper(args: tuple) -> list[tuple[int, int, float]]:
+    """Wrapper for parallel execution."""
+    return compute_pairwise_similarities(*args)
+
+
+def project_bipartite_graph_df(
+    bipartite_graph: BipartiteGraph,
+    source_names: list[str] | np.ndarray | None = None,
+    *,
+    similarity: Literal["jaccard", "overlap", "cosine"] | Callable = "jaccard",
+    threshold: float = 0.1,
+    num_workers: int = 1,
+    show_progress: bool = False,
+) -> pd.DataFrame:
+    """DataFrame wrapper for project_bipartite_graph.
+
+    Projects bipartite graph and returns edge list as DataFrame.
+
+    Args:
+        bipartite_graph: Input bipartite graph.
+        source_names: Optional names for source nodes.
+        similarity: Similarity metric. Defaults to 'jaccard'.
+        threshold: Minimum similarity threshold. Defaults to 0.1.
+        num_workers: Number of parallel workers. Defaults to 1.
+        show_progress: Whether to show progress bar. Defaults to False.
+
+    Returns:
+        DataFrame with columns ['source', 'target', 'weight'].
+
+    Examples:
+        >>> from perturblab.tools import project_bipartite_graph_df
+        >>>
+        >>> # Returns DataFrame instead of WeightedGraph
+        >>> df = project_bipartite_graph_df(
+        ...     bg,
+        ...     source_names=gene_names,
+        ...     similarity='jaccard'
+        ... )
+        >>> print(df.head())
+    """
+    graph = project_bipartite_graph(
+        bipartite_graph,
+        source_names=source_names,
+        similarity=similarity,
+        threshold=threshold,
+        num_workers=num_workers,
+        show_progress=show_progress,
     )
 
-    return df_undirected
+    # Convert to DataFrame
+    from ._df_graph_converting import weighted_graph_to_dataframe
+
+    return weighted_graph_to_dataframe(graph, include_node_names=True)

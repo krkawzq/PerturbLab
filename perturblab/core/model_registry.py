@@ -1,99 +1,41 @@
 """Model registry for managing model classes and architectures.
 
-Provides a decorator-based registration system for organizing model classes
-with hierarchical namespaces. Commonly used in deep learning frameworks like
-Hugging Face Transformers, OpenMMLab, and Detectron2.
+This module provides a registry system for organizing model classes with hierarchical
+namespaces. It supports both eager registration (via decorators) and lazy registration
+(via config), making it suitable for large-scale deep learning frameworks.
 
 Key Features:
-- Decorator-based registration (@registry.register())
-- Hierarchical organization (GEARS.gnn, GEARS.transformer)
-- Config-driven instantiation (model = MODELS.build("GEARS.gnn", **config))
-- Lazy vs eager loading support
+    - **Decorator-based Registration**: @registry.register()
+    - **Hierarchical Organization**: Access models via paths like "GEARS.gnn".
+    - **Lazy Loading**: Define models in config without importing modules until use.
+    - **Config-driven Instantiation**: model = registry.build("name", **config).
 """
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Iterator, Optional, Type, TypeVar
+import importlib
+import sys
+from typing import Any, Callable, Dict, Iterator, List, Optional, Type, TypeVar, Union
 
-from perturblab.utils import get_logger
+from perturblab.utils import DependencyError, check_dependencies, get_logger
 
 logger = get_logger()
 
-__all__ = ["ModelRegistry"]
+__all__ = ["ModelRegistry", "register_lazy_models"]
 
 T = TypeVar("T")
 
 
 class ModelRegistry:
-    """Registry for managing model classes with decorator support.
+    """Registry for managing model classes with support for hierarchy and lazy loading.
 
-    Allows registering model classes via decorators and accessing them
-    through a dict-like interface or a build method. Supports nested
-    registries for hierarchical organization (e.g., GEARS.gnn).
+    This class allows registering model classes via decorators and accessing them
+    through a dictionary-like interface or a `build` factory method. It supports
+    nested registries for hierarchical organization (e.g., `GEARS.gnn`, `GEARS.transformer`).
 
-    This follows the same design philosophy as ResourceRegistry but is
-    optimized for model class management with decorator registration.
-
-    Parameters
-    ----------
-    name : str
-        Name of this registry (e.g., "MODELS", "GEARS", "optimizers").
-    parent : ModelRegistry, optional
-        Parent registry for hierarchical organization.
-    auto_import : bool, default=False
-        If True, automatically import all model modules to trigger
-        decorator registration. Requires setting up import paths.
-
-    Examples
-    --------
-    >>> # 1. Create global registry
-    >>> MODELS = ModelRegistry("MODELS")
-    >>>
-    >>> # 2. Register models via decorator
-    >>> @MODELS.register()
-    >>> class MLP(nn.Module):
-    ...     def __init__(self, hidden_dim):
-    ...         super().__init__()
-    ...         self.linear = nn.Linear(hidden_dim, hidden_dim)
-    >>>
-    >>> @MODELS.register("Transformer")  # Custom name
-    >>> class MyTransformer(nn.Module):
-    ...     pass
-    >>>
-    >>> # 3. Create sub-registry for specific method
-    >>> GEARS_MODELS = ModelRegistry("GEARS")
-    >>> MODELS.add_child(GEARS_MODELS)
-    >>>
-    >>> @GEARS_MODELS.register("gnn")
-    >>> class GearsGNN(nn.Module):
-    ...     pass
-    >>>
-    >>> # 4. Build models
-    >>> model = MODELS.build("MLP", hidden_dim=64)
-    >>> gnn = MODELS.build("GEARS.gnn", hidden_dim=128)
-    >>>
-    >>> # 5. Check available models
-    >>> print(MODELS.list_keys())
-    >>> print(MODELS.list_keys(recursive=True))  # Include nested
-
-    Notes
-    -----
-    **Import Order Issue**: This is the biggest pitfall of decorator-based
-    registration. If a Python file containing model definitions is never
-    imported, the decorator won't execute and the model won't be registered.
-
-    **Solutions**:
-    1. Explicitly import all model files in `__init__.py`
-    2. Use `auto_import=True` with auto-discovery
-    3. Document which modules need to be imported
-
-    **Design Philosophy**:
-    - ResourceRegistry: Lazy initialization (build dict on first access)
-    - ModelRegistry: Eager registration (register immediately on import)
-
-    This difference is intentional:
-    - Resources are external (files, URLs) - lazy loading saves startup time
-    - Models are classes in memory - eager registration ensures availability
+    Attributes:
+        name (str): The name of the registry (e.g., "MODELS").
+        parent (Optional[ModelRegistry]): The parent registry if this is a child.
     """
 
     def __init__(
@@ -102,39 +44,42 @@ class ModelRegistry:
         parent: Optional[ModelRegistry] = None,
         auto_import: bool = False,
     ):
-        """Initialize model registry.
+        """Initializes the ModelRegistry.
 
-        Parameters
-        ----------
-        name : str
-            Registry identifier (e.g., "MODELS", "GEARS").
-        parent : ModelRegistry, optional
-            Parent registry for hierarchical organization.
-        auto_import : bool, default=False
-            Whether to automatically import model modules.
+        Args:
+            name: The registry identifier (e.g., "MODELS", "GEARS").
+            parent: Parent registry for hierarchical organization. Defaults to None.
+            auto_import: Whether to automatically import model modules to trigger
+                registration. Defaults to False.
         """
         self._name = name
         self._parent = parent
         self._auto_import = auto_import
 
-        # Eagerly initialized (unlike ResourceRegistry)
+        # Eagerly initialized models (class objects)
         self._obj_map: Dict[str, Type[Any]] = {}
+        
+        # Child registries for hierarchy
         self._child_registries: Dict[str, ModelRegistry] = {}
+
+        # Lazy registration metadata: stores info to import models later.
+        # Format: {model_name: {'module': '...', 'class': '...', 'dependencies': [...]}}
+        self._lazy_map: Dict[str, Dict[str, Any]] = {}
 
         logger.debug(f"ModelRegistry created: {name}")
 
     @property
     def name(self) -> str:
-        """Registry name."""
+        """Returns the registry name."""
         return self._name
 
     @property
     def parent(self) -> Optional[ModelRegistry]:
-        """Parent registry."""
+        """Returns the parent registry."""
         return self._parent
 
     # =========================================================================
-    # Decorator Registration
+    # Registration Methods (Eager & Lazy)
     # =========================================================================
 
     def register(
@@ -145,40 +90,28 @@ class ModelRegistry:
     ) -> Callable[[Type[T]], Type[T]]:
         """Decorator to register a class.
 
-        Parameters
-        ----------
-        name : str, optional
-            Custom name for the model. If None, uses class.__name__.
-        force : bool, default=False
-            If True, allow overwriting existing registrations.
-        module : str, optional
-            Module name for documentation (auto-detected if None).
+        Args:
+            name: Custom name for the model. If None, uses the class name.
+            force: If True, allows overwriting existing registrations.
+            module: Module name for documentation (auto-detected if None).
 
-        Returns
-        -------
-        Callable
-            Decorator function.
+        Returns:
+            A decorator function that registers the class.
 
-        Examples
-        --------
-        >>> @MODELS.register()
-        >>> class MyModel(nn.Module):
-        ...     pass
-        >>>
-        >>> @MODELS.register("CustomName")
-        >>> class MyModel2(nn.Module):
-        ...     pass
-        >>>
-        >>> @MODELS.register(force=True)  # Allow overwrite
-        >>> class MyModel(nn.Module):
-        ...     pass
+        Raises:
+            KeyError: If the name is already registered and `force` is False.
+
+        Examples:
+            >>> @MODELS.register()
+            >>> class MyModel(nn.Module): ...
+            >>>
+            >>> @MODELS.register("CustomName")
+            >>> class MyModel2(nn.Module): ...
         """
 
         def _register_wrapper(cls: Type[T]) -> Type[T]:
-            # Use provided name or class name
             key = name if name is not None else cls.__name__
 
-            # Check for duplicates
             if key in self._obj_map:
                 if not force:
                     existing = self._obj_map[key]
@@ -191,35 +124,16 @@ class ModelRegistry:
                 else:
                     logger.warning(f"Overwriting model '{key}' in registry '{self._name}'")
 
-            # Register the class
             self._obj_map[key] = cls
-
-            # Log with module info
+            
             module_name = module or cls.__module__
             logger.debug(
                 f"Registered model '{key}' in registry '{self._name}' "
                 f"({module_name}.{cls.__name__})"
             )
-
             return cls
 
         return _register_wrapper
-
-    def register_module(
-        self,
-        name: Optional[str] = None,
-        force: bool = False,
-    ) -> Callable[[Type[T]], Type[T]]:
-        """Alias for register() with clearer name for modules.
-
-        This is just an alias for consistency with frameworks like MMDetection
-        that use @MODELS.register_module().
-        """
-        return self.register(name=name, force=force)
-
-    # =========================================================================
-    # Manual Registration
-    # =========================================================================
 
     def register_class(
         self,
@@ -227,23 +141,12 @@ class ModelRegistry:
         name: Optional[str] = None,
         force: bool = False,
     ) -> None:
-        """Manually register a class (non-decorator style).
+        """Manually registers a class without using a decorator.
 
-        Parameters
-        ----------
-        cls : Type
-            Class to register.
-        name : str, optional
-            Custom name. If None, uses cls.__name__.
-        force : bool, default=False
-            Allow overwriting existing registrations.
-
-        Examples
-        --------
-        >>> class MyModel(nn.Module):
-        ...     pass
-        >>> MODELS.register_class(MyModel)
-        >>> MODELS.register_class(MyModel, name="CustomName")
+        Args:
+            cls: The class to register.
+            name: Custom name. If None, uses `cls.__name__`.
+            force: Allow overwriting existing registrations.
         """
         key = name if name is not None else cls.__name__
 
@@ -253,157 +156,132 @@ class ModelRegistry:
         self._obj_map[key] = cls
         logger.debug(f"Manually registered model '{key}' in registry '{self._name}'")
 
-    # =========================================================================
-    # Hierarchical Organization
-    # =========================================================================
+    def register_lazy(
+        self,
+        name: str,
+        module: str,
+        class_name: str,
+        requirements: Optional[List[str]] = None,
+        dependencies: Optional[List[str]] = None,
+        force: bool = False,
+    ) -> None:
+        """Registers a model lazily without importing the module immediately.
 
-    def child(self, name: str, force: bool = False) -> ModelRegistry:
-        """Create and return a child registry.
+        This is the recommended way to register built-in models to reduce startup time
+        and circular import issues. The model module is only imported when the model
+        is accessed via `build()` or `get()`.
 
-        This is the primary method for creating hierarchical namespaces.
-        It creates a new ModelRegistry, attaches it as a child, and returns it.
+        Args:
+            name: The registration name (e.g., 'default', 'gnn').
+            module: The full module path (e.g., 'perturblab.models.gears.model').
+            class_name: The name of the class inside the module (e.g., 'GEARS').
+            requirements: List of required package dependencies (e.g., ['torch_geometric']).
+                If any are missing, raises DependencyError when loading.
+            dependencies: List of optional package dependencies (e.g., ['accelerate']).
+                If any are missing, logs info message when loading.
+            force: Whether to overwrite existing registrations.
 
-        Parameters
-        ----------
-        name : str
-            Name of the child registry.
-        force : bool, default=False
-            If True, allow overwriting existing child registries.
-
-        Returns
-        -------
-        ModelRegistry
-            The newly created child registry.
-
-        Examples
-        --------
-        >>> # Create child registry in one line
-        >>> GEARS_MODELS = MODELS.child("GEARS")
-        >>>
-        >>> # Now register models to the child
-        >>> @GEARS_MODELS.register("gnn")
-        >>> class GearsGNN(nn.Module):
-        ...     pass
-        >>>
-        >>> # Access via parent: MODELS.build("GEARS.gnn", ...)
-        >>> model = MODELS.build("GEARS.gnn", hidden_dim=128)
-        >>>
-        >>> # Chain multiple levels
-        >>> variants = GEARS_MODELS.child("variants")
-        >>> @variants.register("v1")
-        >>> class GearsGNNV1(nn.Module):
-        ...     pass
+        Examples:
+            >>> # In perturblab/models/gears/__init__.py
+            >>> GEARS_REGISTRY.register_lazy(
+            ...     name="default",
+            ...     module="perturblab.models.gears.model",
+            ...     class_name="GEARS",
+            ...     requirements=['torch_geometric'],
+            ...     dependencies=[]
+            ... )
         """
-        if name in self._child_registries:
+        if name in self._obj_map:
             if not force:
                 raise KeyError(
-                    f"Child registry '{name}' already exists in '{self._name}'. "
-                    f"Use force=True to overwrite or use a different name."
+                    f"Model '{name}' is already eagerly registered in '{self._name}'. "
+                    f"Use force=True to overwrite."
                 )
-            logger.warning(f"Overwriting child registry '{name}' in '{self._name}'")
+            logger.warning(f"Overwriting eager model '{name}' with lazy registration.")
 
-        # Create new child registry
-        child_registry = ModelRegistry(name, parent=self)
+        if name in self._lazy_map:
+            if not force:
+                raise KeyError(
+                    f"Model '{name}' is already lazily registered in '{self._name}'. "
+                    f"Use force=True to overwrite."
+                )
+            logger.warning(f"Overwriting lazy model '{name}' in registry '{self._name}'.")
 
-        # Attach to parent
-        self._child_registries[name] = child_registry
+        self._lazy_map[name] = {
+            'module': module,
+            'class': class_name,
+            'requirements': requirements or [],
+            'dependencies': dependencies or [],
+        }
 
-        logger.debug(f"Created child registry '{name}' under '{self._name}'")
-
-        return child_registry
-
-    def add_child(self, registry: ModelRegistry, name: Optional[str] = None) -> None:
-        """Add an existing registry as a child.
-
-        This is an advanced method for attaching pre-existing registries.
-        For most use cases, prefer the `.child()` method instead.
-
-        Parameters
-        ----------
-        registry : ModelRegistry
-            Child registry to add.
-        name : str, optional
-            Name to use for the child. If None, uses registry.name.
-
-        Examples
-        --------
-        >>> # Advanced: Add existing registry
-        >>> external_registry = ModelRegistry("external")
-        >>> # ... register some models ...
-        >>> MODELS.add_child(external_registry)
-        >>>
-        >>> # Standard usage (prefer this):
-        >>> GEARS_MODELS = MODELS.child("GEARS")
-        """
-        child_name = name if name is not None else registry.name
-
-        if child_name in self._child_registries:
-            logger.warning(f"Overwriting child registry '{child_name}' in '{self._name}'")
-
-        self._child_registries[child_name] = registry
-        registry._parent = self
-
-        logger.debug(f"Added existing child registry '{child_name}' to '{self._name}'")
-
-    def remove_child(self, name: str) -> None:
-        """Remove a child registry.
-
-        Parameters
-        ----------
-        name : str
-            Name of child registry to remove.
-        """
-        if name in self._child_registries:
-            del self._child_registries[name]
-            logger.debug(f"Removed child registry '{name}' from '{self._name}'")
-        else:
-            raise KeyError(f"Child registry '{name}' not found in '{self._name}'")
+        logger.debug(
+            f"Lazy registered model '{name}' in registry '{self._name}' "
+            f"(module: {module}, class: {class_name})"
+        )
 
     # =========================================================================
-    # Access Methods
+    # Factory & Retrieval Methods
     # =========================================================================
+
+    def build(self, key: str, *args, **kwargs) -> Any:
+        """Instantiates a model from the registry using the provided configuration.
+
+        Args:
+            key: Model key or dot-path (e.g., "MLP" or "GEARS.gnn").
+            *args: Positional arguments passed to the model constructor.
+            **kwargs: Keyword arguments passed to the model constructor.
+
+        Returns:
+            Any: The instantiated model object.
+
+        Raises:
+            KeyError: If the model key is not found.
+            TypeError: If the key points to a sub-registry instead of a class.
+            Exception: Any exception raised during model instantiation.
+
+        Examples:
+            >>> model = MODELS.build("MLP", hidden_dim=64)
+            >>> gnn = MODELS.build("GEARS.gnn", hidden_dim=128)
+        """
+        obj = self._get_no_default(key)
+
+        if isinstance(obj, ModelRegistry):
+            raise TypeError(
+                f"Key '{key}' points to a registry, not a model class. "
+                f"Cannot instantiate. Available models inside: "
+                f"{list(obj.keys())}"
+            )
+
+        try:
+            return obj(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Failed to build model '{key}' from registry '{self._name}': {e}")
+            raise
 
     def get(
         self, key: str, default: Optional[Type[Any]] = None
-    ) -> Type[Any] | ModelRegistry | None:
-        """Get a model class or sub-registry by key.
+    ) -> Union[Type[Any], ModelRegistry, None]:
+        """Retrieves a model class or sub-registry by key.
 
-        Supports dot notation for nested access (e.g., 'GEARS.gnn').
-        Returns child registries for intermediate paths (e.g., 'GEARS').
+        Args:
+            key: Model key or path (e.g., "MLP", "GEARS.gnn").
+            default: Value to return if key is not found. Defaults to None.
 
-        Parameters
-        ----------
-        key : str
-            Model key or path (e.g., "MLP", "GEARS", or "GEARS.gnn").
-        default : Type, optional
-            Default value if key not found.
-
-        Returns
-        -------
-        Type or ModelRegistry or None
-            Model class, sub-registry, or default.
-
-        Examples
-        --------
-        >>> cls = MODELS.get("MLP")
-        >>> model = cls(hidden_dim=64)
-        >>>
-        >>> # Get sub-registry (for chaining)
-        >>> gears = MODELS.get("GEARS")  # Returns ModelRegistry
-        >>> gnn_cls = gears.get("gnn")
-        >>>
-        >>> # Or use dot notation directly
-        >>> gnn_cls = MODELS.get("GEARS.gnn")
+        Returns:
+            The model class, sub-registry, or the default value.
         """
         try:
             return self._get_no_default(key)
         except KeyError:
             return default
 
-    def _get_no_default(self, key: str) -> Type[Any] | ModelRegistry:
-        """Internal get without default (raises KeyError)."""
+    def _get_no_default(self, key: str) -> Union[Type[Any], ModelRegistry]:
+        """Internal retrieval method that raises KeyError if not found.
+
+        Handles nested lookups and triggers lazy loading if necessary.
+        """
         if "." in key:
-            # Handle nested lookup: "GEARS.gnn"
+            # Handle nested lookup: "GEARS.gnn" -> root="GEARS", sub_key="gnn"
             root, sub_key = key.split(".", 1)
 
             if root not in self._child_registries:
@@ -414,222 +292,271 @@ class ModelRegistry:
 
             return self._child_registries[root]._get_no_default(sub_key)
 
-        # Check child registries first (priority to namespaces)
+        # 1. Check child registries (Namespaces have priority)
         if key in self._child_registries:
             return self._child_registries[key]
 
-        # Check models
-        if key not in self._obj_map:
-            raise KeyError(
-                f"Model '{key}' not found in registry '{self._name}'. "
-                f"Available: {list(self._obj_map.keys())}"
-            )
+        # 2. Check eagerly registered models
+        if key in self._obj_map:
+            return self._obj_map[key]
 
-        return self._obj_map[key]
+        # 3. Try lazy loading
+        if key in self._lazy_map:
+            model_class = self._load_lazy_model(key)
+            if model_class is not None:
+                return model_class
+            # If loading failed, fall through to raise KeyError
 
-    def build(self, key: str, *args, **kwargs) -> Any:
-        """Instantiate a model from the registry.
+        # 4. Not found
+        available = list(self._obj_map.keys()) + list(self._lazy_map.keys())
+        raise KeyError(
+            f"Model '{key}' not found in registry '{self._name}'. "
+            f"Available models: {available}"
+        )
 
-        This is the primary method for config-driven model creation.
+    # =========================================================================
+    # Hierarchy Management
+    # =========================================================================
 
-        Parameters
-        ----------
-        key : str
-            Model key or path (e.g., "MLP" or "GEARS.gnn").
-        *args
-            Positional arguments for model __init__.
-        **kwargs
-            Keyword arguments for model __init__.
+    def child(self, name: str, force: bool = False) -> ModelRegistry:
+        """Creates and returns a child registry.
 
-        Returns
-        -------
-        Any
-            Instantiated model.
+        Args:
+            name: Name of the child registry.
+            force: If True, overwrite existing child registry.
 
-        Raises
-        ------
-        KeyError
-            If model not found.
-        TypeError
-            If key points to a registry instead of a model class.
-
-        Examples
-        --------
-        >>> model = MODELS.build("MLP", hidden_dim=64, num_layers=3)
-        >>> gnn = MODELS.build("GEARS.gnn", hidden_dim=128)
-        >>>
-        >>> # Config-driven
-        >>> config = {"model": "GEARS.gnn", "params": {"hidden_dim": 128}}
-        >>> model = MODELS.build(config["model"], **config["params"])
+        Returns:
+            ModelRegistry: The created child registry.
         """
-        obj = self._get_no_default(key)
+        if name in self._child_registries:
+            if not force:
+                raise KeyError(
+                    f"Child registry '{name}' already exists in '{self._name}'. "
+                    f"Use force=True to overwrite."
+                )
+            logger.warning(f"Overwriting child registry '{name}' in '{self._name}'")
 
-        if isinstance(obj, ModelRegistry):
-            raise TypeError(
-                f"Key '{key}' points to a registry, not a model class. "
-                f"Cannot instantiate. Available models in '{key}': "
-                f"{list(obj._obj_map.keys())}"
-            )
+        child_registry = ModelRegistry(name, parent=self)
+        self._child_registries[name] = child_registry
+        logger.debug(f"Created child registry '{name}' under '{self._name}'")
+        return child_registry
+
+    def add_child(self, registry: ModelRegistry, name: Optional[str] = None) -> None:
+        """Attaches an existing registry as a child.
+
+        Args:
+            registry: The registry object to attach.
+            name: Optional name for the child. If None, uses `registry.name`.
+        """
+        child_name = name if name is not None else registry.name
+
+        if child_name in self._child_registries:
+            logger.warning(f"Overwriting child registry '{child_name}' in '{self._name}'")
+
+        self._child_registries[child_name] = registry
+        registry._parent = self
+        logger.debug(f"Added existing child registry '{child_name}' to '{self._name}'")
+
+    # =========================================================================
+    # Internal Lazy Loading Logic
+    # =========================================================================
+
+    def _load_lazy_model(self, name: str) -> Optional[Type[Any]]:
+        """Internal method to import and cache a lazily registered model.
+
+        Args:
+            name: The model key.
+
+        Returns:
+            The imported class object, or None if import failed.
+        """
+        if name not in self._lazy_map:
+            return None
+
+        metadata = self._lazy_map[name]
+        module_path = metadata['module']
+        class_name = metadata['class']
+        requirements = metadata['requirements']
+        dependencies = metadata['dependencies']
+
+        # Check dependencies using the utility function
+        if requirements or dependencies:
+            try:
+                check_dependencies(
+                    requirements=requirements,
+                    dependencies=dependencies,
+                    package_name=f"Model '{name}'",
+                )
+            except DependencyError:
+                # Re-raise to prevent model loading if required deps are missing
+                raise
 
         try:
-            return obj(*args, **kwargs)
+            if module_path not in sys.modules:
+                logger.info(f"Loading module '{module_path}' for model '{name}'...")
+
+            module = importlib.import_module(module_path)
+
+            if not hasattr(module, class_name):
+                logger.error(
+                    f"Module '{module_path}' does not contain class '{class_name}'. "
+                    f"Available contents: {dir(module)}"
+                )
+                return None
+
+            model_class = getattr(module, class_name)
+
+            # Promote from lazy map to eager map (cache result)
+            self._obj_map[name] = model_class
+            del self._lazy_map[name]
+
+            logger.info(f"✓ Successfully loaded model '{name}' from '{module_path}'")
+            return model_class
+
+        except ImportError as e:
+            logger.error(
+                f"Failed to import module '{module_path}' for model '{name}': {e}\n"
+                f"This may indicate missing dependencies or incorrect paths."
+            )
+            return None
         except Exception as e:
-            logger.error(f"Failed to build model '{key}' from registry '{self._name}': {e}")
-            raise
+            logger.error(f"Unexpected error loading model '{name}': {e}")
+            return None
+
 
     # =========================================================================
-    # Dict-like Interface
+    # Dict-like Interface & Introspection
     # =========================================================================
 
-    def __getitem__(self, key: str) -> Type[Any] | ModelRegistry:
-        """Get model class or sub-registry (dict-like access)."""
+    def keys(self) -> Iterator[str]:
+        """Iterates over all model keys (eager and lazy, excluding child registries)."""
+        yield from self._obj_map.keys()
+        yield from self._lazy_map.keys()
+
+    def values(self) -> Iterator[Type[Any]]:
+        """Iterates over all model classes (triggers loading of lazy models)."""
+        for value in self._obj_map.values():
+            yield value
+        
+        # Snapshot keys to avoid runtime error during iteration if map changes
+        lazy_keys = list(self._lazy_map.keys())
+        for key in lazy_keys:
+            model_class = self._load_lazy_model(key)
+            if model_class is not None:
+                yield model_class
+
+    def items(self) -> Iterator[tuple[str, Type[Any]]]:
+        """Iterates over (key, class) pairs (triggers loading of lazy models)."""
+        yield from self._obj_map.items()
+
+        lazy_keys = list(self._lazy_map.keys())
+        for key in lazy_keys:
+            model_class = self._load_lazy_model(key)
+            if model_class is not None:
+                yield key, model_class
+
+    def list_keys(self, recursive: bool = False) -> List[str]:
+        """Lists all registered model keys.
+
+        Args:
+            recursive: If True, includes keys from nested child registries using
+                dot notation (e.g., 'GEARS.gnn').
+
+        Returns:
+            List[str]: A list of available model keys.
+        """
+        current_keys = list(self._obj_map.keys()) + list(self._lazy_map.keys())
+
+        if not recursive:
+            return current_keys
+
+        # Recursive listing
+        for child_name, child_registry in self._child_registries.items():
+            nested_keys = child_registry.list_keys(recursive=True)
+            current_keys.extend([f"{child_name}.{nk}" for nk in nested_keys])
+
+        return current_keys
+
+    def __getitem__(self, key: str) -> Union[Type[Any], ModelRegistry]:
         return self._get_no_default(key)
 
     def __contains__(self, key: str) -> bool:
-        """Check if key exists in registry."""
         try:
             self._get_no_default(key)
             return True
         except KeyError:
             return False
 
-    def keys(self) -> Iterator[str]:
-        """Iterate over model keys (excludes child registries)."""
-        return iter(self._obj_map.keys())
-
-    def values(self) -> Iterator[Type[Any]]:
-        """Iterate over model classes."""
-        return iter(self._obj_map.values())
-
-    def items(self) -> Iterator[tuple[str, Type[Any]]]:
-        """Iterate over (key, model_class) pairs."""
-        return iter(self._obj_map.items())
-
     def __len__(self) -> int:
-        """Number of models (excludes child registries)."""
-        return len(self._obj_map)
-
-    def __iter__(self) -> Iterator[str]:
-        """Iterate over model keys."""
-        return self.keys()
-
-    # =========================================================================
-    # Utility Methods
-    # =========================================================================
-
-    def list_keys(self, recursive: bool = False, include_children: bool = False) -> list[str]:
-        """List all model keys.
-
-        Parameters
-        ----------
-        recursive : bool, default=False
-            If True, include keys from nested registries with dot notation.
-        include_children : bool, default=False
-            If True and recursive=False, include child registry names.
-
-        Returns
-        -------
-        list of str
-            List of model keys.
-
-        Examples
-        --------
-        >>> keys = MODELS.list_keys()
-        >>> print(keys)
-        ['MLP', 'Transformer']
-        >>>
-        >>> # Include nested models
-        >>> keys = MODELS.list_keys(recursive=True)
-        >>> print(keys)
-        ['MLP', 'Transformer', 'GEARS.gnn', 'GEARS.transformer']
-        """
-        if not recursive:
-            if include_children:
-                return list(self._obj_map.keys()) + list(self._child_registries.keys())
-            return list(self._obj_map.keys())
-
-        # Recursive listing
-        keys = list(self._obj_map.keys())
-        for child_name, child_registry in self._child_registries.items():
-            nested_keys = child_registry.list_keys(recursive=True)
-            keys.extend([f"{child_name}.{nk}" for nk in nested_keys])
-
-        return keys
-
-    def list_modules(self) -> dict[str, str]:
-        """List all registered models with their module paths.
-
-        Returns
-        -------
-        dict[str, str]
-            Mapping of model keys to module paths.
-
-        Examples
-        --------
-        >>> modules = MODELS.list_modules()
-        >>> print(modules)
-        {'MLP': 'mypackage.models.mlp.MLP',
-         'GEARS.gnn': 'perturblab.methods.gears.models.GearsGNN'}
-        """
-        modules = {}
-
-        for key, cls in self._obj_map.items():
-            modules[key] = f"{cls.__module__}.{cls.__name__}"
-
-        # Recursively add child registries
-        for child_name, child_registry in self._child_registries.items():
-            child_modules = child_registry.list_modules()
-            for key, module in child_modules.items():
-                modules[f"{child_name}.{key}"] = module
-
-        return modules
-
-    def get_info(self) -> dict:
-        """Get registry information.
-
-        Returns
-        -------
-        dict
-            Information dictionary with structure and contents.
-
-        Examples
-        --------
-        >>> info = MODELS.get_info()
-        >>> print(info['num_models'])
-        >>> print(info['models'])
-        >>> print(info['children'])
-        """
-        return {
-            "name": self._name,
-            "num_models": len(self._obj_map),
-            "num_children": len(self._child_registries),
-            "models": list(self._obj_map.keys()),
-            "children": list(self._child_registries.keys()),
-            "modules": {
-                key: f"{cls.__module__}.{cls.__name__}" for key, cls in self._obj_map.items()
-            },
-        }
+        return len(self._obj_map) + len(self._lazy_map)
 
     def __repr__(self) -> str:
-        """String representation."""
         return (
             f"<ModelRegistry '{self._name}' "
-            f"models={len(self._obj_map)} "
+            f"models={len(self)} "
             f"children={list(self._child_registries.keys())}>"
         )
 
     def __str__(self) -> str:
-        """Human-readable string."""
         return self.__repr__()
 
 
 # =============================================================================
-# Note on Global Registry
+# Utility Functions
 # =============================================================================
 
-# The global MODELS instance is created in perturblab.models module
-# with smart lazy loading capabilities. Import it from there:
-#     from perturblab.models import MODELS
-#
-# This separation keeps core as pure type definitions while models
-# handles the actual instance with intelligent loading logic.
+def register_lazy_models(
+    registry: ModelRegistry,
+    models: Dict[str, str],
+    base_module: str,
+    requirements: Optional[List[str]] = None,
+    dependencies: Optional[List[str]] = None,
+) -> None:
+    """Batch registers multiple models lazily to a registry.
+    
+    This utility function simplifies the common pattern of registering multiple
+    model variants or components with the same dependencies.
+    
+    Args:
+        registry: The ModelRegistry instance to register models to.
+        models: Dictionary mapping model names to class names.
+            Example: {"default": "GEARSModel", "GEARSModel": "GEARSModel"}
+        base_module: Base module path where models are located.
+            Example: "perturblab.models.gears._modeling.model"
+        requirements: List of required package dependencies.
+        dependencies: List of optional package dependencies.
+    
+    Examples:
+        >>> # Register multiple GEARS models
+        >>> register_lazy_models(
+        ...     registry=GEARS_REGISTRY,
+        ...     models={
+        ...         "default": "GEARSModel",
+        ...         "GEARSModel": "GEARSModel",
+        ...     },
+        ...     base_module="perturblab.models.gears._modeling.model",
+        ...     requirements=["torch_geometric"],
+        ...     dependencies=[]
+        ... )
+        
+        >>> # Register scGPT components from _modeling/__init__.py exports
+        >>> from perturblab.models.scgpt._modeling import __all__ as scgpt_models
+        >>> register_lazy_models(
+        ...     registry=SCGPT_REGISTRY,
+        ...     models={name: name for name in scgpt_models},
+        ...     base_module="perturblab.models.scgpt._modeling",
+        ...     requirements=[],
+        ...     dependencies=["flash_attn"]
+        ... )
+    """
+    requirements = requirements or []
+    dependencies = dependencies or []
+    
+    for model_name, class_name in models.items():
+        registry.register_lazy(
+            name=model_name,
+            module=base_module,
+            class_name=class_name,
+            requirements=requirements,
+            dependencies=dependencies,
+        )

@@ -14,7 +14,6 @@ Licensed under CC BY-NC-ND 4.0
 
 from __future__ import annotations
 
-import logging
 from typing import Union
 
 import torch.nn as nn
@@ -27,8 +26,6 @@ from perturblab.models.cellfm.io import CellFMInput, CellFMOutput
 # Adjust this import based on where you placed the FinetuneModel class
 # (e.g. from .modeling_cellfm import FinetuneModel)
 from .components import FinetuneModel
-
-logger = logging.getLogger(__name__)
 
 __all__ = ["CellFMModel"]
 

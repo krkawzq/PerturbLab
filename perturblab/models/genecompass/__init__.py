@@ -1,186 +1,73 @@
 """GeneCompass: Knowledge-Informed Cross-Species Foundation Model.
 
 GeneCompass is a BERT-based foundation model for single-cell RNA-seq analysis.
-It integrates five types of biological prior knowledge to enable enhanced gene expression prediction,
-cross-species transfer learning (human ↔ mouse), zero-shot cell type prediction, and gene expression imputation.
-
-Key Features:
-    * Knowledge-Informed Embeddings: Integrates Gene2Vec, PPI, GO, ChIP-seq, and co-expression knowledge.
-    * Dual Prediction: Predicts both gene identities and expression values simultaneously.
-    * Cross-Species: Supports species embeddings (human and mouse) for domain adaptation.
-    * Transformer Architecture: Utilizes BERT with configurable number of layers (6-24).
-    * Embedding Warmup: Gradually incorporates prior knowledge during training.
-
-Model Architecture:
-    Input: genes, expression values, and species indicators
-      ↓
-    Knowledge-Informed Embeddings
-      ↓
-    BERT Encoder (6-24 layers)
-      ↓
-      ├─→ MLM Head (gene ID prediction)
-      └─→ Value Head (expression value regression)
-
-Example usage:
-    ```python
-    from perturblab.models import GeneCompassModel, GeneCompassConfig
-    from perturblab.models.genecompass import GeneCompassInput
-
-    # Initialize model configuration
-    config = GeneCompassConfig(
-        vocab_size=25000,
-        hidden_size=768,
-        num_hidden_layers=12,
-        use_values=True,
-    )
-    knowledges = {
-        "gene2vec": gene2vec_embeddings,
-        "ppi": ppi_network,
-        "go": go_annotations,
-        "chipseq": chipseq_data,
-        "coexp": coexp_network,
-    }
-    model = GeneCompassModel(config, knowledges)
-
-    # Construct model inputs
-    inputs = GeneCompassInput(
-        input_ids=gene_tokens,
-        values=expression_values,
-        species=species_indicators,
-    )
-    outputs = model(inputs)
-
-    # Retrieve predictions
-    gene_predictions = outputs.logits
-    value_predictions = outputs.value_logits
-    embeddings = outputs.hidden_states
-    ```
+It integrates five types of biological prior knowledge to enable enhanced gene 
+expression prediction, cross-species transfer learning, zero-shot cell type 
+prediction, and gene expression imputation.
 
 References:
-    [1] GeneCompass: Decoding Universal Gene Expression Signatures Across Species and Sequencing Platforms.
-        bioRxiv 2023. https://github.com/xyz/GeneCompass
+    GeneCompass: Decoding Universal Gene Expression Signatures Across Species 
+    and Sequencing Platforms. bioRxiv 2023.
 
 Dependencies:
     Required: transformers
     Install: pip install perturblab[genecompass]
 """
 
-from perturblab.utils import create_lazy_loader, DependencyError
+from perturblab.core.model_registry import register_lazy_models
 
-# Import configuration and IO schemas
-from .config import GeneCompassConfig, requirements, dependencies
+from .config import GeneCompassConfig
 from .io import GeneCompassInput, GeneCompassOutput, MaskedLMOutputBoth
 
-# Mapping for lazy loading core model module.
-_LAZY_MODULES = {
-    "GeneCompassModel": "_modeling",
-}
-
-# Setup lazy loading for the core GeneCompassModel
-__getattr__, __dir__ = create_lazy_loader(
-    requirements=requirements,
-    dependencies=dependencies,
-    lazy_modules=_LAZY_MODULES,
-    package_name=__package__,
-    install_hint="pip install perturblab[genecompass]",
-)
-
-
-def _get_models_registry():
-    """Lazy import MODELS to avoid circular dependency."""
-    from perturblab.models import MODELS
-    return MODELS
-
-
-# ============================================================================
-# Model Registry
-# ============================================================================
-
-# Create GeneCompass sub-registry (lazy)
-GENECOMPASS_REGISTRY = _get_models_registry().child("GeneCompass")
-
-# Register GeneCompass model with dependency checking
-try:
-    from ._modeling import GeneCompassModel
-
-    # Register the main model
-    GENECOMPASS_REGISTRY.register("GeneCompassModel")(GeneCompassModel)
-    GENECOMPASS_REGISTRY.register("default")(GeneCompassModel)
-
-except (DependencyError, ImportError):
-    # Dependencies not satisfied - models won't be available
-    pass
-
-# ============================================================================
-# Component Registry
-# ============================================================================
-
-GENECOMPASS_COMPONENTS = {
-    # Embedding Components
-    "knowledge_embeddings": {
-        "class": "KnowledgeBertEmbeddings",
-        "module": "perturblab.models.genecompass._modeling.components.embeddings",
-        "description": "BERT embeddings incorporating biological prior knowledge.",
-    },
-    "continuous_value_encoder": {
-        "class": "ContinuousValueEncoder",
-        "module": "perturblab.models.genecompass._modeling.components.embeddings",
-        "description": "Encodes continuous gene expression values.",
-    },
-    "prior_embedding": {
-        "class": "PriorEmbedding",
-        "module": "perturblab.models.genecompass._modeling.components.embeddings",
-        "description": "Embedding layer for prior knowledge integration.",
-    },
-    # BERT Core Components
-    "bert_model": {
-        "class": "BertModel",
-        "module": "perturblab.models.genecompass._modeling.components.bert",
-        "description": "BERT encoder with knowledge-informed embeddings.",
-    },
-    "bert_for_masked_lm": {
-        "class": "BertForMaskedLM",
-        "module": "perturblab.models.genecompass._modeling.components.bert",
-        "description": "BERT for masked language modeling with dual prediction heads.",
-    },
-    # Prediction Heads
-    "bert_lm_prediction_head": {
-        "class": "BertLMPredictionHead",
-        "module": "perturblab.models.genecompass._modeling.components.bert",
-        "description": "Predicts gene (token) identities.",
-    },
-    "bert_lm_prediction_head_value": {
-        "class": "BertLMPredictionHead_value",
-        "module": "perturblab.models.genecompass._modeling.components.bert",
-        "description": "Predicts expression values (regression).",
-    },
-    "bert_mlm_head": {
-        "class": "BertOnlyMLMHead",
-        "module": "perturblab.models.genecompass._modeling.components.bert",
-        "description": "MLM head for gene ID prediction.",
-    },
-    "bert_mlm_head_value": {
-        "class": "BertOnlyMLMHead_value",
-        "module": "perturblab.models.genecompass._modeling.components.bert",
-        "description": "MLM head for value prediction.",
-    },
-    # Training Components
-    "embedding_warmup": {
-        "class": "EmbeddingWarmup",
-        "module": "perturblab.models.genecompass._modeling.components.bert",
-        "description": "Warmup scheduler for prior knowledge embeddings.",
-    },
-}
-
 __all__ = [
-    # Public API: config and I/O
     "GeneCompassConfig",
     "GeneCompassInput",
     "GeneCompassOutput",
     "MaskedLMOutputBoth",
-    # Main model (lazy-loaded)
+    "requirements",
+    "dependencies",
     "GeneCompassModel",
-    # Registries
-    "GENECOMPASS_REGISTRY",
-    "GENECOMPASS_COMPONENTS",
 ]
+
+requirements = ["transformers"]
+dependencies = []
+
+
+def _get_models_registry():
+    """Lazily imports MODELS to avoid circular dependency."""
+    from perturblab.models import MODELS
+    return MODELS
+
+
+GENECOMPASS_REGISTRY = _get_models_registry().child("GeneCompass")
+GENECOMPASS_COMPONENTS = GENECOMPASS_REGISTRY.child("components")
+
+# Register main model
+register_lazy_models(
+    registry=GENECOMPASS_REGISTRY,
+    models={
+        "default": "GeneCompassModel",
+        "GeneCompassModel": "GeneCompassModel",
+    },
+    base_module="perturblab.models.genecompass._modeling",
+    requirements=requirements,
+    dependencies=dependencies,
+)
+
+# Register all components from _modeling
+from perturblab.models.genecompass._modeling import __all__ as genecompass_components
+
+component_models = {name: name for name in genecompass_components if name != "GeneCompassModel"}
+
+register_lazy_models(
+    registry=GENECOMPASS_COMPONENTS,
+    models=component_models,
+    base_module="perturblab.models.genecompass._modeling",
+    requirements=requirements,
+    dependencies=dependencies,
+)
+
+try:
+    from ._modeling.model import GeneCompassModel
+except ImportError:
+    pass 

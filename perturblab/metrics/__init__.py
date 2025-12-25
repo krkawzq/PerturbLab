@@ -8,14 +8,14 @@ Available Metrics
 -----------------
 
 Expression Metrics (_expression.py):
-    - r_squared: R² coefficient of determination
-    - pearson_correlation: Pearson correlation coefficient
+    - r2: R² coefficient of determination
+    - pearson: Pearson correlation coefficient
     - mse: Mean squared error
     - rmse: Root mean squared error
     - mae: Mean absolute error
-    - cosine_similarity_score: Cosine similarity
-    - l2_distance: L2 (Euclidean) distance
-    - compute_expression_metrics: All expression metrics at once
+    - cosine: Cosine similarity
+    - l2: L2 (Euclidean) distance
+    - evaluate_perturbation: Compute all expression metrics at once
 
 Distribution Metrics (_distribution.py):
     - mmd: Maximum Mean Discrepancy
@@ -47,29 +47,36 @@ Examples
 --------
 Basic usage:
 
->>> import perturblab as pl
->>> # Compute expression metrics
->>> metrics = pl.metrics.compute_expression_metrics(pred_data, true_data, ctrl_data)
->>> print(f"R² = {metrics['R_squared']:.3f}")
->>> print(f"R² delta = {metrics['R_squared_delta']:.3f}")
-
+>>> from perturblab import metrics
+>>>
+>>> # Compute individual expression metrics
+>>> r2_score = metrics.r2(pred_vector, true_vector)
+>>> pearson_score = metrics.pearson(pred_vector, true_vector)
+>>> mse_score = metrics.mse(pred_vector, true_vector)
+>>>
+>>> # Compute all expression metrics at once
+>>> expr_metrics = metrics.evaluate_perturbation(
+...     pred_data,
+...     true_data,
+...     ctrl_data,
+...     include_delta=True
+... )
+>>> print(f"R² = {expr_metrics['R2']:.3f}")
+>>> print(f"R² delta = {expr_metrics['R2_delta']:.3f}")
+>>>
 >>> # Compute distribution metrics
->>> dist_metrics = pl.metrics.compute_distribution_metrics(pred_data, true_data)
+>>> dist_metrics = metrics.compute_distribution_metrics(pred_data, true_data)
 >>> print(f"MMD = {dist_metrics['MMD']:.4f}")
-
+>>>
 >>> # Compute direction accuracy
->>> direction_acc = pl.metrics.delta_direction_accuracy(pred_data, true_data, ctrl_data)
+>>> direction_acc = metrics.delta_direction_accuracy(pred_data, true_data, ctrl_data)
 >>> print(f"Direction accuracy = {direction_acc:.2%}")
-
->>> # Compute DEG overlap (requires DEG DataFrames)
->>> pred_degs = pl.data.process.differential_expression(pred_adata, ...)
->>> true_degs = pl.data.process.differential_expression(true_adata, ...)
->>> deg_metrics = pl.metrics.compute_deg_overlap_metrics(pred_degs, true_degs)
-
->>> # Compute all metrics at once
->>> all_metrics = pl.metrics.evaluate_prediction(
-...     pred_data, true_data, ctrl_data,
-...     pred_degs=pred_degs, true_degs=true_degs
+>>>
+>>> # Comprehensive evaluation
+>>> all_metrics = metrics.evaluate_prediction(
+...     pred_data,
+...     true_data,
+...     ctrl_data
 ... )
 """
 
@@ -93,13 +100,13 @@ from ._distribution import (
 )
 from ._evaluate import evaluate_prediction
 from ._expression import (
-    compute_expression_metrics,
-    cosine_similarity_score,
-    l2_distance,
+    cosine,
+    evaluate_perturbation,
+    l2,
     mae,
     mse,
-    pearson_correlation,
-    r_squared,
+    pearson,
+    r2,
     rmse,
 )
 from ._spatial import (
@@ -109,15 +116,15 @@ from ._spatial import (
 )
 
 __all__ = [
-    # Expression metrics
-    "r_squared",
-    "pearson_correlation",
+    # Expression metrics (functional primitives)
+    "r2",
+    "pearson",
     "mse",
     "rmse",
     "mae",
-    "cosine_similarity_score",
-    "l2_distance",
-    "compute_expression_metrics",
+    "cosine",
+    "l2",
+    "evaluate_perturbation",
     # Distribution metrics
     "mmd",
     "wasserstein_distance",
@@ -130,11 +137,11 @@ __all__ = [
     "deg_overlap_pvalue",
     "deg_overlap_fdr",
     "compute_deg_overlap_metrics",
-    # Spatial metrics (from scanpy)
+    # Spatial metrics
     "morans_i",
     "gearys_c",
     "compute_spatial_metrics",
-    # Classification metrics (from scanpy)
+    # Classification metrics
     "confusion_matrix",
     # Comprehensive evaluation
     "evaluate_prediction",

@@ -1,33 +1,85 @@
-"""GEARS: Predicting transcriptional outcomes of novel multi-gene perturbations.
+"""GEARS method utilities and workflows.
 
-This module implements the GEARS (Graph-Enhanced gene Activation and Repression Simulator)
-method for predicting cellular responses to genetic perturbations using graph neural networks.
+This module provides complete workflows for using GEARS models, including:
+- Graph construction for gene similarity networks
+- Data preprocessing and format standardization
+- Perturbation string processing
 
-References
-----------
-.. [1] Roohani et al. (2023). "GEARS: Predicting transcriptional outcomes
-       of novel multi-gene perturbations." Nature Methods.
-       https://www.nature.com/articles/s41592-023-01905-6
+All functions are designed to work with PerturbLab's unified type system
+(CellData, PerturbationData, WeightedGraph, etc.) and leverage shared operators
+from perturblab.tools.
 
-Copyright (c) 2023 SNAP Lab, Stanford University
-Licensed under the MIT License
+Usage:
+    >>> from perturblab.methods import gears
+    >>> from perturblab.types import PerturbationData
+    >>>
+    >>> # Build gene similarity graph
+    >>> graph = gears.build_perturbation_graph(
+    ...     gene_vocab=data.genes,
+    ...     similarity='jaccard'
+    ... )
+    >>>
+    >>> # Standardize data format
+    >>> formatted_data = gears.apply_gears_format(
+    ...     data,
+    ...     perturb_col='condition',
+    ...     control_tag='ctrl'
+    ... )
 """
 
-from .utils import (
-    build_perturbation_graph,
-    dataframe_to_weighted_graph,
-    filter_perturbations_in_go,
-    get_perturbation_genes,
-    weighted_graph_to_dataframe,
+from perturblab.utils import get_logger
+
+logger = get_logger()
+
+from .evaluation import (
+    compute_de_metrics,
+    compute_perturbation_metrics,
+    evaluate_predictions,
+)
+from .graph import (
+    build_coexpression_graph,
+    build_go_similarity_graph,
+    compute_pearson_correlation,
+)
+from .loss import GEARSLoss, GEARSUncertaintyLoss, build_loss
+from .pipeline import (
+    build_graphs,
+    build_model,
+    build_trainer,
+    build_training,
+    build_training_components,
+    create_loader,
+)
+from .processing import (
+    build_collate_fn,
+    extract_genes_from_perturbations,
+    filter_perturbations_by_genes,
+    format_gears,
 )
 
 __all__ = [
     # Graph construction
-    "build_perturbation_graph",
-    # Graph conversion (GEARS-specific)
-    "dataframe_to_weighted_graph",
-    "weighted_graph_to_dataframe",
-    # Utilities
-    "filter_perturbations_in_go",
-    "get_perturbation_genes",
+    "build_go_similarity_graph",
+    "build_coexpression_graph",
+    "compute_pearson_correlation",
+    # Data processing
+    "format_gears",
+    "extract_genes_from_perturbations",
+    "filter_perturbations_by_genes",
+    "build_collate_fn",
+    # Loss functions
+    "build_loss",
+    "GEARSLoss",
+    "GEARSUncertaintyLoss",
+    # Evaluation
+    "evaluate_predictions",
+    "compute_perturbation_metrics",
+    "compute_de_metrics",
+    # Pipeline (high-level interface)
+    "build_graphs",
+    "build_model",
+    "build_trainer",
+    "create_loader",
+    "build_training_components",
+    "build_training",
 ]

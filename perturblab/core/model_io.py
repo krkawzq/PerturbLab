@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import copy
 from abc import ABC
-from dataclasses import asdict, dataclass, fields, replace
+from dataclasses import asdict, fields, replace
 from typing import Any, Dict, Iterator, Optional, Type, TypeVar, Union
 
 import torch
@@ -18,8 +18,6 @@ __all__ = ["ModelIO"]
 
 T = TypeVar("T", bound="ModelIO")
 
-
-@dataclass
 class ModelIO(ABC):
     """Base class for all Model Input and Output data structures.
 

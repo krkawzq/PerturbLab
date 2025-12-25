@@ -1,24 +1,56 @@
-"""scFoundation model implementation with lazy loading and dependency checking.
+"""scFoundation model implementations."""
 
-This module uses lazy loading to defer imports until actual usage.
-"""
-
-from perturblab.utils import create_lazy_loader
-
-from perturblab.models.scfoundation.config import requirements, dependencies
-
-# Define lazy loading module map
-_LAZY_MODULES = {
-    "scFoundationModel": ".model",
-}
-
-# Create lazy loader with dependency checking
-__getattr__, __dir__ = create_lazy_loader(
-    requirements=requirements,
-    dependencies=dependencies,
-    lazy_modules=_LAZY_MODULES,
-    package_name=__package__,
-    install_hint="pip install perturblab[scfoundation]",
+from .model import scFoundationModel
+from .components import (
+    # Embeddings
+    AutoDiscretizationEmbedding,
+    RandomPositionalEmbedding,
+    # Transformer
+    Transformer,
+    # Performer attention
+    FastAttention,
+    ReZero,
+    PreScaleNorm,
+    PreLayerNorm,
+    Chunk,
+    FeedForward,
+    SelfAttention,
+    AbsolutePositionalEmbedding,
+    Gene2VecPositionalEmbedding,
+    Performer,
+    PerformerModule,
+    # Reversible layers
+    Deterministic,
+    ReversibleBlock,
+    SequentialSequence,
+    SequentialSequenceGAU,
+    ReversibleSequence,
 )
 
-__all__ = list(_LAZY_MODULES.keys())
+__all__ = [
+    # Main model
+    "scFoundationModel",
+    # Embeddings
+    "AutoDiscretizationEmbedding",
+    "RandomPositionalEmbedding",
+    # Transformer
+    "Transformer",
+    # Performer attention
+    "FastAttention",
+    "ReZero",
+    "PreScaleNorm",
+    "PreLayerNorm",
+    "Chunk",
+    "FeedForward",
+    "SelfAttention",
+    "AbsolutePositionalEmbedding",
+    "Gene2VecPositionalEmbedding",
+    "Performer",
+    "PerformerModule",
+    # Reversible layers
+    "Deterministic",
+    "ReversibleBlock",
+    "SequentialSequence",
+    "SequentialSequenceGAU",
+    "ReversibleSequence",
+]

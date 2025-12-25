@@ -9,15 +9,7 @@ from typing import Literal, Optional
 
 from perturblab.core.config import Config
 
-__all__ = ["scGPTConfig", "requirements", "dependencies"]
-
-# Required dependencies (mandatory)
-requirements = []
-
-# Optional dependencies (for enhanced functionality)
-# Note: scGPT package is not required as we have our own implementation
-# flash_attn is optional for faster attention computation
-dependencies = ["flash_attn"]
+__all__ = ["scGPTConfig"]
 
 
 @dataclass(kw_only=True)
