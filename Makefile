@@ -1,4 +1,4 @@
-.PHONY: help build compile compile-cpp compile-cython install clean test format lint all tree cloc
+.PHONY: help build compile compile-cpp compile-cython clean test format lint all tree cloc
 
 # Config
 PYTHON := python3
@@ -20,7 +20,6 @@ help:
 	@echo "  compile        Compile C++ and Cython"
 	@echo "  compile-cpp    Compile C++ only"
 	@echo "  compile-cython Compile Cython only"
-	@echo "  install        Install Python dependencies"
 	@echo "  clean          Clean build artifacts"
 	@echo "  format         Format and fix code (all tools)"
 	@echo "  lint           Run linters"
@@ -33,10 +32,6 @@ all: clean build format lint test
 # =============================================================================
 # Build & Compile
 # =============================================================================
-
-install:
-	@$(PIP) install --upgrade pip
-	@$(PIP) install -e . --no-build-isolation
 
 setup-deps:
 	@[ -f scripts/setup_cpp_deps.sh ] && ./scripts/setup_cpp_deps.sh || true
@@ -53,7 +48,7 @@ compile-cython:
 
 compile: compile-cpp compile-cython
 
-build: install compile
+build: compile
 
 rebuild: clean build
 

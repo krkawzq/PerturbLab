@@ -43,7 +43,7 @@ if [[ "${OS}" == "linux" ]]; then
     if command -v apt &>/dev/null; then
         if ! dpkg -l | grep -q libomp-dev; then
             echo "Installing libomp-dev..."
-            sudo apt-get update && sudo apt-get install -y libomp-dev
+            sudo apt-get install -y libomp-dev
         else
             echo "libomp-dev already installed"
         fi
