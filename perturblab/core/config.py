@@ -12,7 +12,7 @@ from typing import Any
 try:
     from typing import Self
 except ImportError:
-    from typing_extensions import Self
+    from typing import Self
 
 # Allowed basic types for config values
 BASIC_TYPES = (int, float, str, bool, type(None))

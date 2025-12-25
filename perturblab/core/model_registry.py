@@ -259,9 +259,7 @@ class ModelRegistry:
             logger.error(f"Failed to build model '{key}' from registry '{self._name}': {e}")
             raise
 
-    def get(
-        self, key: str, default: type[Any] | None = None
-    ) -> type[Any] | ModelRegistry | None:
+    def get(self, key: str, default: type[Any] | None = None) -> type[Any] | ModelRegistry | None:
         """Retrieves a model class or sub-registry by key.
 
         Args:
@@ -443,7 +441,7 @@ class ModelRegistry:
             model_class = self._load_lazy_model(key)
             if model_class is not None:
                 yield model_class
-        
+
         # Include child registries
         for child_registry in self._child_registries.values():
             yield child_registry
@@ -457,7 +455,7 @@ class ModelRegistry:
             model_class = self._load_lazy_model(key)
             if model_class is not None:
                 yield key, model_class
-        
+
         # Include child registries
         for name, child_registry in self._child_registries.items():
             yield name, child_registry
@@ -475,7 +473,7 @@ class ModelRegistry:
         """
         # Direct models registered at this level
         current_keys = list(self._obj_map.keys()) + list(self._lazy_map.keys())
-        
+
         # Add child registry names (so users can discover them)
         current_keys.extend(self._child_registries.keys())
 
@@ -502,7 +500,7 @@ class ModelRegistry:
 
     def __dir__(self) -> list[str]:
         """Returns attribute names for auto-completion.
-        
+
         Includes:
         - Registry methods (get, build, register, etc.)
         - Registered model names
@@ -510,10 +508,10 @@ class ModelRegistry:
         """
         # Get default attributes from the class
         attrs = list(object.__dir__(self))
-        
+
         # Add registered models and child registries
         attrs.extend(self.list_keys(recursive=False))
-        
+
         return sorted(set(attrs))
 
     def __len__(self) -> int:

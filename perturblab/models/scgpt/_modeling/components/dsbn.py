@@ -17,7 +17,6 @@ Copyright:
     Adapted for scGPT and PerturbLab.
 """
 
-
 import torch
 from torch import nn
 

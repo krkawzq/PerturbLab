@@ -11,6 +11,9 @@ PerturbLab provides:
 
 __version__ = "1.0.0"
 
+# Module-level imports for convenience
+from . import analysis, data, engine, io, methods, metrics, preprocessing, tools, types, utils
+
 # Core imports
 from .core import ModelRegistry
 
@@ -19,18 +22,15 @@ from .models import MODELS
 
 # Key types
 from .types import (
+    DAG,
     BipartiteGraph,
     CellData,
-    DAG,
     GeneGraph,
     GeneVocab,
     PerturbationData,
     Vocab,
     WeightedGraph,
 )
-
-# Module-level imports for convenience
-from . import analysis, data, engine, io, metrics, methods, preprocessing, tools, types, utils
 
 __all__ = [
     # Version
@@ -59,4 +59,3 @@ __all__ = [
     "types",
     "utils",
 ]
-

@@ -4,7 +4,6 @@ Contains all decoder modules: expression decoder, MVC decoder, classification de
 and adversarial discriminator.
 """
 
-
 import torch
 import torch.nn as nn
 from torch import Tensor

@@ -69,14 +69,17 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
+
 def __getattr__(name: str):
     """Lazy load GeneCompass model class on attribute access."""
     if name == "GeneCompassModel":
         try:
             from ._modeling.model import GeneCompassModel
+
             return GeneCompassModel
         except ImportError as e:
             from perturblab.utils import DependencyError
+
             raise DependencyError(
                 f"GeneCompassModel requires: {', '.join(requirements)}\n"
                 f"Install them with: pip install {' '.join(requirements)}"

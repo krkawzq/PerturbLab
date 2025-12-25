@@ -68,9 +68,7 @@ class AutoDiscretizationEmbedding(nn.Module):
         self.register_buffer("bin_num_idx", torch.arange(bin_num), persistent=False)
         self.register_buffer("tensor0", torch.tensor(0, dtype=torch.long), persistent=False)
 
-    def forward(
-        self, x: Tensor, return_weights: bool = False
-    ) -> Tensor | tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor, return_weights: bool = False) -> Tensor | tuple[Tensor, Tensor]:
         """Forward pass.
 
         Args:

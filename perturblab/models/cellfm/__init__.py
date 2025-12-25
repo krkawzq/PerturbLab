@@ -64,14 +64,17 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
+
 def __getattr__(name: str):
     """Lazy load CellFM model class on attribute access."""
     if name == "CellFMModel":
         try:
             from ._modeling.model import CellFMModel
+
             return CellFMModel
         except ImportError as e:
             from perturblab.utils import DependencyError
+
             raise DependencyError(
                 f"CellFMModel requires: {', '.join(requirements)}\n"
                 f"Install them with: pip install {' '.join(requirements)}"

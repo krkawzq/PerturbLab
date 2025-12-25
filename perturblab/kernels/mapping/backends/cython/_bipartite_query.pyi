@@ -1,6 +1,5 @@
 """Type stubs for Cython bipartite query module."""
 
-
 import numpy as np
 import scipy.sparse
 

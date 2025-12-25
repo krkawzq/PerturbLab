@@ -23,7 +23,8 @@ class Registry:
         for parameter, spec in parameter_tuples:
             if parameter in self._parameters and self._parameters[parameter] != spec:
                 raise ValueError(
-                    f"{parameter} is already registered with " f"spec {self._parameters[parameter]!r} instead of {spec!r}"
+                    f"{parameter} is already registered with "
+                    f"spec {self._parameters[parameter]!r} instead of {spec!r}"
                 )
             self._parameters[parameter] = spec
 

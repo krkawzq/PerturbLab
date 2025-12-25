@@ -1,6 +1,5 @@
 """Pure Python implementation of bipartite graph queries."""
 
-
 import numpy as np
 import scipy.sparse as sparse
 

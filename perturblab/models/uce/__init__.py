@@ -64,14 +64,17 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
+
 def __getattr__(name: str):
     """Lazy load UCE model class on attribute access."""
     if name == "UCEModel":
         try:
             from ._modeling.model import UCEModel
+
             return UCEModel
         except ImportError as e:
             from perturblab.utils import DependencyError
+
             raise DependencyError(
                 f"UCEModel requires: {', '.join(requirements or ['torch'])}. "
                 f"Optional dependencies: {', '.join(dependencies)}\n"

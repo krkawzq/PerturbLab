@@ -4,7 +4,6 @@ This module provides fallback implementations using NumPy/SciPy when the
 high-performance C++ backend is not available.
 """
 
-
 import numpy as np
 import scipy.sparse
 

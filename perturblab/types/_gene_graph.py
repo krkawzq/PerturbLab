@@ -8,11 +8,10 @@ to experimental datasets (AnnData).
 from __future__ import annotations
 
 import numpy as np
-
-from .math._graph import WeightedGraph
 import scipy.sparse as sparse
 
 from ._vocab import Vocab
+from .math._graph import WeightedGraph
 
 __all__ = ["GeneGraph"]
 

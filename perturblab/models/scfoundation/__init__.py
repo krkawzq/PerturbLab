@@ -64,14 +64,17 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
+
 def __getattr__(name: str):
     """Lazy load scFoundation model class on attribute access."""
     if name == "scFoundationModel":
         try:
             from ._modeling.model import scFoundationModel
+
             return scFoundationModel
         except ImportError as e:
             from perturblab.utils import DependencyError
+
             raise DependencyError(
                 f"scFoundationModel requires: {', '.join(requirements or ['torch'])}. "
                 f"Optional dependencies: {', '.join(dependencies)}\n"

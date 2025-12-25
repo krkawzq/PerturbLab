@@ -5,7 +5,6 @@ Contains fast transformer implementations including:
 - FlashTransformerEncoderLayer: Flash attention integration
 """
 
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

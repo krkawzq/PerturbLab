@@ -75,9 +75,7 @@ class CausalLinearAttention(Module):
         # Apply the key padding mask and make sure the attn_mask is a
         # lower triangular causal mask
         if not attn_mask.lower_triangular:
-            raise RuntimeError(
-                "CausalLinearAttention only supports full " "lower triangular masks"
-            )
+            raise RuntimeError("CausalLinearAttention only supports full " "lower triangular masks")
         K = K * key_lengths.float_matrix[:, :, None, None]
 
         # Ensure that Q and K have compatible sizes for the following

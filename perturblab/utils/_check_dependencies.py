@@ -20,7 +20,6 @@ Example:
     ...     print("Install with: pip install torch numpy")
 """
 
-
 from .logging import get_logger
 
 logger = get_logger()

@@ -7,7 +7,6 @@ Copyright (c) 2017 F. Alexander Wolf, P. Angerer, Theis Lab
 Licensed under BSD 3-Clause License
 """
 
-
 import numpy as np
 import scipy.sparse
 from anndata import AnnData

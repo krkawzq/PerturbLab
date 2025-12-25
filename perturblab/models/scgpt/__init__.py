@@ -91,14 +91,17 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
+
 def __getattr__(name: str):
     """Lazy load scGPT model classes on attribute access."""
     if name == "scGPTModel":
         try:
             from ._modeling.model import scGPTModel
+
             return scGPTModel
         except ImportError as e:
             from perturblab.utils import DependencyError
+
             raise DependencyError(
                 f"scGPTModel requires: {', '.join(requirements or ['torch'])}. "
                 f"Optional dependencies: {', '.join(dependencies)}\n"
@@ -110,18 +113,22 @@ def __getattr__(name: str):
     elif name == "scGPTMultiOmicModel":
         try:
             from ._modeling.model import scGPTMultiOmicModel
+
             return scGPTMultiOmicModel
         except ImportError as e:
             from perturblab.utils import DependencyError
+
             raise DependencyError(
                 f"scGPTMultiOmicModel requires: {', '.join(requirements or ['torch'])}\n"
             ) from e
     elif name == "scGPTPerturbationModel":
         try:
             from ._modeling.model import scGPTPerturbationModel
+
             return scGPTPerturbationModel
         except ImportError as e:
             from perturblab.utils import DependencyError
+
             raise DependencyError(
                 f"scGPTPerturbationModel requires: {', '.join(requirements or ['torch'])}\n"
             ) from e

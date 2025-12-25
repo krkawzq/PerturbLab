@@ -17,10 +17,10 @@ from tqdm import tqdm
 from perturblab.types import BipartiteGraph, WeightedGraph
 
 from ._similarity import (
-    pairwise_similarities,
     cosine_similarity_sets,
     jaccard_similarity,
     overlap_coefficient,
+    pairwise_similarities,
 )
 
 __all__ = [

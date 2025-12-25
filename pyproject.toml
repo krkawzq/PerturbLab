@@ -60,13 +60,13 @@ scgpt = [
     "scgpt>=0.2.4",
 ]
 scfoundation = [
-    "local-attention",  # Optional: for Performer backend
+    "local-attention>=1.11.2",  # Optional: for Performer backend
 ]
 genecompass = [
     "transformers>=4.30.0",  # Required: HuggingFace transformers for BERT
 ]
 example = [
-    "ipykernel"
+    "ipykernel>=7.1.0",
 ]
 all = [
     "perturblab[accelerate,gears,uce,scgpt,scfoundation,genecompass]",
@@ -117,3 +117,18 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+
+[tool.pytest]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "network: tests that require network access (may be slow or flaky)",
+    "slow: tests that are slow to run (can be skipped with -m 'not slow')",
+]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+]

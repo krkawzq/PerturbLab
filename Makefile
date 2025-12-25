@@ -1,4 +1,4 @@
-.PHONY: help build compile compile-cpp compile-cython clean test test-fast test-imports test-types test-verbose test-coverage test-quick test-models format lint all tree cloc
+.PHONY: help build compile compile-cpp compile-cython clean test test-fast test-imports test-types test-download test-download-no-network test-verbose test-coverage test-quick test-models format lint all tree cloc
 
 # Config
 PYTHON := python3
@@ -23,14 +23,19 @@ help:
 	@echo "  clean          Clean build artifacts"
 	@echo "  format         Format and fix code (all tools)"
 	@echo "  lint           Run linters"
-	@echo "  test           Run all tests"
-	@echo "  test-fast      Run tests (fail fast)"
-	@echo "  test-imports   Run import tests only"
-	@echo "  test-types     Run type tests only"
-	@echo "  test-verbose   Run tests with verbose output"
-	@echo "  test-coverage  Run tests with coverage report"
-	@echo "  test-quick     Quick sanity test (import check)"
-	@echo "  test-models    Test model registry"
+	@echo "  test                    Run all tests"
+	@echo "  test-fast               Run tests (fail fast)"
+	@echo "  test-imports            Run import tests only"
+	@echo "  test-types              Run type tests only"
+	@echo "  test-metrics            Run metrics tests only"
+	@echo "  test-preprocessing      Run preprocessing tests only"
+	@echo "  test-pp                 Alias for test-preprocessing"
+	@echo "  test-download           Run download & registry tests"
+	@echo "  test-download-no-network Run download tests (skip network)"
+	@echo "  test-verbose            Run tests with verbose output"
+	@echo "  test-coverage           Run tests with coverage report"
+	@echo "  test-quick              Quick sanity test (import check)"
+	@echo "  test-models             Test model registry"
 	@echo "  cloc           Count lines of code"
 	@echo "  tree           Show git-tracked files tree (filtered)"
 
@@ -128,6 +133,28 @@ test-types:
 	@echo "Running type tests..."
 	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest
 	@uv run pytest tests/test_types.py -v || $(PYTHON) -m pytest tests/test_types.py -v
+
+test-download:
+	@echo "Running download and registry tests..."
+	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest
+	@uv run pytest tests/test_download.py -v || $(PYTHON) -m pytest tests/test_download.py -v
+
+test-download-no-network:
+	@echo "Running download tests (skipping network tests)..."
+	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest
+	@uv run pytest tests/test_download.py -v -m "not network" || $(PYTHON) -m pytest tests/test_download.py -v -m "not network"
+
+test-metrics:
+	@echo "Running metrics tests..."
+	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest
+	@uv run pytest tests/test_metrics.py -v
+
+test-preprocessing:
+	@echo "Running preprocessing tests..."
+	@command -v pytest >/dev/null 2>&1 || $(PIP) install pytest
+	@uv run pytest tests/test_preprocessing.py -v
+
+test-pp: test-preprocessing
 
 test-verbose:
 	@echo "Running tests (verbose)..."

@@ -215,23 +215,19 @@ class Favor(RandomFourierFeatures):
         not simply warn of a possible bug."""
         if len(x.shape) != 4:
             warnings.warn(
-
-                    "Favor.stabilize is set to True but the input "
-                    "feature does not have the shape (N, L, H, D) "
-                    "which may result in unexpected behaviour"
-
+                "Favor.stabilize is set to True but the input "
+                "feature does not have the shape (N, L, H, D) "
+                "which may result in unexpected behaviour"
             )
 
         if x.shape[1] < x.shape[2]:
             warnings.warn(
-
-                    "Favor.stabilize is set to True but the 2nd "
-                    "dimension of the input is smaller than the 3rd "
-                    "which could indicate that the sequence length and "
-                    "the heads are flipped. This may result in incorrect "
-                    "behaviour. The shape of the input is "
-                    f"{x.shape!r}."
-
+                "Favor.stabilize is set to True but the 2nd "
+                "dimension of the input is smaller than the 3rd "
+                "which could indicate that the sequence length and "
+                "the heads are flipped. This may result in incorrect "
+                "behaviour. The shape of the input is "
+                f"{x.shape!r}."
             )
 
     def forward(self, x):

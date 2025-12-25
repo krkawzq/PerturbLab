@@ -4,7 +4,6 @@ This module provides bidirectional conversion between pandas DataFrames
 (edge list format) and PerturbLab's WeightedGraph type.
 """
 
-
 import numpy as np
 import pandas as pd
 

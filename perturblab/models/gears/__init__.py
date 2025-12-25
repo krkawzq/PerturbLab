@@ -59,14 +59,17 @@ register_lazy_models(
     dependencies=dependencies,
 )
 
+
 def __getattr__(name: str):
     """Lazy load GEARS model class on attribute access."""
     if name == "GEARSModel":
         try:
             from ._modeling.model import GEARSModel
+
             return GEARSModel
         except ImportError as e:
             from perturblab.utils import DependencyError
+
             raise DependencyError(
                 f"GEARSModel requires: {', '.join(requirements)}\n"
                 f"Install them with: pip install {' '.join(requirements)}"
